@@ -32,6 +32,10 @@ def handle_preflight():
 
 print("API KEY LOADED:", "YES" if api_key else "NO")
 
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({"status": "Backend is running"}), 200
+
 @app.route('/analyze', methods=['POST'])
 def analyze_resume():
     if 'resume' not in request.files or 'jd' not in request.form:
