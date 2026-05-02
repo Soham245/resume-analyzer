@@ -5,10 +5,10 @@ import io
 from dotenv import load_dotenv
 from pathlib import Path
 
-from parser import extract_text
-from skill_extractor import extract_and_categorize_skills, generate_gap_suggestions, filter_and_group_skills
-from rewriter import generate_structured_resume, optimize_resume_for_jd, generate_resume_from_inputs
-from pdf_generator import generate_pdf_from_html
+from backend.parser import extract_text
+from backend.skill_extractor import extract_and_categorize_skills, generate_gap_suggestions, filter_and_group_skills
+from backend.rewriter import generate_structured_resume, optimize_resume_for_jd, generate_resume_from_inputs
+from backend.pdf_generator import generate_pdf_from_html
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 env_path = BASE_DIR / ".env"
