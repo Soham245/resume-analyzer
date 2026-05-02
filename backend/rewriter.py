@@ -1,0 +1,282 @@
+from google import genai
+import json
+import re
+import traceback
+
+
+def _extract_json(raw_output):
+    """
+    Robustly extract a JSON object from a model response.
+    Handles: markdown code blocks (with or without leading text),
+    raw JSON, and JSON followed by trailing explanation text.
+    """
+    raw_output = raw_output.strip()
+
+    # Case 1: JSON wrapped in a ```json ... ``` or ``` ... ``` block
+    # Use re.search so leading text like "Here is the JSON:" is ignored
+    match = re.search(r'`{3}(?:json)?\s*([\s\S]*?)\s*`{3}', raw_output)
+    if match:
+        return match.group(1).strip()
+
+    # Case 2: No code block — find the outermost { ... }
+    # rfind('}') handles trailing text after the JSON object
+    start = raw_output.find('{')
+    end   = raw_output.rfind('}')
+    if start != -1 and end != -1 and end > start:
+        return raw_output[start:end + 1]
+
+    # Fallback: return as-is and let json.loads surface the error
+    return raw_output
+
+
+def optimize_resume_for_jd(resume_text, jd_text, skills, api_key):
+    """
+    skills: { technical: [], soft: [], languages: [] }
+    Returns structured resume JSON with technical_skills / soft_skills / languages.
+    """
+    client = genai.Client(api_key=api_key)
+
+    # Guard: ensure skills is always a dict, never None
+    if not isinstance(skills, dict):
+        skills = {}
+    technical = skills.get("technical") or []
+    soft      = skills.get("soft")      or []
+    languages = skills.get("languages") or []
+
+    prompt = f"""
+    You are an ATS Resume Optimization Specialist. Rewrite the resume to maximize ATS match against the Job Description.
+
+    WRITING STYLE:
+    - Concise, professional. No fluff, no filler phrases.
+    - Bullet points: max 15 words each. Start with a past-tense action verb.
+    - Summary: 2-3 sentences max. Dense with JD keywords.
+    - Focus on achievements and measurable impact.
+
+    OPTIMIZATION RULES:
+    1. Inject JD keywords and exact phrases naturally throughout.
+    2. Reframe existing experience to align with JD — even ~10% relevance is enough.
+    3. Use EXACTLY the provided skill lists. Do not add or remove skills.
+    4. Preserve all jobs and projects. Reword aggressively, never fabricate new roles.
+    5. Use '[Add X]' placeholders for any missing contact fields.
+
+    CRITICAL — EXPERIENCE vs PROJECTS (strict separation):
+    - "experience": ONLY paid jobs, internships, or contracts. Entry MUST have BOTH a named employer AND a date range.
+    - "projects": Everything else — personal, academic, side, freelance, OSS, hackathon builds.
+
+    Project detection signals (if ANY of these apply → classify as project, NOT experience):
+    • Listed under a section header containing: Projects, Portfolio, Side Projects, Academic, Hackathon, Open Source
+    • Has a tech stack or tools list but no formal employer/company name
+    • Duration is a contest/event date (e.g. "HackMIT 2023") with no organization
+    • Entry describes something "built", "developed", or "created" rather than a role held
+    • Has a GitHub link, demo URL, or "Personal Project" label instead of an employer
+
+    Each project MUST include:
+    • "title": specific project name (e.g. "E-Commerce Platform", NOT generic "Project 1")
+    • "tech_stack": array of specific technologies used (e.g. ["React", "Node.js", "MongoDB"]) — never vague terms
+    • "points": exactly 2-3 bullets, max 15 words each, past-tense action verbs:
+        - Bullet 1: what was built / what it does
+        - Bullet 2: key features or technical implementation
+        - Bullet 3 (if available): outcome, impact, or metrics
+
+    DO NOT put projects in experience. DO NOT put jobs in projects.
+    If no projects are found in the resume, return: "projects": []
+
+    Skills (authoritative — use exactly as provided):
+    Technical: {json.dumps(technical)}
+    Soft: {json.dumps(soft)}
+    Languages: {json.dumps(languages)}
+
+    Return ONLY valid JSON. No explanation text before or after. Matching this schema:
+    {{
+        "name": "Full Name",
+        "title": "Title aligned to JD",
+        "email": "...", "phone": "...", "linkedin": "...", "github": "...",
+        "summary": "2-3 sentence ATS-optimized summary",
+        "technical_skills": {json.dumps(technical)},
+        "soft_skills": {json.dumps(soft)},
+        "languages": {json.dumps(languages)},
+        "experience": [
+            {{ "role": "...", "company": "...", "duration": "...", "points": ["verb-led bullet, max 15 words"] }}
+        ],
+        "projects": [
+            {{ "title": "Project Name", "tech_stack": ["Tech1", "Tech2"], "points": ["what was built", "key feature", "outcome/impact"] }}
+        ],
+        "education": [{{ "degree": "...", "institution": "...", "year": "..." }}],
+        "certifications": ["..."]
+    }}
+
+    Job Description:
+    {jd_text}
+
+    Resume:
+    {resume_text}
+    """
+
+    try:
+        response = client.models.generate_content(
+            model='gemini-3.1-flash-lite-preview',
+            contents=prompt
+        )
+        raw_output = response.text.strip()
+        print(f"[optimize] Raw model output (first 300 chars): {raw_output[:300]}")
+
+        cleaned = _extract_json(raw_output)
+        return json.loads(cleaned)
+
+    except json.JSONDecodeError as e:
+        print(f"[optimize] JSON parse error: {e}")
+        print(f"[optimize] Full raw output:\n{raw_output}")
+        raise RuntimeError(f"Model returned invalid JSON: {e}")
+
+    except Exception as e:
+        traceback.print_exc()
+        raise RuntimeError(f"Optimize API call failed: {e}")
+
+
+def generate_resume_from_inputs(inputs, api_key):
+    """
+    Build a complete structured resume from manual user inputs.
+    inputs keys: name, title, email, phone, linkedin, github,
+                 education_text, experience_text, projects_text,
+                 certifications_text, technical_skills (list),
+                 soft_skills (list), languages (list)
+    """
+    client = genai.Client(api_key=api_key)
+
+    name      = (inputs.get('name')     or '').strip()
+    title     = (inputs.get('title')    or '').strip()
+    email     = (inputs.get('email')    or '[Add Email]').strip() or '[Add Email]'
+    phone     = (inputs.get('phone')    or '[Add Phone]').strip() or '[Add Phone]'
+    linkedin  = (inputs.get('linkedin') or '[Add LinkedIn]').strip() or '[Add LinkedIn]'
+    github    = (inputs.get('github')   or '[Add GitHub]').strip()  or '[Add GitHub]'
+    edu_text  = (inputs.get('education_text')      or '').strip()
+    exp_text  = (inputs.get('experience_text')     or '').strip()
+    proj_text = (inputs.get('projects_text')       or '').strip()
+    cert_text = (inputs.get('certifications_text') or '').strip()
+    technical = inputs.get('technical_skills') or []
+    soft      = inputs.get('soft_skills')      or []
+    languages = inputs.get('languages')        or []
+
+    prompt = f"""
+    You are an ATS Resume Writer. Build a complete, professional resume from the user inputs below.
+
+    WRITING RULES:
+    - Career summary: 2-3 sentences max, dense with role-relevant keywords. No generic phrases.
+      If no experience provided → focus on strongest skills and projects.
+    - Bullet points: max 15 words each, past-tense action verbs, impact/feature focused. 2-4 per entry.
+    - Experience parsing: extract Role, Company, Duration, and key responsibilities from the raw text.
+    - Projects parsing: extract Title, Tech Stack, and description from the raw text.
+    - Education parsing: extract Degree, Institution, Year from each line.
+    - Certifications: one string per cert, include org and date if provided.
+    - Skills: use EXACTLY the provided lists. Do not add or remove any skill.
+    - Dates: extract from input; use "[Add Date]" only if truly absent.
+    - Empty section input → return [] or "" for that field. NEVER invent data.
+
+    USER INPUTS:
+    Name: {name}
+    Target Role: {title}
+    Email: {email}
+    Phone: {phone}
+    LinkedIn: {linkedin}
+    GitHub: {github}
+
+    Education:
+    {edu_text or 'Not provided'}
+
+    Experience:
+    {exp_text or 'Not provided'}
+
+    Projects:
+    {proj_text or 'Not provided'}
+
+    Certifications:
+    {cert_text or 'Not provided'}
+
+    Technical Skills: {json.dumps(technical)}
+    Soft Skills: {json.dumps(soft)}
+    Languages: {json.dumps(languages)}
+
+    Return ONLY valid JSON. No explanation text before or after. Schema:
+    {{
+        "name": "{name}",
+        "title": "polished title aligned to target role",
+        "email": "{email}", "phone": "{phone}", "linkedin": "{linkedin}", "github": "{github}",
+        "summary": "2-3 sentence AI-written career summary, no fluff",
+        "technical_skills": {json.dumps(technical)},
+        "soft_skills": {json.dumps(soft)},
+        "languages": {json.dumps(languages)},
+        "experience": [
+            {{ "role": "...", "company": "...", "duration": "...", "points": ["action-led bullet max 15 words"] }}
+        ],
+        "projects": [
+            {{ "title": "...", "tech_stack": ["Tech1", "Tech2"], "points": ["what built", "key feature", "outcome"] }}
+        ],
+        "education": [
+            {{ "degree": "...", "institution": "...", "year": "..." }}
+        ],
+        "certifications": ["cert name — org (date)"]
+    }}
+    """
+
+    try:
+        response = client.models.generate_content(
+            model='gemini-3.1-flash-lite-preview',
+            contents=prompt
+        )
+        raw_output = response.text.strip()
+        print(f"[from-inputs] Raw output (first 300): {raw_output[:300]}")
+        cleaned = _extract_json(raw_output)
+        return json.loads(cleaned)
+    except json.JSONDecodeError as e:
+        print(f"[from-inputs] JSON parse error: {e}")
+        print(f"[from-inputs] Full raw:\n{raw_output}")
+        raise RuntimeError(f"Model returned invalid JSON: {e}")
+    except Exception as e:
+        traceback.print_exc()
+        raise RuntimeError(f"generate-from-inputs API call failed: {e}")
+
+
+def generate_structured_resume(resume_text, api_key):
+    client = genai.Client(api_key=api_key)
+
+    prompt = f"""
+    You are an elite Executive Resume Writer. Rewrite the following resume text.
+
+    CRITICAL RULES:
+    1. DO NOT DELETE JOBS: Include EVERY work experience and project. Map both to "experience".
+    2. ZERO FLUFF: Eliminate all filler words.
+    3. ACTION FIRST: Every bullet point MUST start with a strong, past-tense action verb.
+    4. ACHIEVEMENTS & CERTS: Extract certifications, awards, achievements into 'certifications'. Return [] if none.
+    5. CONTACT INFO: Use exact placeholders '[Add Email]', '[Add Phone]', '[Add LinkedIn]', '[Add GitHub]' for any missing fields.
+
+    Return ONLY valid JSON. No explanation text before or after. Matching this schema:
+    {{
+        "name": "Full Name",
+        "title": "Professional Title",
+        "email": "...", "phone": "...", "linkedin": "...", "github": "...",
+        "summary": "Impactful professional summary",
+        "skills": ["Skill 1", "Skill 2"],
+        "experience": [
+            {{ "role": "Job Title or Project Name", "company": "Company or 'Independent Project'", "duration": "Dates", "points": ["Action driven bullet point"] }}
+        ],
+        "education": [{{ "degree": "Degree Name", "institution": "School", "year": "Year" }}],
+        "certifications": ["Certification/Achievement 1"]
+    }}
+
+    Raw Resume:
+    {resume_text}
+    """
+
+    try:
+        response = client.models.generate_content(
+            model='gemini-3.1-flash-lite-preview',
+            contents=prompt
+        )
+        raw_output = response.text.strip()
+        cleaned = _extract_json(raw_output)
+        return json.loads(cleaned)
+
+    except Exception as e:
+        traceback.print_exc()
+        print(f"[rewrite] API Error: {e}")
+        return None

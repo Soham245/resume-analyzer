@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \":*)",
+      "Bash(python -c \"import flask; print\\(''flask ok''\\)\")",
+      "Bash(python -c \"import http.server; print\\(''http.server ok''\\)\")",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}
