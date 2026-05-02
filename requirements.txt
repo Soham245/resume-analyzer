@@ -2,3 +2,6 @@ Flask
 flask-cors
 python-dotenv
 gunicorn
+google-genai
+PyPDF2
+playwright
