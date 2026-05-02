@@ -392,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('jd', savedJdText);
 
         try {
-            const response = await fetch('http://localhost:5000/analyze', {
+            const response = await fetch('https://resume-analyzer-23x0.onrender.com/analyze', {
                 method: 'POST',
                 body: formData
             });
@@ -444,7 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
         startRewriteBtn.disabled = true;
 
         try {
-            const res = await fetch('http://localhost:5000/optimize', {
+            const res = await fetch('https://resume-analyzer-23x0.onrender.com/optimize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -589,7 +589,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (jdText) {
                 // ── JD path: analyze → show skill panel → optimize ────────────
                 genBtnText.textContent = 'Analyzing skills...';
-                const analysisRes = await fetch('http://localhost:5000/analyze-manual', {
+                const analysisRes = await fetch('https://resume-analyzer-23x0.onrender.com/analyze-manual', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -607,7 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Optimize resume for JD (same pipeline as upload mode)
                 genBtnText.textContent = 'Optimizing for JD...';
-                const optimizeRes = await fetch('http://localhost:5000/optimize', {
+                const optimizeRes = await fetch('https://resume-analyzer-23x0.onrender.com/optimize', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -623,7 +623,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } else {
                 // ── No JD: generate plain resume from inputs ──────────────────
-                const res = await fetch('http://localhost:5000/generate-from-inputs', {
+                const res = await fetch('https://resume-analyzer-23x0.onrender.com/generate-from-inputs', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ inputs }),
@@ -693,7 +693,7 @@ document.addEventListener('DOMContentLoaded', () => {
         builderOptBtn.disabled = true;
 
         try {
-            const res = await fetch('http://localhost:5000/optimize', {
+            const res = await fetch('https://resume-analyzer-23x0.onrender.com/optimize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -940,7 +940,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </head><body>${clone.outerHTML}</body></html>`;
 
         try {
-            const res = await fetch('http://localhost:5000/generate-pdf', {
+            const res = await fetch('https://resume-analyzer-23x0.onrender.com/generate-pdf', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ html: finalHtml })
