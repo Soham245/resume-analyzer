@@ -1,317 +1,454 @@
-from google import genai
 import json
+import logging
 import re
-import traceback
+import signal
+import threading
+
+from google import genai
+from google.genai import types
+
 from . import scorer
+
+logger = logging.getLogger(__name__)
+
+MODEL_NAME = "gemini-2.5-flash-lite"
+AI_TIMEOUT_SECONDS = 25
+MAX_TEXT_CHARS = 3000
+
+
+class AITimeoutException(Exception):
+    pass
+
+
+def _timeout_handler(signum, frame):
+    raise AITimeoutException("AI request timed out")
 
 
 def _extract_json(raw_output):
-    """
-    Robustly extract a JSON object from a model response.
-    Handles: markdown code blocks (with or without leading text),
-    raw JSON, and JSON followed by trailing explanation text.
-    """
-    raw_output = raw_output.strip()
+    raw_output = (raw_output or "").strip()
 
-    # Case 1: JSON wrapped in a ```json ... ``` or ``` ... ``` block
-    # Use re.search so leading text like "Here is the JSON:" is ignored
-    match = re.search(r'`{3}(?:json)?\s*([\s\S]*?)\s*`{3}', raw_output)
+    match = re.search(r"`{3}(?:json)?\s*([\s\S]*?)\s*`{3}", raw_output)
     if match:
         return match.group(1).strip()
 
-    # Case 2: No code block — find the outermost { ... }
-    # rfind('}') handles trailing text after the JSON object
-    start = raw_output.find('{')
-    end   = raw_output.rfind('}')
+    start = raw_output.find("{")
+    end = raw_output.rfind("}")
     if start != -1 and end != -1 and end > start:
         return raw_output[start:end + 1]
 
-    # Fallback: return as-is and let json.loads surface the error
     return raw_output
 
 
-def validate_resume(result, selected_projects):
-    return (
-        isinstance(result, dict)
-        and "projects" in result
-        and len(result["projects"]) == len(selected_projects)
+def _cap_text(text, max_chars=MAX_TEXT_CHARS):
+    return re.sub(r"\s+", " ", str(text or "")).strip()[:max_chars]
+
+
+def _cap_list(values, max_items=12, item_max_chars=80):
+    items = []
+    for value in values or []:
+        item = _cap_text(value, item_max_chars)
+        if item:
+            items.append(item)
+        if len(items) >= max_items:
+            break
+    return items
+
+
+def _schema_template():
+    return {
+        "name": "[Add Name]",
+        "title": "[Add Title]",
+        "email": "[Add Email]",
+        "phone": "[Add Phone]",
+        "linkedin": "[Add LinkedIn]",
+        "github": "[Add GitHub]",
+        "summary": "",
+        "technical_skills": [],
+        "soft_skills": [],
+        "languages": [],
+        "experience": [],
+        "projects": [],
+        "education": [],
+        "certifications": [],
+    }
+
+
+def _coerce_text(value, fallback="", max_chars=200):
+    value = _cap_text(value, max_chars)
+    return value or fallback
+
+
+def _coerce_string_list(values, max_items, item_max_chars=120):
+    return _cap_list(values if isinstance(values, list) else [], max_items=max_items, item_max_chars=item_max_chars)
+
+
+def _coerce_experience(entries):
+    cleaned = []
+    for entry in entries if isinstance(entries, list) else []:
+        if not isinstance(entry, dict):
+            continue
+        cleaned.append({
+            "role": _coerce_text(entry.get("role"), max_chars=120),
+            "company": _coerce_text(entry.get("company"), max_chars=120),
+            "duration": _coerce_text(entry.get("duration"), max_chars=80),
+            "points": _coerce_string_list(entry.get("points"), max_items=5, item_max_chars=160),
+        })
+        if len(cleaned) >= 5:
+            break
+    return cleaned
+
+
+def _coerce_projects(entries, limit=None):
+    cleaned = []
+    for entry in entries if isinstance(entries, list) else []:
+        if not isinstance(entry, dict):
+            continue
+        cleaned.append({
+            "title": _coerce_text(entry.get("title"), max_chars=120),
+            "tech_stack": _coerce_string_list(entry.get("tech_stack"), max_items=6, item_max_chars=60),
+            "points": _coerce_string_list(entry.get("points"), max_items=4, item_max_chars=160),
+        })
+        if limit and len(cleaned) >= limit:
+            break
+        if len(cleaned) >= 6:
+            break
+    return cleaned
+
+
+def _coerce_education(entries):
+    cleaned = []
+    for entry in entries if isinstance(entries, list) else []:
+        if not isinstance(entry, dict):
+            continue
+        cleaned.append({
+            "degree": _coerce_text(entry.get("degree"), max_chars=140),
+            "institution": _coerce_text(entry.get("institution"), max_chars=140),
+            "year": _coerce_text(entry.get("year"), max_chars=40),
+        })
+        if len(cleaned) >= 4:
+            break
+    return cleaned
+
+
+def _fallback_resume(skills=None, base=None):
+    fallback = _schema_template()
+    if isinstance(base, dict):
+        fallback.update({
+            "name": _coerce_text(base.get("name"), fallback["name"], max_chars=120),
+            "title": _coerce_text(base.get("title"), fallback["title"], max_chars=120),
+            "email": _coerce_text(base.get("email"), fallback["email"], max_chars=120),
+            "phone": _coerce_text(base.get("phone"), fallback["phone"], max_chars=60),
+            "linkedin": _coerce_text(base.get("linkedin"), fallback["linkedin"], max_chars=200),
+            "github": _coerce_text(base.get("github"), fallback["github"], max_chars=200),
+            "summary": _coerce_text(base.get("summary"), "", max_chars=400),
+            "experience": _coerce_experience(base.get("experience")),
+            "projects": _coerce_projects(base.get("projects")),
+            "education": _coerce_education(base.get("education")),
+            "certifications": _coerce_string_list(base.get("certifications"), max_items=6, item_max_chars=120),
+        })
+
+    skill_data = skills if isinstance(skills, dict) else {}
+    base_technical = base.get("technical_skills", []) if isinstance(base, dict) else []
+    base_soft = base.get("soft_skills", []) if isinstance(base, dict) else []
+    base_languages = base.get("languages", []) if isinstance(base, dict) else []
+
+    fallback["technical_skills"] = _coerce_string_list(
+        skill_data.get("technical") or base_technical,
+        max_items=16,
+        item_max_chars=60,
     )
+    fallback["soft_skills"] = _coerce_string_list(
+        skill_data.get("soft") or base_soft,
+        max_items=12,
+        item_max_chars=60,
+    )
+    fallback["languages"] = _coerce_string_list(
+        skill_data.get("languages") or base_languages,
+        max_items=8,
+        item_max_chars=40,
+    )
+    return fallback
+
+
+def _project_limit(resume_data):
+    experience_count = len((resume_data or {}).get("experience", []) or [])
+    if experience_count == 0:
+        return 6
+    if experience_count <= 2:
+        return 4
+    if experience_count == 3:
+        return 3
+    return 2
+
+
+def _prepare_resume_input(resume_text, skills, jd_text):
+    if isinstance(resume_text, dict):
+        prepared = _fallback_resume(skills, resume_text)
+        prepared["projects"] = scorer.rank_projects_by_overlap(prepared["projects"], jd_text)
+        return prepared
+
+    fallback = _fallback_resume(skills)
+    return {
+        "raw_resume": _cap_text(resume_text),
+        "seed": fallback,
+    }
+
+
+def _start_timeout():
+    if hasattr(signal, "alarm") and threading.current_thread() is threading.main_thread():
+        old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
+        signal.alarm(AI_TIMEOUT_SECONDS)
+        return old_handler
+    return None
+
+
+def _clear_timeout(old_handler):
+    if old_handler is not None and hasattr(signal, "alarm") and threading.current_thread() is threading.main_thread():
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old_handler)
+
+
+def _generate_json(prompt, api_key, label):
+    old_handler = _start_timeout()
+    try:
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=types.GenerateContentConfig(temperature=0.0),
+        )
+        cleaned = _extract_json(getattr(response, "text", "") or "")
+        if not cleaned:
+            return None
+        return json.loads(cleaned)
+    except AITimeoutException:
+        logger.warning("[%s] AI request timed out after %s seconds", label, AI_TIMEOUT_SECONDS)
+        return None
+    except Exception as exc:
+        logger.warning("[%s] AI request failed: %s", label, exc)
+        return None
+    finally:
+        _clear_timeout(old_handler)
+
+
+def _finalize_resume(result, fallback, project_limit=None):
+    if not isinstance(result, dict):
+        result = {}
+
+    final = _schema_template()
+    final["name"] = _coerce_text(result.get("name"), fallback["name"], max_chars=120)
+    final["title"] = _coerce_text(result.get("title"), fallback["title"], max_chars=120)
+    final["email"] = _coerce_text(result.get("email"), fallback["email"], max_chars=120)
+    final["phone"] = _coerce_text(result.get("phone"), fallback["phone"], max_chars=60)
+    final["linkedin"] = _coerce_text(result.get("linkedin"), fallback["linkedin"], max_chars=200)
+    final["github"] = _coerce_text(result.get("github"), fallback["github"], max_chars=200)
+    final["summary"] = _coerce_text(result.get("summary"), fallback["summary"], max_chars=500)
+
+    final["technical_skills"] = _coerce_string_list(
+        result.get("technical_skills") or fallback["technical_skills"],
+        max_items=16,
+        item_max_chars=60,
+    )
+    final["soft_skills"] = _coerce_string_list(
+        result.get("soft_skills") or fallback["soft_skills"],
+        max_items=12,
+        item_max_chars=60,
+    )
+    final["languages"] = _coerce_string_list(
+        result.get("languages") or fallback["languages"],
+        max_items=8,
+        item_max_chars=40,
+    )
+    final["experience"] = _coerce_experience(result.get("experience") or fallback["experience"])
+    final["projects"] = _coerce_projects(
+        result.get("projects") or fallback["projects"],
+        limit=project_limit,
+    )
+    final["education"] = _coerce_education(result.get("education") or fallback["education"])
+    final["certifications"] = _coerce_string_list(
+        result.get("certifications") or fallback["certifications"],
+        max_items=6,
+        item_max_chars=120,
+    )
+
+    return final
+
+
+def validate_resume(result, selected_projects):
+    if not isinstance(result, dict):
+        return False
+    if not isinstance(result.get("projects"), list):
+        return False
+    if not selected_projects:
+        return len(result["projects"]) == 0
+    return len(result["projects"]) <= max(1, len(selected_projects))
 
 
 def optimize_resume_for_jd(resume_text, jd_text, skills, api_key):
     """
-    skills: { technical: [], soft: [], languages: [] }
-    Returns structured resume JSON with technical_skills / soft_skills / languages.
+    One AI call only. Works with raw resume text or structured resume JSON.
     """
-    client = genai.Client(api_key=api_key)
+    jd_text = _cap_text(jd_text)
+    resume_seed = _prepare_resume_input(resume_text, skills or {}, jd_text)
+    fallback_base = resume_seed if isinstance(resume_text, dict) else resume_seed.get("seed", {})
+    fallback = _fallback_resume(skills or {}, fallback_base)
+    selected_projects = scorer.rank_projects_by_overlap(fallback["projects"], jd_text)
+    project_limit = _project_limit(fallback)
 
-    # Guard: ensure skills is always a dict, never None
-    if not isinstance(skills, dict):
-        skills = {}
-    technical = skills.get("technical") or []
-    soft      = skills.get("soft")      or []
-    languages = skills.get("languages") or []
-
-    # Parse resume if it is raw text
-    parsed_resume = resume_text
-    if isinstance(resume_text, str):
-        try:
-            parsed_resume = json.loads(resume_text)
-        except json.JSONDecodeError:
-            parsed_resume = generate_structured_resume(resume_text, api_key)
-            if not parsed_resume:
-                raise RuntimeError("Failed to parse resume into structured data.")
-
-    experience_count = len(parsed_resume.get("experience", []))
-
-    if experience_count == 0:
-        project_limit = 6
-    elif experience_count <= 2:
-        project_limit = 4
-    elif experience_count == 3:
-        project_limit = 3
-    else:
-        project_limit = 2
-
-    projects = parsed_resume.get("projects", [])
-    selected_projects = scorer.rank_projects_tfidf(projects, jd_text)[:project_limit]
-
-    parsed_resume["projects"] = selected_projects
+    if selected_projects:
+        fallback["projects"] = selected_projects[:project_limit]
 
     prompt = f"""
-    You are an ATS Resume Optimization Specialist. Rewrite the resume to maximize ATS match against the Job Description.
+Return JSON only with this schema:
+{{
+  "name": "",
+  "title": "",
+  "email": "",
+  "phone": "",
+  "linkedin": "",
+  "github": "",
+  "summary": "",
+  "technical_skills": [],
+  "soft_skills": [],
+  "languages": [],
+  "experience": [{{"role": "", "company": "", "duration": "", "points": []}}],
+  "projects": [{{"title": "", "tech_stack": [], "points": []}}],
+  "education": [{{"degree": "", "institution": "", "year": ""}}],
+  "certifications": []
+}}
 
-    WRITING STYLE:
-    - Concise, professional. No fluff, no filler phrases.
-    - Bullet points: max 15 words each. Start with a past-tense action verb.
-    - Summary: 2-3 sentences max. Dense with JD keywords.
-    - Focus on achievements and measurable impact.
+Rules:
+- Use exactly the provided skills lists. Do not add new skills.
+- Do not invent roles, companies, dates, projects, or certifications.
+- Keep bullets short and specific.
+- Keep at most {project_limit} projects.
 
-    OPTIMIZATION RULES:
-    1. Inject JD keywords and exact phrases naturally throughout.
-    2. Reframe existing experience to align with JD — even ~10% relevance is enough.
-    3. Use EXACTLY the provided skill lists. Do not add or remove skills.
-    4. Preserve all jobs and projects. Reword aggressively, never fabricate new roles.
-    5. Use '[Add X]' placeholders for any missing contact fields.
+Job Description:
+{jd_text}
 
-    You are given structured resume data.
+Resume Input:
+{json.dumps(resume_seed)}
 
-    IMPORTANT:
-    * The list of projects provided is FINAL.
-    * DO NOT add, remove, merge, reorder, or duplicate projects.
-    * DO NOT change the number of projects.
+Authoritative Skills:
+{json.dumps({
+    "technical_skills": fallback["technical_skills"],
+    "soft_skills": fallback["soft_skills"],
+    "languages": fallback["languages"],
+})}
+"""
 
-    Your task is ONLY to rewrite and improve clarity, impact, and relevance.
+    result = _generate_json(prompt, api_key, "optimize")
+    finalized = _finalize_resume(result, fallback, project_limit=project_limit)
 
-    OUTPUT RULE:
-    Return ONLY valid JSON. No explanations.
+    if fallback["projects"] and not finalized["projects"]:
+        finalized["projects"] = fallback["projects"]
+    elif fallback["projects"] and not validate_resume(finalized, fallback["projects"]):
+        finalized["projects"] = fallback["projects"]
 
-    Skills (authoritative — use exactly as provided):
-    Technical: {json.dumps(technical)}
-    Soft: {json.dumps(soft)}
-    Languages: {json.dumps(languages)}
-
-    Return ONLY valid JSON. No explanation text before or after. Matching this schema:
-    {{
-        "name": "Full Name",
-        "title": "Title aligned to JD",
-        "email": "...", "phone": "...", "linkedin": "...", "github": "...",
-        "summary": "2-3 sentence ATS-optimized summary",
-        "technical_skills": {json.dumps(technical)},
-        "soft_skills": {json.dumps(soft)},
-        "languages": {json.dumps(languages)},
-        "experience": [
-            {{ "role": "...", "company": "...", "duration": "...", "points": ["action-led bullet max 15 words"] }}
-        ],
-        "projects": [
-            {{ "title": "...", "tech_stack": ["Tech1", "Tech2"], "points": ["what built", "key feature", "outcome"] }}
-        ],
-        "education": [
-            {{ "degree": "...", "institution": "...", "year": "..." }}
-        ],
-        "certifications": ["cert name — org (date)"]
-    }}
-
-    Job Description:
-    {jd_text}
-
-    Resume Data:
-    {json.dumps(parsed_resume)}
-    """
-
-    for attempt in range(3):
-        try:
-            response = client.models.generate_content(
-                model='gemini-3.1-flash-lite-preview',
-                contents=prompt
-            )
-            raw_output = response.text.strip()
-            print(f"[optimize] Attempt {attempt+1} - Raw model output (first 300 chars): {raw_output[:300]}")
-
-            cleaned = _extract_json(raw_output)
-            if not cleaned:
-                continue
-                
-            result = json.loads(cleaned)
-            
-            if validate_resume(result, selected_projects):
-                return result
-            else:
-                if isinstance(result, dict):
-                    result["projects"] = selected_projects
-                    return result
-        except json.JSONDecodeError as e:
-            print(f"[optimize] Attempt {attempt+1} JSON parse error: {e}")
-            print(f"[optimize] Full raw output:\n{raw_output}")
-        except Exception as e:
-            print(f"[optimize] Attempt {attempt+1} API call failed: {e}")
-            traceback.print_exc()
-
-    print("[optimize] All 3 attempts failed. Falling back to original parsed_resume.")
-    parsed_resume["projects"] = selected_projects
-    return parsed_resume
+    return finalized
 
 
 def generate_resume_from_inputs(inputs, api_key):
-    """
-    Build a complete structured resume from manual user inputs.
-    """
-    client = genai.Client(api_key=api_key)
+    name = _coerce_text(inputs.get("name"), "[Add Name]", max_chars=120)
+    title = _coerce_text(inputs.get("title"), "[Add Title]", max_chars=120)
+    email = _coerce_text(inputs.get("email"), "[Add Email]", max_chars=120)
+    phone = _coerce_text(inputs.get("phone"), "[Add Phone]", max_chars=60)
+    linkedin = _coerce_text(inputs.get("linkedin"), "[Add LinkedIn]", max_chars=200)
+    github = _coerce_text(inputs.get("github"), "[Add GitHub]", max_chars=200)
 
-    name      = (inputs.get('name')     or '').strip()
-    title     = (inputs.get('title')    or '').strip()
-    email     = (inputs.get('email')    or '[Add Email]').strip() or '[Add Email]'
-    phone     = (inputs.get('phone')    or '[Add Phone]').strip() or '[Add Phone]'
-    linkedin  = (inputs.get('linkedin') or '[Add LinkedIn]').strip() or '[Add LinkedIn]'
-    github    = (inputs.get('github')   or '[Add GitHub]').strip()  or '[Add GitHub]'
-    edu_text  = (inputs.get('education_text')      or '').strip()
-    exp_text  = (inputs.get('experience_text')     or '').strip()
-    proj_text = (inputs.get('projects_text')       or '').strip()
-    cert_text = (inputs.get('certifications_text') or '').strip()
-    technical = inputs.get('technical_skills') or []
-    soft      = inputs.get('soft_skills')      or []
-    languages = inputs.get('languages')        or []
+    fallback = _fallback_resume({
+        "technical": inputs.get("technical_skills") or [],
+        "soft": inputs.get("soft_skills") or [],
+        "languages": inputs.get("languages") or [],
+    }, {
+        "name": name,
+        "title": title,
+        "email": email,
+        "phone": phone,
+        "linkedin": linkedin,
+        "github": github,
+    })
 
-    if not exp_text.strip():
-        experience_count = 0
-    else:
-        date_pattern = r'(?:20\d{2}|19\d{2})\s*(?:-|to|–|—)\s*(?:Present|Current|20\d{2}|19\d{2})'
-        matches = re.findall(date_pattern, exp_text, re.IGNORECASE)
-        experience_count = len(matches) if matches else max(1, len([p for p in exp_text.split('\n\n') if p.strip()]))
-
-    if experience_count == 0:
-        project_limit = 6
-    elif experience_count <= 2:
-        project_limit = 4
-    elif experience_count == 3:
-        project_limit = 3
-    else:
-        project_limit = 2
+    user_payload = {
+        "name": name,
+        "title": title,
+        "email": email,
+        "phone": phone,
+        "linkedin": linkedin,
+        "github": github,
+        "education_text": _cap_text(inputs.get("education_text"), 800),
+        "experience_text": _cap_text(inputs.get("experience_text"), 1000),
+        "projects_text": _cap_text(inputs.get("projects_text"), 800),
+        "certifications_text": _cap_text(inputs.get("certifications_text"), 400),
+        "technical_skills": fallback["technical_skills"],
+        "soft_skills": fallback["soft_skills"],
+        "languages": fallback["languages"],
+    }
 
     prompt = f"""
-    You are an ATS Resume Writer. Build a complete, professional resume from the user inputs below.
-    WRITING RULES:
-    - Career summary: 2-3 sentences max.
-    - Bullet points: max 15 words each.
-    - Projects: MUST include EXACTLY {project_limit} projects.
-    - Output: ONLY JSON.
+Return JSON only with this schema:
+{{
+  "name": "{name}",
+  "title": "",
+  "email": "{email}",
+  "phone": "{phone}",
+  "linkedin": "{linkedin}",
+  "github": "{github}",
+  "summary": "",
+  "technical_skills": [],
+  "soft_skills": [],
+  "languages": [],
+  "experience": [{{"role": "", "company": "", "duration": "", "points": []}}],
+  "projects": [{{"title": "", "tech_stack": [], "points": []}}],
+  "education": [{{"degree": "", "institution": "", "year": ""}}],
+  "certifications": []
+}}
 
-    USER INPUTS:
-    Name: {name}
-    Target Role: {title}
-    Email: {email}
-    Phone: {phone}
-    LinkedIn: {linkedin}
-    GitHub: {github}
-    Education: {edu_text or 'Not provided'}
-    Experience: {exp_text or 'Not provided'}
-    Projects: {proj_text or 'Not provided'}
-    Certifications: {cert_text or 'Not provided'}
-    Technical Skills: {json.dumps(technical)}
-    Soft Skills: {json.dumps(soft)}
-    Languages: {json.dumps(languages)}
+Rules:
+- Use only the provided details.
+- Do not invent achievements, employers, or certifications.
+- Keep bullets short.
 
-    Return ONLY valid JSON. No explanation text before or after. Schema:
-    {{
-        "name": "{name}",
-        "title": "polished title aligned to target role",
-        "email": "{email}", "phone": "{phone}", "linkedin": "{linkedin}", "github": "{github}",
-        "summary": "2-3 sentence AI-written career summary, no fluff",
-        "technical_skills": {json.dumps(technical)},
-        "soft_skills": {json.dumps(soft)},
-        "languages": {json.dumps(languages)},
-        "experience": [
-            {{ "role": "...", "company": "...", "duration": "...", "points": ["action-led bullet max 15 words"] }}
-        ],
-        "projects": [
-            {{ "title": "...", "tech_stack": ["Tech1", "Tech2"], "points": ["what built", "key feature", "outcome"] }}
-        ],
-        "education": [
-            {{ "degree": "...", "institution": "...", "year": "..." }}
-        ],
-        "certifications": ["cert name — org (date)"]
-    }}
-    """
+User Input:
+{json.dumps(user_payload)}
+"""
 
-    try:
-        response = client.models.generate_content(
-            model='gemini-3.1-flash-lite-preview',
-            contents=prompt
-        )
-        raw_output = response.text.strip()
-        cleaned = _extract_json(raw_output)
-        return json.loads(cleaned)
-    except Exception as e:
-        traceback.print_exc()
-        raise RuntimeError(f"generate-from-inputs API call failed: {e}")
+    result = _generate_json(prompt, api_key, "generate_from_inputs")
+    return _finalize_resume(result, fallback)
 
 
 def generate_structured_resume(resume_text, api_key):
-    client = genai.Client(api_key=api_key)
+    raw_resume = _cap_text(resume_text)
+    fallback = _fallback_resume({})
 
     prompt = f"""
-    You are an elite Executive Resume Writer. Rewrite the following resume text.
+Return JSON only with this schema:
+{{
+  "name": "",
+  "title": "",
+  "email": "",
+  "phone": "",
+  "linkedin": "",
+  "github": "",
+  "summary": "",
+  "technical_skills": [],
+  "soft_skills": [],
+  "languages": [],
+  "experience": [{{"role": "", "company": "", "duration": "", "points": []}}],
+  "projects": [{{"title": "", "tech_stack": [], "points": []}}],
+  "education": [{{"degree": "", "institution": "", "year": ""}}],
+  "certifications": []
+}}
 
-    CRITICAL RULES:
-    1. EXTRACT JOBS AND PROJECTS SEPARATELY: Map formal work experience to "experience". Map personal, academic, or hackathon projects to "projects".
-    2. ZERO FLUFF: Eliminate all filler words.
-    3. ACTION FIRST: Every bullet point MUST start with a strong, past-tense action verb.
-    4. ACHIEVEMENTS & CERTS: Extract certifications, awards, achievements into 'certifications'. Return [] if none.
-    5. CONTACT INFO: Use exact placeholders '[Add Email]', '[Add Phone]', '[Add LinkedIn]', '[Add GitHub]' for any missing fields.
+Rules:
+- Use only information explicitly present in the resume.
+- Do not invent missing fields.
+- Keep bullets short.
+- If a field is missing, use placeholders for contact fields and empty lists elsewhere.
 
-    Return ONLY valid JSON. No explanation text before or after. Matching this schema:
-    {{
-        "name": "Full Name",
-        "title": "Professional Title",
-        "email": "...", "phone": "...", "linkedin": "...", "github": "...",
-        "summary": "Impactful professional summary",
-        "technical_skills": ["Skill 1"],
-        "soft_skills": ["Skill 2"],
-        "languages": ["Lang 1"],
-        "experience": [
-            {{ "role": "Job Title", "company": "Company", "duration": "Dates", "points": ["Action driven bullet point"] }}
-        ],
-        "projects": [
-            {{ "title": "Project Name", "tech_stack": ["Tech1", "Tech2"], "points": ["What was built"] }}
-        ],
-        "education": [{{ "degree": "Degree Name", "institution": "School", "year": "Year" }}],
-        "certifications": ["Certification/Achievement 1"]
-    }}
+Resume:
+{raw_resume}
+"""
 
-    Raw Resume:
-    {resume_text}
-    """
-
-    try:
-        response = client.models.generate_content(
-            model='gemini-3.1-flash-lite-preview',
-            contents=prompt
-        )
-        raw_output = response.text.strip()
-        cleaned = _extract_json(raw_output)
-        return json.loads(cleaned)
-
-    except Exception as e:
-        traceback.print_exc()
-        print(f"[rewrite] API Error: {e}")
-        return None
+    result = _generate_json(prompt, api_key, "rewrite")
+    return _finalize_resume(result, fallback)

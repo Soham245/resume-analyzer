@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
@@ -31,36 +31,39 @@
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body class="bg-[#f9fafb] text-[#111827] font-sans min-h-screen p-6 selection:bg-blue-500/30">
+<body class="app-body selection:bg-[rgba(139,111,71,0.18)]">
 
     <!-- ARIA Live Region for Accessibility -->
     <div id="ariaStatus" aria-live="polite" class="sr-only"></div>
 
-    <main class="max-w-[1400px] mx-auto space-y-8">
+    <header class="app-header">
+        <div class="app-header__inner">
+            <div class="app-header__eyebrow">AI-powered ATS optimization</div>
+            <h1 class="app-header__title">Resume Analyzer</h1>
+            <p class="app-header__subtitle">Compare your resume against a job description, identify missing keywords, and generate a stronger ATS-ready version without changing the app workflow.</p>
+        </div>
+    </header>
+
+    <main class="app-shell">
         
         <!-- Upload / Input Section -->
-        <div id="input-section" class="space-y-8">
+        <section id="input-section" class="app-stage">
 
-        <header class="text-center py-8">
-            <h1 class="text-4xl font-bold text-[#111827] tracking-wide">Resume Analyzer</h1>
-            <p class="text-[#6b7280] mt-3 text-sm font-medium">Instantly evaluate your resume against any job description</p>
-        </header>
-
-        <section class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm max-w-4xl mx-auto">
+        <section class="control-surface">
 
             <!-- Mode toggle tabs -->
-            <div class="flex border-b border-slate-700/50 mb-5 -mx-6 px-6">
+            <div class="mode-switch">
                 <button id="mode-upload" class="mode-tab mode-tab--active">📄 Upload &amp; Analyze</button>
                 <button id="mode-manual" class="mode-tab">✏️ Manual Entry</button>
             </div>
 
             <!-- Upload mode -->
             <div id="upload-mode">
-                <form id="analyzer-form" class="space-y-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <form id="analyzer-form" class="analysis-form">
+                    <div class="analysis-grid">
 
-                        <div
-                            class="relative h-48 bg-[#181d2b] rounded-xl border-2 border-dashed border-indigo-500/40 hover:border-indigo-500/70 transition-colors flex flex-col items-center justify-center group overflow-hidden">
+                        <div data-panel-label="Resume Upload"
+                            class="upload-dropzone relative h-48 rounded-xl border-2 border-dashed transition-colors flex flex-col items-center justify-center group overflow-hidden">
                             <input type="file" id="resume-file" accept=".pdf" required
                                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
 
@@ -88,15 +91,15 @@
                             </div>
                         </div>
 
-                        <div
-                            class="relative w-full h-48 bg-[#23293b] border border-[#2e3549] rounded-xl overflow-hidden focus-within:ring-1 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all flex">
+                        <div data-panel-label="Job Description"
+                            class="job-description-panel relative w-full h-48 rounded-xl overflow-hidden transition-all flex">
                             <textarea id="jd-text" required placeholder="Paste job description here..."
                                 class="custom-scrollbar w-full h-full p-4 bg-transparent border-none outline-none focus:ring-0 text-slate-200 placeholder-slate-500 resize-none"></textarea>
                         </div>
                     </div>
 
                     <button type="submit" id="submit-btn"
-                        class="w-full bg-[#8358ff] text-white font-medium py-3.5 rounded-xl hover:bg-[#724aeb] transition-colors flex justify-center items-center">
+                        class="primary-button w-full flex justify-center items-center">
                         <span>Analyze Resume</span>
                         <svg id="loading-spinner" class="animate-spin ml-2 h-5 w-5 text-white hidden"
                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -111,7 +114,7 @@
             </div><!-- /upload-mode -->
 
             <!-- Manual Entry mode -->
-            <div id="manual-mode" class="hidden space-y-4">
+            <div id="manual-mode" class="manual-mode hidden space-y-4">
 
                 <!-- Row 1: Name + Role -->
                 <div class="grid grid-cols-2 gap-3">
@@ -225,14 +228,13 @@
 
             </div><!-- /manual-mode -->
 
-            <p id="error-message"
-                class="text-red-400 text-sm mt-4 hidden text-center bg-red-900/20 py-2 rounded-lg border border-red-900/50">
+            <p id="error-message" class="app-alert hidden">
             </p>
         </section>
 
         <!-- Manual Mode — Skill Analysis Results (shown when JD is provided) -->
-        <section id="manual-analysis-section" class="hidden max-w-4xl mx-auto">
-            <div class="bg-[#1e2334] p-6 rounded-2xl border border-slate-700/50 shadow-2xl space-y-5">
+        <section id="manual-analysis-section" class="hidden analysis-section manual-results">
+            <div class="results-card results-card--stacked">
                 <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2"><span>⚡</span> Skill Analysis</h2>
 
                 <!-- Two columns: Your Skills | JD Requirements -->
@@ -293,15 +295,14 @@
                     <ul id="manual-suggestions-list" class="space-y-2"></ul>
                 </div>
             </div>
-            </div>
         </section>
-        </div><!-- /input-section -->
+        </section><!-- /input-section -->
 
         <!-- Results Section (Below) -->
-        <div id="main-results-wrapper" class="space-y-8">
+        <section id="main-results-wrapper" class="results-shell">
             
             <!-- Empty State -->
-            <div id="empty-state" class="text-center py-12">
+            <div id="empty-state" class="empty-state">
                 <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -309,7 +310,7 @@
             </div>
 
             <!-- New Score Card Section -->
-            <section id="scoreCard" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-gray-100 max-w-4xl mx-auto hover-lift smooth-ui">
+            <section id="scoreCard" class="hidden results-scorecard hover-lift smooth-ui">
                 <div class="flex justify-between items-start mb-6">
                     <div>
                         <h2 class="text-xl font-bold text-gray-900">ATS Optimization Results</h2>
@@ -352,13 +353,13 @@
                 </div>
             </section>
 
-        <section id="results-section" class="hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section id="results-section" class="hidden analysis-section">
+            <div class="results-grid">
 
                 <div
-                    class="bg-slate-800 rounded-2xl border border-slate-700 shadow-xl flex flex-col h-[850px] overflow-hidden">
+                    class="results-card results-card--viewer flex flex-col h-[850px] overflow-hidden">
                     <div
-                        class="bg-slate-800/80 backdrop-blur px-6 py-4 border-b border-slate-700 flex justify-between items-center">
+                        class="results-card__header flex justify-between items-center">
                         <h2 class="text-lg font-bold text-slate-200 flex items-center">
                             <span class="mr-2">📄</span> Your Resume
                         </h2>
@@ -367,9 +368,9 @@
                 </div>
 
                 <div
-                    class="bg-slate-800 rounded-2xl border border-slate-700 shadow-xl flex flex-col h-[850px] overflow-hidden">
+                    class="results-card results-card--insights flex flex-col h-[850px] overflow-hidden">
 
-                    <div class="bg-slate-800/80 backdrop-blur px-6 py-4 border-b border-slate-700">
+                    <div class="results-card__header">
                         <h2 class="text-lg font-bold text-slate-200 flex items-center">
                             <span class="mr-2">⚡</span> Resume Optimizer
                         </h2>
@@ -441,7 +442,7 @@
 
                         <!-- Optimize button -->
                         <button id="start-rewrite-btn"
-                            class="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-500 transition-all text-sm">
+                            class="primary-button w-full">
                             Optimize Resume for Job Description
                         </button>
 
@@ -452,8 +453,8 @@
         </section>
 
         <section id="builder-section"
-            class="hidden mt-8 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl max-w-5xl mx-auto">
-            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-4">
+            class="hidden builder-surface">
+            <div class="builder-header flex justify-between items-center">
                 <div class="flex items-center space-x-4">
                     <h2 class="text-2xl font-bold text-slate-200">Live Resume Editor</h2>
 
@@ -637,7 +638,7 @@
                 <div id="resume-document"></div>
             </div>
         </section>
-        </div><!-- /main-results-wrapper -->
+        </section><!-- /main-results-wrapper -->
     </main>
 
     <script src="templates.js"></script>
