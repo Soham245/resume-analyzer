@@ -246,112 +246,125 @@ def analyze_resume_and_jd(resume_text, jd_text, api_key):
             "suggestions": []
         }
 
-    # 2. LIMIT INPUT SIZE INSIDE FUNCTION
+    # 1. INPUT SANITIZATION
+    # Remove excessive whitespace
+    resume_text = re.sub(r'\s+', ' ', resume_text).strip()
+    jd_text = re.sub(r'\s+', ' ', jd_text).strip()
+    
+    # Trim to max 4000 characters
     resume_text = resume_text[:4000]
     jd_text = jd_text[:4000]
 
-    # 5. REMOVE MULTIPLE CLIENT INITIALIZATIONS
+    if not resume_text or not jd_text:
+        return {
+            "error": True,
+            "message": "Please provide valid resume and job description text.",
+            "resume_skills": {"technical": [], "soft": [], "languages": []},
+            "jd_skills": {"technical": [], "soft": [], "languages": []},
+            "suggestions": []
+        }
+
     client = get_client(api_key)
 
-    # 7. ENSURE PROMPT ALWAYS INCLUDES: RESUME text, JOB DESCRIPTION text, Strict JSON format enforcement.
-    prompt = f"""
-    You are an expert technical recruiter and resume analyzer.
-    I will provide a RESUME and a JOB DESCRIPTION (JD).
+    # 4. OPTIMIZED PROMPT
+    prompt = f"""Return ONLY valid JSON in this format:
+{{
+  "resume_skills": {{
+    "technical": [],
+    "soft": [],
+    "languages": []
+  }},
+  "jd_skills": {{
+    "technical": [],
+    "soft": [],
+    "languages": []
+  }},
+  "suggestions": []
+}}
 
-    Task 1: Extract all skills from the RESUME and categorize them.
-    Task 2: Extract all skills from the JOB DESCRIPTION and categorize them.
-    Task 3: Compare the two sets of skills and provide 2-4 short, actionable suggestions to close any skill gaps.
+Rules:
+- Extract skills from resume and JD.
+- Compare and return 2-4 short suggestions.
+- No explanation text.
+- No markdown.
+- No extra keys.
 
-    Rules for Categories:
-    - technical: programming languages, frameworks, tools, platforms, databases
-    - soft: interpersonal skills, leadership, communication, problem-solving
-    - languages: spoken/written human languages (English, French, etc.)
+RESUME:
+{resume_text}
 
-    Rules for Suggestions:
-    - One sentence each. No fluff.
-    - Name specific tools, courses, or certifications.
+JOB DESCRIPTION:
+{jd_text}
+"""
 
-    RULES:
-    - Return ONLY valid JSON. No markdown backticks outside the JSON.
-    - Normalize names (e.g. "React.js" -> "React", "ML" -> "Machine Learning")
-    
-    Format EXACTLY like this:
-    {{
-        "resume_skills": {{
-            "technical": ["skill1"], "soft": ["skill2"], "languages": []
-        }},
-        "jd_skills": {{
-            "technical": ["skill1", "skill3"], "soft": [], "languages": []
-        }},
-        "suggestions": [
-            "Suggestion 1", "Suggestion 2"
-        ]
-    }}
+    # 2. MODEL FALLBACK SYSTEM
+    models = [
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-flash",
+        "gemini-2.5-pro"
+    ]
 
-    RESUME:
-    {resume_text}
-
-    JOB DESCRIPTION:
-    {jd_text}
-    """
-
-    # 1. ADD HARD TIMEOUT TO GEMINI CALL (using signal for Render/Unix)
-    if hasattr(signal, 'alarm') and threading.current_thread() is threading.main_thread():
-        old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
-        signal.alarm(15)
-
-    try:
-        response = client.models.generate_content(
-            model='gemini-3.1-flash-lite-preview',
-            contents=prompt,
-            config=types.GenerateContentConfig(temperature=0.0)
-        )
-        raw = response.text.strip()
+    for model_name in models:
+        logger.info(f"Attempting analysis with model: {model_name}")
         
-        # 3. HARDEN JSON PARSING
-        try:
-            extracted = _extract_json(raw)
-            if extracted is None:
-                logger.error(f"AI returned output without valid JSON structure. Raw: {raw}")
-                raise ValueError("AI returned invalid JSON format (no JSON block found)")
-            parsed = json.loads(extracted)
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON from AI response. Exception: {e}. Raw output: {raw}")
-            raise ValueError(f"AI returned invalid JSON format: {str(e)}")
-
-        return {
-            "error": False,
-            "resume_skills": {
-                "technical": [s.strip() for s in parsed.get("resume_skills", {}).get("technical", []) if s.strip()],
-                "soft": [s.strip() for s in parsed.get("resume_skills", {}).get("soft", []) if s.strip()],
-                "languages": [s.strip() for s in parsed.get("resume_skills", {}).get("languages", []) if s.strip()]
-            },
-            "jd_skills": {
-                "technical": [s.strip() for s in parsed.get("jd_skills", {}).get("technical", []) if s.strip()],
-                "soft": [s.strip() for s in parsed.get("jd_skills", {}).get("soft", []) if s.strip()],
-                "languages": [s.strip() for s in parsed.get("jd_skills", {}).get("languages", []) if s.strip()]
-            },
-            "suggestions": [s.strip() for s in parsed.get("suggestions", []) if s.strip()]
-        }
-    except TimeoutException:
-        logger.error("AI call to analyze_resume_and_jd timed out after 15 seconds.")
-        return {
-            "error": True,
-            "message": "AI analysis timed out. The job description or resume may be too complex.",
-            "resume_skills": {"technical": [], "soft": [], "languages": []},
-            "jd_skills": {"technical": [], "soft": [], "languages": []},
-            "suggestions": []
-        }
-    except Exception as e:
-        logger.error(f"analyze_resume_and_jd error: {e}", exc_info=True)
-        return {
-            "error": True,
-            "message": "Failed to analyze resume against the JD. Please try again.",
-            "resume_skills": {"technical": [], "soft": [], "languages": []},
-            "jd_skills": {"technical": [], "soft": [], "languages": []},
-            "suggestions": []
-        }
-    finally:
+        # 3. STRICT TIMEOUT CONTROL (~12s per model)
         if hasattr(signal, 'alarm') and threading.current_thread() is threading.main_thread():
-            signal.alarm(0)
-            signal.signal(signal.SIGALRM, old_handler)
+            old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
+            signal.alarm(12)
+
+        try:
+            # call AI
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(temperature=0.0)
+            )
+            raw = response.text.strip()
+            
+            # 5. SAFE JSON EXTRACTION
+            extracted = _extract_json(raw)
+            if not extracted:
+                raise ValueError("No valid JSON extracted from response.")
+            
+            parsed = json.loads(extracted)
+            
+            # validate structure
+            if "resume_skills" not in parsed or "jd_skills" not in parsed or "suggestions" not in parsed:
+                raise ValueError("Missing required keys in JSON structure.")
+            
+            logger.info(f"Successfully generated analysis using {model_name}")
+            
+            return {
+                "error": False,
+                "resume_skills": {
+                    "technical": [s.strip() for s in parsed.get("resume_skills", {}).get("technical", []) if isinstance(s, str) and s.strip()],
+                    "soft": [s.strip() for s in parsed.get("resume_skills", {}).get("soft", []) if isinstance(s, str) and s.strip()],
+                    "languages": [s.strip() for s in parsed.get("resume_skills", {}).get("languages", []) if isinstance(s, str) and s.strip()]
+                },
+                "jd_skills": {
+                    "technical": [s.strip() for s in parsed.get("jd_skills", {}).get("technical", []) if isinstance(s, str) and s.strip()],
+                    "soft": [s.strip() for s in parsed.get("jd_skills", {}).get("soft", []) if isinstance(s, str) and s.strip()],
+                    "languages": [s.strip() for s in parsed.get("jd_skills", {}).get("languages", []) if isinstance(s, str) and s.strip()]
+                },
+                "suggestions": [s.strip() for s in parsed.get("suggestions", []) if isinstance(s, str) and s.strip()]
+            }
+
+        except TimeoutException:
+            logger.warning(f"Timeout occurred with model {model_name}")
+            continue
+        except Exception as e:
+            logger.warning(f"Failed with model {model_name}. Error: {e}")
+            continue
+        finally:
+            if hasattr(signal, 'alarm') and threading.current_thread() is threading.main_thread():
+                signal.alarm(0)
+                signal.signal(signal.SIGALRM, old_handler)
+
+    # 7. FINAL FALLBACK
+    logger.error("All models failed to analyze resume and JD.")
+    return {
+        "error": True,
+        "message": "Analysis timed out or failed. Please try again with a shorter resume.",
+        "resume_skills": {"technical": [], "soft": [], "languages": []},
+        "jd_skills": {"technical": [], "soft": [], "languages": []},
+        "suggestions": ["Analysis timed out. Please try again with a shorter resume."]
+    }
