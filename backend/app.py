@@ -2,11 +2,26 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import os
 import io
+import logging
+import threading
+import signal
+import uuid
 from dotenv import load_dotenv
 from pathlib import Path
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+ai_semaphore = threading.Semaphore(2)
+
+class RequestTimeoutException(Exception):
+    pass
+
+def request_timeout_handler(signum, frame):
+    raise RequestTimeoutException("Global request timeout")
+
 from backend.parser import extract_text
-from backend.skill_extractor import extract_and_categorize_skills, generate_gap_suggestions, filter_and_group_skills
+from backend.skill_extractor import extract_and_categorize_skills, generate_gap_suggestions, filter_and_group_skills, analyze_resume_and_jd
 from backend.rewriter import generate_structured_resume, optimize_resume_for_jd, generate_resume_from_inputs
 from backend.pdf_generator import generate_pdf_from_html
 
@@ -20,16 +35,6 @@ app = Flask(__name__)
 
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-@app.before_request
-def handle_preflight():
-    if request.method == "OPTIONS":
-        resp = app.make_response("")
-        resp.headers["Access-Control-Allow-Origin"]  = request.headers.get("Origin", "*")
-        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-        resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
-        resp.headers["Access-Control-Max-Age"]       = "86400"
-        return resp
-
 print("API KEY LOADED:", "YES" if api_key else "NO")
 
 @app.route("/", methods=["GET"])
@@ -38,37 +43,87 @@ def home():
 
 @app.route('/analyze', methods=['POST'])
 def analyze_resume():
+    request_id = str(uuid.uuid4())
+    logger.info(f"[{request_id}] --- [START /analyze] ---")
     if 'resume' not in request.files or 'jd' not in request.form:
+        logger.error(f"[{request_id}] Missing resume or job description in request.")
         return jsonify({"error": "Missing resume or job description"}), 400
 
     pdf_file = request.files['resume']
+    if pdf_file.filename == '':
+        logger.error("No selected file.")
+        return jsonify({"error": "No selected file"}), 400
+
     jd_text = request.form['jd']
+    
+    # Limit JD text to prevent huge AI payloads
+    if len(jd_text) > 6000:
+        jd_text = jd_text[:6000]
+        logger.info("Truncated job description to 6000 characters.")
 
     if not api_key:
+        logger.error("Gemini API Key is missing from .env")
         return jsonify({"error": "Gemini API Key is missing from .env"}), 500
 
+    if hasattr(signal, 'alarm') and threading.current_thread() is threading.main_thread():
+        old_handler = signal.signal(signal.SIGALRM, request_timeout_handler)
+        signal.alarm(20)
+
     try:
+        logger.info(f"[{request_id}] Starting PDF text extraction...")
         resume_text = extract_text(pdf_file)
-        if "Error reading PDF" in resume_text:
+        if resume_text.startswith("Error reading PDF"):
+            logger.error(f"[{request_id}] Failed to parse PDF: {resume_text}")
             return jsonify({"error": resume_text}), 422
 
-        resume_skills = extract_and_categorize_skills(resume_text, api_key)
-        jd_skills = extract_and_categorize_skills(jd_text, api_key)
+        # 4. ADD EARLY EXIT CONDITIONS
+        if not resume_text or len(resume_text.strip()) < 50:
+            logger.error(f"[{request_id}] Extracted resume text is too short or empty.")
+            return jsonify({"error": "Resume text is too short or unreadable. Please check the PDF."}), 422
 
-        resume_flat = resume_skills["technical"] + resume_skills["soft"] + resume_skills["languages"]
-        jd_flat = jd_skills["technical"] + jd_skills["soft"] + jd_skills["languages"]
-        suggestions = generate_gap_suggestions(resume_flat, jd_flat, api_key)
+        # 2. LIMIT INPUT SIZE (Ensure both are capped to max 4000 chars)
+        if len(resume_text) > 4000:
+            resume_text = resume_text[:4000]
+            logger.info(f"[{request_id}] Truncated resume text to 4000 characters before AI call.")
+            
+        if len(jd_text) > 4000:
+            jd_text = jd_text[:4000]
+            logger.info(f"[{request_id}] Truncated job description to 4000 characters before AI call.")
 
+        # 1 & 6. COMBINE AI CALLS & ADD STEP-LEVEL LOGGING
+        logger.info(f"[{request_id}] Sending {len(resume_text)} chars of resume and {len(jd_text)} chars of JD for combined AI analysis...")
+        
+        # ADD CONCURRENCY CONTROL (CRITICAL) & AI TIMEOUT PROTECTION
+        with ai_semaphore:
+            analysis_result = analyze_resume_and_jd(resume_text, jd_text, api_key)
+        
+        # HANDLE STRUCTURED ERROR FROM AI & FIX SUGGESTIONS INDEXING BUG
+        if analysis_result.get("error"):
+            logger.error(f"[{request_id}] AI call failed: {analysis_result.get('message')}")
+            return jsonify({"error": analysis_result.get("message")}), 504
+
+        logger.info(f"[{request_id}] Successfully completed AI analysis. Building response...")
+
+        # 7. KEEP API STRUCTURE SAME
+        logger.info(f"[{request_id}] --- [SUCCESS /analyze] ---")
         return jsonify({
-            "resume_skills": resume_skills,
-            "jd_skills": jd_skills,
-            "suggestions": suggestions,
+            "resume_skills": analysis_result["resume_skills"],
+            "jd_skills": analysis_result["jd_skills"],
+            "suggestions": analysis_result["suggestions"],
             "raw_text": resume_text
         }), 200
 
+    except RequestTimeoutException:
+        logger.error(f"[{request_id}] Global request timed out after 20 seconds.")
+        return jsonify({"error": "Request timed out. The server is overloaded."}), 504
     except Exception as e:
-        print(f"Error during analysis: {e}")
+        logger.error(f"[{request_id}] Error during analysis: {e}", exc_info=True)
+        # REMOVE INTERNAL ERROR LEAKING
         return jsonify({"error": "An internal server error occurred during analysis."}), 500
+    finally:
+        if hasattr(signal, 'alarm') and threading.current_thread() is threading.main_thread():
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, old_handler)
 
 
 @app.route('/optimize', methods=['POST'])
@@ -189,5 +244,5 @@ if __name__ == '__main__':
     app.run(
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 5000)),
-        debug=True
+        debug=False
     )

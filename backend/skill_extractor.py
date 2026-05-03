@@ -2,6 +2,24 @@ from google import genai
 from google.genai import types
 import json
 import re
+import signal
+import logging
+import threading
+
+logger = logging.getLogger(__name__)
+
+class TimeoutException(Exception):
+    pass
+
+def _timeout_handler(signum, frame):
+    raise TimeoutException("Execution timed out")
+
+_client_cache = {}
+
+def get_client(api_key):
+    if api_key not in _client_cache:
+        _client_cache[api_key] = genai.Client(api_key=api_key)
+    return _client_cache[api_key]
 
 
 # ── Skill normalization & category sets ──────────────────────────────────────
@@ -114,6 +132,8 @@ def filter_and_group_skills(technical_list):
 
 def _extract_json(raw_output):
     """Extract JSON from a model response that may contain markdown or leading/trailing text."""
+    if not raw_output:
+        return None
     raw_output = raw_output.strip()
     match = re.search(r'`{3}(?:json)?\s*([\s\S]*?)\s*`{3}', raw_output)
     if match:
@@ -122,7 +142,7 @@ def _extract_json(raw_output):
     end   = raw_output.rfind('}')
     if start != -1 and end != -1 and end > start:
         return raw_output[start:end + 1]
-    return raw_output
+    return None
 
 
 def extract_and_categorize_skills(text, api_key):
@@ -214,3 +234,124 @@ def generate_gap_suggestions(resume_flat, jd_flat, api_key):
     except Exception as e:
         print(f"Gap suggestions error: {e}")
         return ["Review the job description and target the top missing skills.", "Consider relevant certifications or side projects to bridge the gap."]
+
+def analyze_resume_and_jd(resume_text, jd_text, api_key):
+    """Combine resume skills, JD skills, and gap suggestions into a single AI call."""
+    if not resume_text or not resume_text.strip() or not jd_text or not jd_text.strip():
+        return {
+            "error": True,
+            "message": "Please provide valid resume and job description text.",
+            "resume_skills": {"technical": [], "soft": [], "languages": []},
+            "jd_skills": {"technical": [], "soft": [], "languages": []},
+            "suggestions": []
+        }
+
+    # 2. LIMIT INPUT SIZE INSIDE FUNCTION
+    resume_text = resume_text[:4000]
+    jd_text = jd_text[:4000]
+
+    # 5. REMOVE MULTIPLE CLIENT INITIALIZATIONS
+    client = get_client(api_key)
+
+    # 7. ENSURE PROMPT ALWAYS INCLUDES: RESUME text, JOB DESCRIPTION text, Strict JSON format enforcement.
+    prompt = f"""
+    You are an expert technical recruiter and resume analyzer.
+    I will provide a RESUME and a JOB DESCRIPTION (JD).
+
+    Task 1: Extract all skills from the RESUME and categorize them.
+    Task 2: Extract all skills from the JOB DESCRIPTION and categorize them.
+    Task 3: Compare the two sets of skills and provide 2-4 short, actionable suggestions to close any skill gaps.
+
+    Rules for Categories:
+    - technical: programming languages, frameworks, tools, platforms, databases
+    - soft: interpersonal skills, leadership, communication, problem-solving
+    - languages: spoken/written human languages (English, French, etc.)
+
+    Rules for Suggestions:
+    - One sentence each. No fluff.
+    - Name specific tools, courses, or certifications.
+
+    RULES:
+    - Return ONLY valid JSON. No markdown backticks outside the JSON.
+    - Normalize names (e.g. "React.js" -> "React", "ML" -> "Machine Learning")
+    
+    Format EXACTLY like this:
+    {{
+        "resume_skills": {{
+            "technical": ["skill1"], "soft": ["skill2"], "languages": []
+        }},
+        "jd_skills": {{
+            "technical": ["skill1", "skill3"], "soft": [], "languages": []
+        }},
+        "suggestions": [
+            "Suggestion 1", "Suggestion 2"
+        ]
+    }}
+
+    RESUME:
+    {resume_text}
+
+    JOB DESCRIPTION:
+    {jd_text}
+    """
+
+    # 1. ADD HARD TIMEOUT TO GEMINI CALL (using signal for Render/Unix)
+    if hasattr(signal, 'alarm') and threading.current_thread() is threading.main_thread():
+        old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
+        signal.alarm(15)
+
+    try:
+        response = client.models.generate_content(
+            model='gemini-3.1-flash-lite-preview',
+            contents=prompt,
+            config=types.GenerateContentConfig(temperature=0.0)
+        )
+        raw = response.text.strip()
+        
+        # 3. HARDEN JSON PARSING
+        try:
+            extracted = _extract_json(raw)
+            if extracted is None:
+                logger.error(f"AI returned output without valid JSON structure. Raw: {raw}")
+                raise ValueError("AI returned invalid JSON format (no JSON block found)")
+            parsed = json.loads(extracted)
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON from AI response. Exception: {e}. Raw output: {raw}")
+            raise ValueError(f"AI returned invalid JSON format: {str(e)}")
+
+        return {
+            "error": False,
+            "resume_skills": {
+                "technical": [s.strip() for s in parsed.get("resume_skills", {}).get("technical", []) if s.strip()],
+                "soft": [s.strip() for s in parsed.get("resume_skills", {}).get("soft", []) if s.strip()],
+                "languages": [s.strip() for s in parsed.get("resume_skills", {}).get("languages", []) if s.strip()]
+            },
+            "jd_skills": {
+                "technical": [s.strip() for s in parsed.get("jd_skills", {}).get("technical", []) if s.strip()],
+                "soft": [s.strip() for s in parsed.get("jd_skills", {}).get("soft", []) if s.strip()],
+                "languages": [s.strip() for s in parsed.get("jd_skills", {}).get("languages", []) if s.strip()]
+            },
+            "suggestions": [s.strip() for s in parsed.get("suggestions", []) if s.strip()]
+        }
+    except TimeoutException:
+        logger.error("AI call to analyze_resume_and_jd timed out after 15 seconds.")
+        return {
+            "error": True,
+            "message": "AI analysis timed out. The job description or resume may be too complex.",
+            "resume_skills": {"technical": [], "soft": [], "languages": []},
+            "jd_skills": {"technical": [], "soft": [], "languages": []},
+            "suggestions": []
+        }
+    except Exception as e:
+        logger.error(f"analyze_resume_and_jd error: {e}", exc_info=True)
+        return {
+            "error": True,
+            "message": "Failed to analyze resume against the JD. Please try again.",
+            "resume_skills": {"technical": [], "soft": [], "languages": []},
+            "jd_skills": {"technical": [], "soft": [], "languages": []},
+            "suggestions": []
+        }
+    finally:
+        if hasattr(signal, 'alarm') and threading.current_thread() is threading.main_thread():
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, old_handler)
