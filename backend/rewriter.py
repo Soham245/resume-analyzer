@@ -2,6 +2,7 @@ from google import genai
 import json
 import re
 import traceback
+from . import scorer
 
 
 def _extract_json(raw_output):
@@ -29,6 +30,14 @@ def _extract_json(raw_output):
     return raw_output
 
 
+def validate_resume(result, selected_projects):
+    return (
+        isinstance(result, dict)
+        and "projects" in result
+        and len(result["projects"]) == len(selected_projects)
+    )
+
+
 def optimize_resume_for_jd(resume_text, jd_text, skills, api_key):
     """
     skills: { technical: [], soft: [], languages: [] }
@@ -42,6 +51,32 @@ def optimize_resume_for_jd(resume_text, jd_text, skills, api_key):
     technical = skills.get("technical") or []
     soft      = skills.get("soft")      or []
     languages = skills.get("languages") or []
+
+    # Parse resume if it is raw text
+    parsed_resume = resume_text
+    if isinstance(resume_text, str):
+        try:
+            parsed_resume = json.loads(resume_text)
+        except json.JSONDecodeError:
+            parsed_resume = generate_structured_resume(resume_text, api_key)
+            if not parsed_resume:
+                raise RuntimeError("Failed to parse resume into structured data.")
+
+    experience_count = len(parsed_resume.get("experience", []))
+
+    if experience_count == 0:
+        project_limit = 6
+    elif experience_count <= 2:
+        project_limit = 4
+    elif experience_count == 3:
+        project_limit = 3
+    else:
+        project_limit = 2
+
+    projects = parsed_resume.get("projects", [])
+    selected_projects = scorer.rank_projects_tfidf(projects, jd_text)[:project_limit]
+
+    parsed_resume["projects"] = selected_projects
 
     prompt = f"""
     You are an ATS Resume Optimization Specialist. Rewrite the resume to maximize ATS match against the Job Description.
@@ -59,27 +94,17 @@ def optimize_resume_for_jd(resume_text, jd_text, skills, api_key):
     4. Preserve all jobs and projects. Reword aggressively, never fabricate new roles.
     5. Use '[Add X]' placeholders for any missing contact fields.
 
-    CRITICAL — EXPERIENCE vs PROJECTS (strict separation):
-    - "experience": ONLY paid jobs, internships, or contracts. Entry MUST have BOTH a named employer AND a date range.
-    - "projects": Everything else — personal, academic, side, freelance, OSS, hackathon builds.
+    You are given structured resume data.
 
-    Project detection signals (if ANY of these apply → classify as project, NOT experience):
-    • Listed under a section header containing: Projects, Portfolio, Side Projects, Academic, Hackathon, Open Source
-    • Has a tech stack or tools list but no formal employer/company name
-    • Duration is a contest/event date (e.g. "HackMIT 2023") with no organization
-    • Entry describes something "built", "developed", or "created" rather than a role held
-    • Has a GitHub link, demo URL, or "Personal Project" label instead of an employer
+    IMPORTANT:
+    * The list of projects provided is FINAL.
+    * DO NOT add, remove, merge, reorder, or duplicate projects.
+    * DO NOT change the number of projects.
 
-    Each project MUST include:
-    • "title": specific project name (e.g. "E-Commerce Platform", NOT generic "Project 1")
-    • "tech_stack": array of specific technologies used (e.g. ["React", "Node.js", "MongoDB"]) — never vague terms
-    • "points": exactly 2-3 bullets, max 15 words each, past-tense action verbs:
-        - Bullet 1: what was built / what it does
-        - Bullet 2: key features or technical implementation
-        - Bullet 3 (if available): outcome, impact, or metrics
+    Your task is ONLY to rewrite and improve clarity, impact, and relevance.
 
-    DO NOT put projects in experience. DO NOT put jobs in projects.
-    If no projects are found in the resume, return: "projects": []
+    OUTPUT RULE:
+    Return ONLY valid JSON. No explanations.
 
     Skills (authoritative — use exactly as provided):
     Technical: {json.dumps(technical)}
@@ -96,50 +121,60 @@ def optimize_resume_for_jd(resume_text, jd_text, skills, api_key):
         "soft_skills": {json.dumps(soft)},
         "languages": {json.dumps(languages)},
         "experience": [
-            {{ "role": "...", "company": "...", "duration": "...", "points": ["verb-led bullet, max 15 words"] }}
+            {{ "role": "...", "company": "...", "duration": "...", "points": ["action-led bullet max 15 words"] }}
         ],
         "projects": [
-            {{ "title": "Project Name", "tech_stack": ["Tech1", "Tech2"], "points": ["what was built", "key feature", "outcome/impact"] }}
+            {{ "title": "...", "tech_stack": ["Tech1", "Tech2"], "points": ["what built", "key feature", "outcome"] }}
         ],
-        "education": [{{ "degree": "...", "institution": "...", "year": "..." }}],
-        "certifications": ["..."]
+        "education": [
+            {{ "degree": "...", "institution": "...", "year": "..." }}
+        ],
+        "certifications": ["cert name — org (date)"]
     }}
 
     Job Description:
     {jd_text}
 
-    Resume:
-    {resume_text}
+    Resume Data:
+    {json.dumps(parsed_resume)}
     """
 
-    try:
-        response = client.models.generate_content(
-            model='gemini-3.1-flash-lite-preview',
-            contents=prompt
-        )
-        raw_output = response.text.strip()
-        print(f"[optimize] Raw model output (first 300 chars): {raw_output[:300]}")
+    for attempt in range(3):
+        try:
+            response = client.models.generate_content(
+                model='gemini-3.1-flash-lite-preview',
+                contents=prompt
+            )
+            raw_output = response.text.strip()
+            print(f"[optimize] Attempt {attempt+1} - Raw model output (first 300 chars): {raw_output[:300]}")
 
-        cleaned = _extract_json(raw_output)
-        return json.loads(cleaned)
+            cleaned = _extract_json(raw_output)
+            if not cleaned:
+                continue
+                
+            result = json.loads(cleaned)
+            
+            if validate_resume(result, selected_projects):
+                return result
+            else:
+                if isinstance(result, dict):
+                    result["projects"] = selected_projects
+                    return result
+        except json.JSONDecodeError as e:
+            print(f"[optimize] Attempt {attempt+1} JSON parse error: {e}")
+            print(f"[optimize] Full raw output:\n{raw_output}")
+        except Exception as e:
+            print(f"[optimize] Attempt {attempt+1} API call failed: {e}")
+            traceback.print_exc()
 
-    except json.JSONDecodeError as e:
-        print(f"[optimize] JSON parse error: {e}")
-        print(f"[optimize] Full raw output:\n{raw_output}")
-        raise RuntimeError(f"Model returned invalid JSON: {e}")
-
-    except Exception as e:
-        traceback.print_exc()
-        raise RuntimeError(f"Optimize API call failed: {e}")
+    print("[optimize] All 3 attempts failed. Falling back to original parsed_resume.")
+    parsed_resume["projects"] = selected_projects
+    return parsed_resume
 
 
 def generate_resume_from_inputs(inputs, api_key):
     """
     Build a complete structured resume from manual user inputs.
-    inputs keys: name, title, email, phone, linkedin, github,
-                 education_text, experience_text, projects_text,
-                 certifications_text, technical_skills (list),
-                 soft_skills (list), languages (list)
     """
     client = genai.Client(api_key=api_key)
 
@@ -157,20 +192,29 @@ def generate_resume_from_inputs(inputs, api_key):
     soft      = inputs.get('soft_skills')      or []
     languages = inputs.get('languages')        or []
 
+    if not exp_text.strip():
+        experience_count = 0
+    else:
+        date_pattern = r'(?:20\d{2}|19\d{2})\s*(?:-|to|–|—)\s*(?:Present|Current|20\d{2}|19\d{2})'
+        matches = re.findall(date_pattern, exp_text, re.IGNORECASE)
+        experience_count = len(matches) if matches else max(1, len([p for p in exp_text.split('\n\n') if p.strip()]))
+
+    if experience_count == 0:
+        project_limit = 6
+    elif experience_count <= 2:
+        project_limit = 4
+    elif experience_count == 3:
+        project_limit = 3
+    else:
+        project_limit = 2
+
     prompt = f"""
     You are an ATS Resume Writer. Build a complete, professional resume from the user inputs below.
-
     WRITING RULES:
-    - Career summary: 2-3 sentences max, dense with role-relevant keywords. No generic phrases.
-      If no experience provided → focus on strongest skills and projects.
-    - Bullet points: max 15 words each, past-tense action verbs, impact/feature focused. 2-4 per entry.
-    - Experience parsing: extract Role, Company, Duration, and key responsibilities from the raw text.
-    - Projects parsing: extract Title, Tech Stack, and description from the raw text.
-    - Education parsing: extract Degree, Institution, Year from each line.
-    - Certifications: one string per cert, include org and date if provided.
-    - Skills: use EXACTLY the provided lists. Do not add or remove any skill.
-    - Dates: extract from input; use "[Add Date]" only if truly absent.
-    - Empty section input → return [] or "" for that field. NEVER invent data.
+    - Career summary: 2-3 sentences max.
+    - Bullet points: max 15 words each.
+    - Projects: MUST include EXACTLY {project_limit} projects.
+    - Output: ONLY JSON.
 
     USER INPUTS:
     Name: {name}
@@ -179,19 +223,10 @@ def generate_resume_from_inputs(inputs, api_key):
     Phone: {phone}
     LinkedIn: {linkedin}
     GitHub: {github}
-
-    Education:
-    {edu_text or 'Not provided'}
-
-    Experience:
-    {exp_text or 'Not provided'}
-
-    Projects:
-    {proj_text or 'Not provided'}
-
-    Certifications:
-    {cert_text or 'Not provided'}
-
+    Education: {edu_text or 'Not provided'}
+    Experience: {exp_text or 'Not provided'}
+    Projects: {proj_text or 'Not provided'}
+    Certifications: {cert_text or 'Not provided'}
     Technical Skills: {json.dumps(technical)}
     Soft Skills: {json.dumps(soft)}
     Languages: {json.dumps(languages)}
@@ -224,13 +259,8 @@ def generate_resume_from_inputs(inputs, api_key):
             contents=prompt
         )
         raw_output = response.text.strip()
-        print(f"[from-inputs] Raw output (first 300): {raw_output[:300]}")
         cleaned = _extract_json(raw_output)
         return json.loads(cleaned)
-    except json.JSONDecodeError as e:
-        print(f"[from-inputs] JSON parse error: {e}")
-        print(f"[from-inputs] Full raw:\n{raw_output}")
-        raise RuntimeError(f"Model returned invalid JSON: {e}")
     except Exception as e:
         traceback.print_exc()
         raise RuntimeError(f"generate-from-inputs API call failed: {e}")
@@ -243,7 +273,7 @@ def generate_structured_resume(resume_text, api_key):
     You are an elite Executive Resume Writer. Rewrite the following resume text.
 
     CRITICAL RULES:
-    1. DO NOT DELETE JOBS: Include EVERY work experience and project. Map both to "experience".
+    1. EXTRACT JOBS AND PROJECTS SEPARATELY: Map formal work experience to "experience". Map personal, academic, or hackathon projects to "projects".
     2. ZERO FLUFF: Eliminate all filler words.
     3. ACTION FIRST: Every bullet point MUST start with a strong, past-tense action verb.
     4. ACHIEVEMENTS & CERTS: Extract certifications, awards, achievements into 'certifications'. Return [] if none.
@@ -255,9 +285,14 @@ def generate_structured_resume(resume_text, api_key):
         "title": "Professional Title",
         "email": "...", "phone": "...", "linkedin": "...", "github": "...",
         "summary": "Impactful professional summary",
-        "skills": ["Skill 1", "Skill 2"],
+        "technical_skills": ["Skill 1"],
+        "soft_skills": ["Skill 2"],
+        "languages": ["Lang 1"],
         "experience": [
-            {{ "role": "Job Title or Project Name", "company": "Company or 'Independent Project'", "duration": "Dates", "points": ["Action driven bullet point"] }}
+            {{ "role": "Job Title", "company": "Company", "duration": "Dates", "points": ["Action driven bullet point"] }}
+        ],
+        "projects": [
+            {{ "title": "Project Name", "tech_stack": ["Tech1", "Tech2"], "points": ["What was built"] }}
         ],
         "education": [{{ "degree": "Degree Name", "institution": "School", "year": "Year" }}],
         "certifications": ["Certification/Achievement 1"]

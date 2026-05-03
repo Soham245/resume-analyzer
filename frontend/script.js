@@ -46,6 +46,20 @@ function filterAndGroupSkills(technicalList) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const controllers = { analyze: null, optimize: null, manual: null, builder: null, pdf: null };
+    const latestRequestIds = { analyze: 0, optimize: 0, manual: 0, builder: 0, pdf: 0 };
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function fetchWithTimeout(url, options = {}, timeout = 25000) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        
+        return fetch(url, {
+            ...options,
+            signal: options.signal || controller.signal
+        }).finally(() => clearTimeout(id));
+    }
+
     // UI Elements
     const form           = document.getElementById('analyzer-form');
     const submitBtn      = document.getElementById('submit-btn');
@@ -373,6 +387,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── 1. ANALYSIS FLOW ─────────────────────────────────────────────────────
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (controllers.analyze) {
+            controllers.analyze.abort();
+            controllers.analyze = null;
+        }
+        controllers.analyze = new AbortController();
+        const signal = controllers.analyze.signal;
+        const requestId = ++latestRequestIds.analyze;
+
         errorMessage.classList.add('hidden');
         resultsSection.classList.add('hidden');
         builderSection.classList.add('hidden');
@@ -392,13 +414,15 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('jd', savedJdText);
 
         try {
-            const response = await fetch('https://resume-analyzer-23x0.onrender.com/analyze', {
+            const response = await fetchWithTimeout('https://resume-analyzer-23x0.onrender.com/analyze', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                signal
             });
             if (!response.ok) throw new Error("Analysis Failed");
 
             const data = await response.json();
+            if (requestId !== latestRequestIds.analyze) return;
 
             savedRawText  = data.raw_text;
             currentSkills = {
@@ -415,18 +439,29 @@ document.addEventListener('DOMContentLoaded', () => {
             resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         } catch (error) {
+            if (error.name === 'AbortError') return;
             errorMessage.textContent = `Backend Error: ${error.message}`;
             errorMessage.classList.remove('hidden');
         } finally {
-            submitBtn.disabled = false;
-            submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
-            btnText.textContent = 'Analyze Resume';
-            spinner.classList.add('hidden');
+            if (requestId === latestRequestIds.analyze) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+                btnText.textContent = 'Analyze Resume';
+                spinner.classList.add('hidden');
+            }
         }
     });
 
     // ── 2. OPTIMIZE FLOW ─────────────────────────────────────────────────────
     startRewriteBtn.addEventListener('click', async () => {
+        if (controllers.optimize) {
+            controllers.optimize.abort();
+            controllers.optimize = null;
+        }
+        controllers.optimize = new AbortController();
+        const signal = controllers.optimize.signal;
+        const requestId = ++latestRequestIds.optimize;
+        
         // Pre-flight checks — show clear messages instead of silent failures
         if (!savedRawText || !savedRawText.trim()) {
             errorMessage.textContent = 'No resume text found. Please run Analyze first.';
@@ -440,41 +475,54 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         errorMessage.classList.add('hidden');
-        startRewriteBtn.textContent = 'Optimizing...';
+        startRewriteBtn.textContent = 'Analyzing resume...';
         startRewriteBtn.disabled = true;
+        const mainResults = document.getElementById('main-results-wrapper');
+        if (mainResults) mainResults.classList.add('loading-state');
 
         try {
-            const res = await fetch('https://resume-analyzer-23x0.onrender.com/optimize', {
+            const res = await fetchWithTimeout('https://resume-analyzer-23x0.onrender.com/optimize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     raw_text: savedRawText,
                     jd_text:  savedJdText,
                     skills:   currentSkills
-                })
+                }),
+                signal
             });
 
             const payload = await res.json();
+            if (requestId !== latestRequestIds.optimize) return;
 
             if (!res.ok) {
                 // Show the actual backend error message, not a generic one
                 throw new Error(payload.error || `Server error ${res.status}`);
             }
 
-            setCurrentData(payload);
+            console.log('ATS Score Improved:', payload.original_score, '->', payload.optimized_score, '(+', payload.improvement, ')');
+            if (payload.original_score) {
+                setTimeout(() => updateScoreCard(payload), 120);
+            }
+            setCurrentData(payload.resume || payload);
             builderSection.classList.remove('hidden');
             renderResume();
             requestAnimationFrame(() => autoFitPage()); // re-measure now section is visible
             builderSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         } catch (error) {
+            if (error.name === 'AbortError') return;
             // Surface the real error to the user — not just a generic alert
             errorMessage.textContent = `Optimize failed: ${error.message}`;
             errorMessage.classList.remove('hidden');
             console.error('[optimize]', error);
         } finally {
-            startRewriteBtn.textContent = 'Optimize Resume for Job Description';
-            startRewriteBtn.disabled = false;
+            if (requestId === latestRequestIds.optimize) {
+                startRewriteBtn.textContent = 'Optimize Resume for Job Description';
+                startRewriteBtn.disabled = false;
+                const mainResults = document.getElementById('main-results-wrapper');
+                if (mainResults) mainResults.classList.remove('loading-state');
+            }
         }
     });
 
@@ -534,6 +582,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const genSpinner        = document.getElementById('gen-spinner');
 
     generateManualBtn.addEventListener('click', async () => {
+        if (controllers.manual) {
+            controllers.manual.abort();
+            controllers.manual = null;
+        }
+        controllers.manual = new AbortController();
+        const signal = controllers.manual.signal;
+        const requestId = ++latestRequestIds.manual;
+        
         const name    = document.getElementById('m-name').value.trim();
         const title   = document.getElementById('m-title').value.trim();
         const jdText  = document.getElementById('m-jd-text').value.trim();
@@ -589,15 +645,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (jdText) {
                 // ── JD path: analyze → show skill panel → optimize ────────────
                 genBtnText.textContent = 'Analyzing skills...';
-                const analysisRes = await fetch('https://resume-analyzer-23x0.onrender.com/analyze-manual', {
+                const analysisRes = await fetchWithTimeout('https://resume-analyzer-23x0.onrender.com/analyze-manual', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         jd_text:         jdText,
                         user_skills_flat: [...technical, ...soft, ...languages],
                     }),
+                    signal
                 });
                 const analysisData = await analysisRes.json();
+                if (requestId !== latestRequestIds.manual) return;
                 if (!analysisRes.ok) throw new Error(analysisData.error || `Analysis error ${analysisRes.status}`);
 
                 renderManualAnalysis(currentSkills, analysisData.jd_skills || {});
@@ -606,8 +664,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 manualAnalysisSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
                 // Optimize resume for JD (same pipeline as upload mode)
-                genBtnText.textContent = 'Optimizing for JD...';
-                const optimizeRes = await fetch('https://resume-analyzer-23x0.onrender.com/optimize', {
+                genBtnText.textContent = 'Analyzing resume...';
+                const mainResults = document.getElementById('main-results-wrapper');
+                if (mainResults) mainResults.classList.add('loading-state');
+                const optimizeRes = await fetchWithTimeout('https://resume-analyzer-23x0.onrender.com/optimize', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -615,20 +675,28 @@ document.addEventListener('DOMContentLoaded', () => {
                         jd_text:  jdText,
                         skills:   currentSkills,
                     }),
+                    signal
                 });
                 const optimizePayload = await optimizeRes.json();
+                if (requestId !== latestRequestIds.manual) return;
                 if (!optimizeRes.ok) throw new Error(optimizePayload.error || `Optimize error ${optimizeRes.status}`);
 
-                setCurrentData(optimizePayload);
+                console.log('ATS Score Improved:', optimizePayload.original_score, '->', optimizePayload.optimized_score, '(+', optimizePayload.improvement, ')');
+                if (optimizePayload.original_score) {
+                    setTimeout(() => updateScoreCard(optimizePayload), 120);
+                }
+                setCurrentData(optimizePayload.resume || optimizePayload);
 
             } else {
                 // ── No JD: generate plain resume from inputs ──────────────────
-                const res = await fetch('https://resume-analyzer-23x0.onrender.com/generate-from-inputs', {
+                const res = await fetchWithTimeout('https://resume-analyzer-23x0.onrender.com/generate-from-inputs', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ inputs }),
+                    signal
                 });
                 const payload = await res.json();
+                if (requestId !== latestRequestIds.manual) return;
                 if (!res.ok) throw new Error(payload.error || `Server error ${res.status}`);
 
                 setCurrentData(payload);
@@ -645,13 +713,18 @@ document.addEventListener('DOMContentLoaded', () => {
             builderSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         } catch (error) {
+            if (error.name === 'AbortError') return;
             errorMessage.textContent = `Generation failed: ${error.message}`;
             errorMessage.classList.remove('hidden');
             console.error('[generate-from-inputs]', error);
         } finally {
-            genBtnText.textContent = '✨ Generate Resume from Inputs';
-            genSpinner.classList.add('hidden');
-            generateManualBtn.disabled = false;
+            if (requestId === latestRequestIds.manual) {
+                genBtnText.textContent = '✨ Generate Resume from Inputs';
+                genSpinner.classList.add('hidden');
+                generateManualBtn.disabled = false;
+                const mainResults = document.getElementById('main-results-wrapper');
+                if (mainResults) mainResults.classList.remove('loading-state');
+            }
         }
     });
 
@@ -669,18 +742,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     builderOptBtn.addEventListener('click', async () => {
+        if (controllers.builder) {
+            controllers.builder.abort();
+            controllers.builder = null;
+        }
+        controllers.builder = new AbortController();
+        const signal = controllers.builder.signal;
+        const requestId = ++latestRequestIds.builder;
+        
         const jd = document.getElementById('builder-jd-text').value.trim();
         if (!jd) {
+            isProcessing = false;
             errorMessage.textContent = 'Paste a job description to optimize the resume.';
             errorMessage.classList.remove('hidden');
             return;
         }
         if (!currentStructuredData) {
+            isProcessing = false;
             errorMessage.textContent = 'Generate or analyze a resume first.';
             errorMessage.classList.remove('hidden');
             return;
         }
         if (!savedRawText) {
+            isProcessing = false;
             errorMessage.textContent = 'No resume source text available for optimization.';
             errorMessage.classList.remove('hidden');
             return;
@@ -691,9 +775,11 @@ document.addEventListener('DOMContentLoaded', () => {
         builderOptText.textContent = 'Optimizing...';
         builderOptSpin.classList.remove('hidden');
         builderOptBtn.disabled = true;
+        const mainResults = document.getElementById('main-results-wrapper');
+        if (mainResults) mainResults.classList.add('loading-state');
 
         try {
-            const res = await fetch('https://resume-analyzer-23x0.onrender.com/optimize', {
+            const res = await fetchWithTimeout('https://resume-analyzer-23x0.onrender.com/optimize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -701,11 +787,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     jd_text:  savedJdText,
                     skills:   currentSkills,
                 }),
+                signal
             });
             const payload = await res.json();
+            if (requestId !== latestRequestIds.builder) return;
             if (!res.ok) throw new Error(payload.error || `Server error ${res.status}`);
 
-            setCurrentData(payload);
+            console.log('ATS Score Improved:', payload.original_score, '->', payload.optimized_score, '(+', payload.improvement, ')');
+            if (payload.original_score) {
+                setTimeout(() => updateScoreCard(payload), 120);
+            }
+            setCurrentData(payload.resume || payload);
             renderResume();
 
             // Collapse the JD panel after success
@@ -713,13 +805,18 @@ document.addEventListener('DOMContentLoaded', () => {
             builderJdIcon.textContent = '+';
 
         } catch (error) {
+            if (error.name === 'AbortError') return;
             errorMessage.textContent = `Optimization failed: ${error.message}`;
             errorMessage.classList.remove('hidden');
             console.error('[builder-optimize]', error);
         } finally {
-            builderOptText.textContent = 'Optimize Resume';
-            builderOptSpin.classList.add('hidden');
-            builderOptBtn.disabled = false;
+            if (requestId === latestRequestIds.builder) {
+                builderOptText.textContent = 'Optimize Resume';
+                builderOptSpin.classList.add('hidden');
+                builderOptBtn.disabled = false;
+                const mainResults = document.getElementById('main-results-wrapper');
+                if (mainResults) mainResults.classList.remove('loading-state');
+            }
         }
     });
 
@@ -736,6 +833,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         addBtn.addEventListener('click', () => {
+            if (isProcessing) return;
             if (!currentStructuredData) {
                 errorMessage.textContent = 'Run "Optimize Resume" first, then add entries.';
                 errorMessage.classList.remove('hidden');
@@ -862,6 +960,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── 8. PDF GENERATION ────────────────────────────────────────────────────
     downloadPdfBtn.addEventListener('click', async () => {
+        if (controllers.pdf) {
+            controllers.pdf.abort();
+            controllers.pdf = null;
+        }
+        controllers.pdf = new AbortController();
+        const signal = controllers.pdf.signal;
+        const requestId = ++latestRequestIds.pdf;
+        
         downloadPdfBtn.textContent = 'Generating PDF...';
 
         const resumeWrapper = resumeDocument.querySelector('.resume-wrapper');
@@ -943,17 +1049,170 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch('https://resume-analyzer-23x0.onrender.com/generate-pdf', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ html: finalHtml })
+                body: JSON.stringify({ html: finalHtml }),
+                signal
             });
             const blob = await res.blob();
             const url  = window.URL.createObjectURL(blob);
             const a    = document.createElement('a');
             a.href = url; a.download = 'Optimized_ATS_Resume.pdf';
             document.body.appendChild(a); a.click(); a.remove();
-        } catch {
+        } catch (error) {
+            if (error.name === 'AbortError') return;
             alert("Failed to generate PDF.");
         } finally {
-            downloadPdfBtn.textContent = '📥 Download ATS PDF';
+            if (requestId === latestRequestIds.pdf) {
+                downloadPdfBtn.textContent = '📥 Download ATS PDF';
+            }
         }
     });
 });
+
+// UX Enhancements
+function animateNumber(el, start, end, baseDuration = 800) {
+    if (el._animId) cancelAnimationFrame(el._animId);
+    const safeEnd = Math.max(0, Math.min(100, Number(end) || 0));
+    
+    // Respect reduced motion OR no change
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || start === safeEnd) {
+        el.textContent = safeEnd;
+        return;
+    }
+    
+    const diff = Math.abs(safeEnd - start);
+    const duration = Math.min(Math.max(diff * 15, 400), 1200);
+    
+    let startTime = null;
+
+    function step(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const progress = Math.min((timestamp - startTime) / duration, 1);
+        
+        // easeOutExpo for natural deceleration
+        const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+        
+        el.textContent = Math.floor(ease * (safeEnd - start) + start);
+        if (progress < 1) {
+            el._animId = requestAnimationFrame(step);
+        }
+    }
+
+    el._animId = requestAnimationFrame(step);
+}
+
+// Helper for UI Redesign Scorecard
+function updateScoreCard(payload) {
+    const scoreCard = document.getElementById('scoreCard');
+    const emptyState = document.getElementById('empty-state');
+    
+    if (emptyState) emptyState.style.display = 'none';
+    if (!scoreCard) return;
+    
+    const isHidden = scoreCard.classList.contains('hidden');
+    scoreCard.classList.remove('hidden');
+    
+    // Only trigger fade-in if the card was completely hidden
+    if (isHidden) {
+        scoreCard.classList.remove('fade-in');
+        void scoreCard.offsetWidth; // trigger reflow
+        scoreCard.classList.add('fade-in');
+    }
+    
+    const orig = payload.original_score || {};
+    const opt = payload.optimized_score || {};
+    
+    const safeOrigScore = Math.max(0, Math.min(100, Number(orig.score) || 0));
+    const safeOptScore = Math.max(0, Math.min(100, Number(opt.score) || 0));
+    const safeConfidence = Math.max(0, Math.min(100, Number(payload.confidence) || 0));
+
+    if (document.getElementById('originalScoreValue')) {
+        const current = parseInt(document.getElementById('originalScoreValue').textContent) || 0;
+        animateNumber(document.getElementById('originalScoreValue'), current, safeOrigScore);
+    }
+    if (document.getElementById('scoreValue')) {
+        const current = parseInt(document.getElementById('scoreValue').textContent) || 0;
+        animateNumber(document.getElementById('scoreValue'), current, safeOptScore);
+    }
+    if (document.getElementById('confidenceValue')) {
+        const current = parseInt(document.getElementById('confidenceValue').textContent) || 0;
+        animateNumber(document.getElementById('confidenceValue'), current, safeConfidence);
+    }
+    if (document.getElementById('scoreLabel')) {
+        document.getElementById('scoreLabel').textContent = payload.optimized_label || "Analyzed";
+    }
+    
+    const impEl = document.getElementById('scoreImprovement');
+    if (impEl && payload.improvement > 0) {
+        impEl.classList.remove('hidden');
+        impEl.classList.add('improvement-pill', 'fade-in');
+        document.getElementById('improvementValue').textContent = payload.improvement;
+    } else if (impEl) {
+        impEl.classList.add('hidden');
+    }
+    
+    const insightList = document.getElementById('insightList');
+    if (insightList && payload.insights) {
+        insightList.innerHTML = '';
+        payload.insights.forEach(insight => {
+            const li = document.createElement('li');
+            li.className = "flex items-start text-sm text-gray-600";
+            li.innerHTML = `<svg class="w-4 h-4 mr-2 mt-0.5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span>${insight}</span>`;
+            insightList.appendChild(li);
+        });
+    }
+    
+    const barsContainer = document.getElementById('breakdownBars');
+    if (barsContainer && opt.breakdown) {
+        barsContainer.innerHTML = '';
+        const metrics = [
+            { key: 'keywords', label: 'Keywords', max: 40, color: 'bg-blue-500' },
+            { key: 'skills', label: 'Skills', max: 30, color: 'bg-indigo-500' },
+            { key: 'experience', label: 'Experience', max: 20, color: 'bg-violet-500' },
+            { key: 'projects', label: 'Projects', max: 10, color: 'bg-purple-500' }
+        ];
+        
+        metrics.forEach((m, index) => {
+            const rawVal = opt.breakdown[m.key] || 0;
+            const val = Math.max(0, Math.min(m.max, Number(rawVal) || 0));
+            const pct = Math.max(0, Math.min(100, Math.round((val / m.max) * 100) || 0));
+            
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <div class="flex justify-between text-xs mb-1">
+                    <span class="font-medium text-gray-700">${m.label}</span>
+                    <span class="text-gray-500">${val}/${m.max} pts</span>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-2">
+                    <div class="${m.color} h-2 rounded-full progress-bar-fill" style="width: 0%"></div>
+                </div>
+            `;
+            barsContainer.appendChild(div);
+            
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                const bar = div.querySelector('div > div');
+                if (bar) bar.style.width = `${pct}%`;
+            } else {
+                setTimeout(() => {
+                    const bar = div.querySelector('div > div');
+                    if (bar) bar.style.width = `${pct}%`;
+                }, 150 + (index * 80));
+            }
+        });
+    }
+
+    // Subtle completion feedback
+    if (scoreCard._pulseTimeout) clearTimeout(scoreCard._pulseTimeout);
+    scoreCard.classList.remove('completion-pulse');
+    void scoreCard.offsetWidth;
+    scoreCard.classList.add('completion-pulse');
+    scoreCard._pulseTimeout = setTimeout(() => {
+        scoreCard.classList.remove('completion-pulse');
+    }, 1200);
+
+    const ariaStatus = document.getElementById('ariaStatus');
+    if (ariaStatus) {
+        ariaStatus.textContent = `ATS score updated to ${safeOptScore}`;
+    }
+}
+

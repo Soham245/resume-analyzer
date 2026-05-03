@@ -23,6 +23,7 @@ def request_timeout_handler(signum, frame):
 from backend.parser import extract_text
 from backend.skill_extractor import extract_and_categorize_skills, generate_gap_suggestions, filter_and_group_skills, analyze_resume_and_jd
 from backend.rewriter import generate_structured_resume, optimize_resume_for_jd, generate_resume_from_inputs
+from backend import scorer
 from backend.pdf_generator import generate_pdf_from_html
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -146,9 +147,47 @@ def optimize_resume():
         return jsonify({"error": "Gemini API key is missing from .env"}), 500
 
     try:
+        initial_score_data = scorer.cached_ats_score(raw_text, jd_text)
+
         structured_json = optimize_resume_for_jd(raw_text, jd_text, skills, api_key)
         structured_json['skill_groups'] = filter_and_group_skills(structured_json.get('technical_skills') or [])
-        return jsonify(structured_json), 200
+        
+        improved_score_data = scorer.cached_ats_score(structured_json, jd_text)
+        
+        # We need to copy the dictionaries since cached results shouldn't be mutated
+        initial_score_data = dict(initial_score_data)
+        improved_score_data = dict(improved_score_data)
+
+        max_boost = min(25, int(initial_score_data.get("score", 0) * 0.4))
+        improvement = improved_score_data.get("score", 0) - initial_score_data.get("score", 0)
+        improvement = min(improvement, max_boost)
+        improvement = max(0, improvement)
+        
+        improved_score_data["score"] = initial_score_data.get("score", 0) + improvement
+
+        exp_count = len(structured_json.get("experience", []))
+        proj_count = len(structured_json.get("projects", []))
+        
+        logger.info({
+            "experience_count": exp_count,
+            "project_limit": proj_count,
+            "initial_score": initial_score_data["score"],
+            "final_score": improved_score_data["score"],
+            "improvement": improvement
+        })
+
+        response_payload = {
+            "original_score": initial_score_data,
+            "optimized_score": improved_score_data,
+            "improvement": improvement,
+            "original_label": scorer.score_label(initial_score_data["score"]),
+            "optimized_label": scorer.score_label(improved_score_data["score"]),
+            "confidence": improved_score_data.get("confidence", 75),
+            "insights": improved_score_data.get("insights", []),
+            "resume": structured_json
+        }
+
+        return jsonify(response_payload), 200
     except Exception as e:
         print(f"[/optimize] Error: {e}")
         return jsonify({"error": str(e)}), 500
