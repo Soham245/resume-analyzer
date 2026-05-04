@@ -735,3 +735,169 @@ select:focus {
         scroll-behavior: auto !important;
     }
 }
+
+.mode-tab {
+    padding: 8px 18px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    border-bottom: 2px solid transparent;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+
+.mode-tab--active {
+    color: #a5b4fc;
+    border-bottom-color: #818cf8;
+}
+
+.mode-tab:hover:not(.mode-tab--active) {
+    color: #94a3b8;
+}
+
+.sec-pill {
+    padding: 3px 11px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    cursor: pointer;
+    background: rgba(99, 102, 241, 0.12);
+    color: #a5b4fc;
+    transition: all 0.15s;
+}
+
+.sec-pill:hover {
+    background: rgba(99, 102, 241, 0.22);
+}
+
+.sec-pill.sec-pill--off {
+    background: rgba(100, 116, 139, 0.08);
+    color: #475569;
+    border-color: rgba(100, 116, 139, 0.2);
+    text-decoration: line-through;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #1e293b;
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
+
+.prose p:has(strong:contains("Original:")) {
+    border-left: 4px solid #ef4444;
+    padding-left: 1rem;
+    background: #7f1d1d1a;
+    border-radius: 0 4px 4px 0;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+.prose p:has(strong:contains("Re-frame:")) {
+    border-left: 4px solid #10b981;
+    padding-left: 1rem;
+    background: #064e3b1a;
+    border-radius: 0 4px 4px 0;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+/* Resume page globals */
+.resume-scale-target {
+    font-size: 16px;
+    line-height: 1.25;
+}
+
+.resume-scale-target h1 {
+    font-size: 29px;
+    margin: 0;
+}
+
+.resume-scale-target .small {
+    font-size: 15px;
+}
+
+.resume-scale-target .r-section {
+    margin-bottom: 8px;
+}
+
+.resume-scale-target .r-section-title {
+    margin-bottom: 4px;
+    font-weight: bold;
+    border-bottom: 1px solid #ccc;
+}
+
+.resume-scale-target .r-entry {
+    margin-bottom: 6px;
+}
+
+.resume-scale-target li {
+    margin-bottom: 3px;
+}
+
+/* Template 4: Sidebar Pro */
+.t4-layout {
+    display: flex;
+    height: 100%;
+}
+
+.t4-sidebar {
+    width: 28%;
+    height: 100%;
+    background: #1e293b;
+    color: #f8fafc;
+    padding: 24px 16px;
+    box-sizing: border-box;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+}
+
+.t4-sb-section {
+    margin-bottom: 18px;
+}
+
+.t4-sb-section h4 {
+    margin-bottom: 6px;
+}
+
+.t4-main {
+    width: 72%;
+    height: 100%;
+    padding: 20px 22px;
+    box-sizing: border-box;
+    overflow: hidden;
+    background: white;
+    font-family: Arial, sans-serif;
+    font-size: 10pt;
+    color: #1e293b;
+}
+
+.t4-section {
+    margin-bottom: 10px;
+}
+
+.t4-section-head {
+    text-transform: uppercase;
+    font-size: 10.5pt;
+    color: #0f172a;
+    border-bottom: 2px solid #e2e8f0;
+    margin: 0 0 6px;
+    padding-bottom: 3px;
+}
