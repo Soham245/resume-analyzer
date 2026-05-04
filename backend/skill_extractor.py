@@ -392,7 +392,7 @@ Extract skills from the TEXT below using these strict rules:
 - Never convert a sentence, clause, responsibility, or achievement into a skill.
 - Reject vague phrases and generic descriptors such as "best practices", "high quality", "performance", "reliability", "professional", or "structured".
 - Reject any item longer than 3 words.
-- technical: tools, technologies, programming languages, frameworks, databases, platforms, software.
+- technical: tools, technologies, programming languages, frameworks, databases, platforms, software, and specific domain terms or processes (e.g., "data annotation", "visual reasoning"). If a technical phrase exists in the text and is 1-3 words, allow it.
 - soft: directly named interpersonal or workplace skills only.
 - languages: human languages only.
 - If unsure, omit the item.
@@ -425,7 +425,7 @@ Extract skills from each section independently using these strict rules:
 - Never convert sentences, achievements, or responsibilities into skills.
 - Reject vague phrases and generic descriptors such as "best practices", "high quality", "performance", "reliability", "professional", or "structured".
 - Reject any item longer than 3 words.
-- technical: tools, technologies, programming languages, frameworks, databases, platforms, software.
+- technical: tools, technologies, programming languages, frameworks, databases, platforms, software, and specific domain terms or processes (e.g., "data annotation", "visual reasoning"). If a technical phrase exists in the text and is 1-3 words, allow it.
 - soft: directly named interpersonal or workplace skills only.
 - languages: human languages only.
 - If unsure, omit the item.
@@ -438,6 +438,27 @@ JOB DESCRIPTION:
 {jd_text}
 """
 
+
+import collections
+from string import punctuation
+
+def _fallback_keyword_extraction(text):
+    """Fallback to simple frequency analysis for keywords if LLM returns empty."""
+    stop_words = frozenset({"the", "and", "to", "of", "a", "in", "for", "is", "with", "on", 
+                            "that", "by", "this", "or", "as", "be", "are", "from", "at", 
+                            "your", "have", "will", "what", "where", "when", "about", "which",
+                            "an", "can", "our", "you", "we", "not", "it", "all", "work", "team",
+                            "experience", "years", "skills", "knowledge", "ability", "working",
+                            "development", "design", "new", "strong", "understanding", "using",
+                            "business", "data", "requirements", "support", "management", "required",
+                            "including", "other", "their", "such", "ensure", "provide", "within"})
+    
+    words = [w.strip(punctuation).lower() for w in text.split() if len(w.strip(punctuation)) > 2]
+    filtered = [w for w in words if w not in stop_words and not w.isdigit()]
+    
+    counts = collections.Counter(filtered)
+    # Return top 8 frequent words as potential technical keywords
+    return [word for word, count in counts.most_common(8)]
 
 def extract_and_categorize_skills(text, api_key):
     """Return a stable {technical, soft, languages} structure for a single text blob."""
@@ -561,6 +582,11 @@ def analyze_resume_and_jd(resume_text, jd_text, api_key):
 
         resume_skills = _validate_skill_structure(resume_payload, resume_text, "resume")
         jd_skills = _validate_skill_structure(jd_payload, jd_text, "job_description")
+
+        if not jd_skills["technical"]:
+            logger.info("[resume_jd_combined] No technical skills found in JD, using fallback extraction.")
+            fallback_keywords = _fallback_keyword_extraction(jd_text)
+            jd_skills["technical"] = fallback_keywords
 
         resume_flat = (
             resume_skills["technical"] +

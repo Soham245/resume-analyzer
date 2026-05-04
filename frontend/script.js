@@ -134,21 +134,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Badge style configs ──────────────────────────────────────────────────
     const userBadgeStyle = {
-        technical: { bg: 'rgba(99,102,241,0.12)', color: '#a5b4fc', border: 'rgba(99,102,241,0.25)' },
-        soft:      { bg: 'rgba(139,92,246,0.12)',  color: '#c4b5fd', border: 'rgba(139,92,246,0.25)' },
-        languages: { bg: 'rgba(14,165,233,0.12)',  color: '#7dd3fc', border: 'rgba(14,165,233,0.25)' },
+        technical: { bg: '#e0f2fe', color: '#0369a1', border: 'transparent' },
+        soft:      { bg: '#ede9fe', color: '#6d28d9', border: 'transparent' },
+        languages: { bg: '#dcfce7', color: '#166534', border: 'transparent' },
     };
     const jdBadgeStyle = {
-        technical: { bg: 'rgba(245,158,11,0.10)',  color: '#fbbf24', border: 'rgba(245,158,11,0.20)' },
-        soft:      { bg: 'rgba(249,115,22,0.10)',   color: '#fb923c', border: 'rgba(249,115,22,0.20)' },
-        languages: { bg: 'rgba(20,184,166,0.10)',   color: '#2dd4bf', border: 'rgba(20,184,166,0.20)' },
+        technical: { bg: '#e0f2fe', color: '#0369a1', border: 'transparent' },
+        soft:      { bg: '#ede9fe', color: '#6d28d9', border: 'transparent' },
+        languages: { bg: '#dcfce7', color: '#166534', border: 'transparent' },
     };
 
     // ── Render helpers ───────────────────────────────────────────────────────
     function makeBadge(text, style, onRemove) {
         const badge = document.createElement('div');
-        badge.style.cssText = `display:inline-flex;align-items:center;gap:5px;padding:3px 9px;
-            border-radius:5px;font-size:11px;font-weight:600;
+        badge.style.cssText = `display:inline-flex;align-items:center;gap:6px;padding:6px 10px;
+            border-radius:999px;font-size:13.5px;font-weight:500;
             background:${style.bg};color:${style.color};border:1px solid ${style.border};`;
 
         const label = document.createElement('span');
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (onRemove) {
             const x = document.createElement('button');
             x.textContent = '×';
-            x.style.cssText = 'background:none;border:none;cursor:pointer;padding:0;font-size:13px;line-height:1;color:#94a3b8;';
+            x.style.cssText = 'background:none;border:none;cursor:pointer;padding:0;font-size:14px;line-height:1;color:inherit;opacity:0.7;';
             x.addEventListener('click', onRemove);
             badge.appendChild(x);
         }
@@ -1139,6 +1139,13 @@ function updateScoreCard(payload) {
     }
     if (document.getElementById('scoreLabel')) {
         document.getElementById('scoreLabel').textContent = payload.optimized_label || "Analyzed";
+    }
+
+    const progressBar = document.getElementById('scoreProgressBar');
+    if (progressBar) {
+        setTimeout(() => {
+            progressBar.style.width = safeOptScore + '%';
+        }, 100);
     }
     
     const impEl = document.getElementById('scoreImprovement');

@@ -39,10 +39,21 @@ body {
     margin: 0;
     font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
-    color: var(--color-text);
+    color: #1f2937;
+    font-size: 15px;
+    line-height: 1.7;
     background:
         radial-gradient(circle at top left, rgba(139, 111, 71, 0.12), transparent 28%),
         linear-gradient(180deg, #f8f4f0 0%, var(--color-bg) 100%);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #111827;
+}
+
+p, .insight-item, .jd-content {
+    max-width: 65ch;
+    margin-bottom: 14px;
 }
 
 body.app-body {

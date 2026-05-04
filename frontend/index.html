@@ -40,68 +40,187 @@
         <div class="app-header__inner">
             <div class="app-header__eyebrow">AI-powered ATS optimization</div>
             <h1 class="app-header__title">Resume Analyzer</h1>
-            <p class="app-header__subtitle">Compare your resume against a job description, identify missing keywords, and generate a stronger ATS-ready version without changing the app workflow.</p>
+            <p class="app-header__subtitle">Compare your resume against a job description, identify missing keywords,
+                and generate a stronger ATS-ready version without changing the app workflow.</p>
         </div>
     </header>
 
     <main class="app-shell">
-        
+
         <!-- Upload / Input Section -->
         <section id="input-section" class="app-stage">
 
-        <section class="control-surface">
+            <section class="control-surface">
 
-            <!-- Mode toggle tabs -->
-            <div class="mode-switch">
-                <button id="mode-upload" class="mode-tab mode-tab--active">📄 Upload &amp; Analyze</button>
-                <button id="mode-manual" class="mode-tab">✏️ Manual Entry</button>
-            </div>
+                <!-- Mode toggle tabs -->
+                <div class="mode-switch">
+                    <button id="mode-upload" class="mode-tab mode-tab--active">📄 Upload &amp; Analyze</button>
+                    <button id="mode-manual" class="mode-tab">✏️ Manual Entry</button>
+                </div>
 
-            <!-- Upload mode -->
-            <div id="upload-mode">
-                <form id="analyzer-form" class="analysis-form">
-                    <div class="analysis-grid">
+                <!-- Upload mode -->
+                <div id="upload-mode">
+                    <form id="analyzer-form" class="analysis-form">
+                        <div class="analysis-grid">
 
-                        <div data-panel-label="Resume Upload"
-                            class="upload-dropzone relative h-48 rounded-xl border-2 border-dashed transition-colors flex flex-col items-center justify-center group overflow-hidden">
-                            <input type="file" id="resume-file" accept=".pdf" required
-                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                            <div data-panel-label="Resume Upload"
+                                class="upload-dropzone relative h-48 rounded-xl border-2 border-dashed transition-colors flex flex-col items-center justify-center group overflow-hidden">
+                                <input type="file" id="resume-file" accept=".pdf" required
+                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
 
-                            <div id="upload-text"
-                                class="text-center group-hover:scale-105 transition-transform duration-300">
-                                <div class="flex items-center justify-center space-x-2 text-white">
-                                    <svg class="w-5 h-5 text-slate-300" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd"
-                                            d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                                            clip-rule="evenodd"></path>
-                                    </svg>
-                                    <span class="font-medium text-base">Drag & drop your resume</span>
+                                <div id="upload-text"
+                                    class="text-center group-hover:scale-105 transition-transform duration-300">
+                                    <div class="flex items-center justify-center space-x-2 text-white">
+                                        <svg class="w-5 h-5 text-slate-300" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd"
+                                                d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                                                clip-rule="evenodd"></path>
+                                        </svg>
+                                        <span class="font-medium text-base">Drag & drop your resume</span>
+                                    </div>
+                                    <p class="text-slate-400 text-sm mt-1">or click to upload</p>
                                 </div>
-                                <p class="text-slate-400 text-sm mt-1">or click to upload</p>
+
+                                <div id="file-name" class="hidden text-center z-0 px-4">
+                                    <svg class="w-8 h-8 text-indigo-400 mx-auto mb-2" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <p id="file-name-text"
+                                        class="text-indigo-300 font-medium truncate w-full max-w-[200px]"></p>
+                                </div>
                             </div>
 
-                            <div id="file-name" class="hidden text-center z-0 px-4">
-                                <svg class="w-8 h-8 text-indigo-400 mx-auto mb-2" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <p id="file-name-text"
-                                    class="text-indigo-300 font-medium truncate w-full max-w-[200px]"></p>
+                            <div data-panel-label="Job Description"
+                                class="job-description-panel relative w-full h-full rounded-xl overflow-y-auto p-4 transition-all flex">
+                                <textarea id="jd-text" required placeholder="Paste job description here..."
+                                    class="custom-scrollbar w-full h-full bg-transparent border-none outline-none focus:ring-0 text-slate-200 placeholder-slate-500 resize-none"></textarea>
                             </div>
                         </div>
 
-                        <div data-panel-label="Job Description"
-                            class="job-description-panel relative w-full h-48 rounded-xl overflow-hidden transition-all flex">
-                            <textarea id="jd-text" required placeholder="Paste job description here..."
-                                class="custom-scrollbar w-full h-full p-4 bg-transparent border-none outline-none focus:ring-0 text-slate-200 placeholder-slate-500 resize-none"></textarea>
+                        <button type="submit" id="submit-btn"
+                            class="primary-button w-full flex justify-center items-center">
+                            <span>Analyze Resume</span>
+                            <svg id="loading-spinner" class="animate-spin ml-2 h-5 w-5 text-white hidden"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4">
+                                </circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                        </button>
+                    </form>
+                </div><!-- /upload-mode -->
+
+                <!-- Manual Entry mode -->
+                <div id="manual-mode" class="manual-mode hidden space-y-4">
+
+                    <!-- Row 1: Name + Role -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Full Name
+                                <span class="text-indigo-400">*</span></label>
+                            <input id="m-name" type="text" placeholder="John Doe"
+                                class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Target Role
+                                <span class="text-indigo-400">*</span></label>
+                            <input id="m-title" type="text" placeholder="e.g. Full Stack Developer"
+                                class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
                         </div>
                     </div>
 
-                    <button type="submit" id="submit-btn"
-                        class="primary-button w-full flex justify-center items-center">
-                        <span>Analyze Resume</span>
-                        <svg id="loading-spinner" class="animate-spin ml-2 h-5 w-5 text-white hidden"
+                    <!-- Row 2: Contact (4 cols) -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <input id="m-email" type="email" placeholder="Email"
+                            class="bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                        <input id="m-phone" type="tel" placeholder="Phone"
+                            class="bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                        <input id="m-linkedin" type="text" placeholder="LinkedIn URL"
+                            class="bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                        <input id="m-github" type="text" placeholder="GitHub URL"
+                            class="bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                    </div>
+
+                    <!-- Row 3: Education + Experience -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label
+                                class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Education</label>
+                            <textarea id="m-education" rows="3"
+                                placeholder="B.Tech Computer Science, MIT, 2020–2024&#10;(one entry per line)"
+                                class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Experience
+                                <span class="text-slate-600 normal-case font-normal">(optional)</span></label>
+                            <textarea id="m-experience" rows="3"
+                                placeholder="Software Engineer, Google, 2022–Present&#10;Led payment gateway integration, reduced checkout errors by 30%"
+                                class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: Projects + Certifications -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Projects <span
+                                    class="text-slate-600 normal-case font-normal">(optional)</span></label>
+                            <textarea id="m-projects" rows="3"
+                                placeholder="E-Commerce App | React, Node.js, MongoDB | Built cart + checkout, integrated Stripe&#10;(one project per line)"
+                                class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Certifications
+                                <span class="text-slate-600 normal-case font-normal">(optional)</span></label>
+                            <textarea id="m-certifications" rows="3"
+                                placeholder="AWS Solutions Architect — Amazon (2023)&#10;Google Cloud Professional — Google (2024)"
+                                class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Row 5: Skills (3 cols) -->
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-indigo-400 uppercase tracking-widest">Technical
+                                Skills</label>
+                            <input id="m-technical" type="text" placeholder="Python, React, Docker, PostgreSQL"
+                                class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-violet-400 uppercase tracking-widest">Soft
+                                Skills</label>
+                            <input id="m-soft" type="text" placeholder="Leadership, Communication"
+                                class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                        </div>
+                        <div class="space-y-1">
+                            <label
+                                class="text-xs font-semibold text-sky-400 uppercase tracking-widest">Languages</label>
+                            <input id="m-languages" type="text" placeholder="English, Hindi"
+                                class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                        </div>
+                    </div>
+
+                    <!-- JD Input -->
+                    <div class="space-y-1">
+                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Paste Job
+                            Description
+                            <span class="text-slate-600 normal-case font-normal">(optional — enables skill matching
+                                &amp;
+                                JD-optimized resume)</span></label>
+                        <textarea id="m-jd-text" rows="4"
+                            placeholder="Paste the job description here to get skill gap analysis, improvement suggestions, and a JD-optimized resume..."
+                            class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
+                    </div>
+
+                    <!-- Generate button -->
+                    <button id="generate-manual-btn"
+                        class="w-full bg-[#8358ff] text-white font-medium py-3.5 rounded-xl hover:bg-[#724aeb] transition-colors flex justify-center items-center gap-2">
+                        <span id="gen-btn-text">✨ Generate Resume from Inputs</span>
+                        <svg id="gen-spinner" class="animate-spin h-5 w-5 text-white hidden"
                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
                             </circle>
@@ -110,234 +229,137 @@
                             </path>
                         </svg>
                     </button>
-                </form>
-            </div><!-- /upload-mode -->
+                    <p class="text-xs text-slate-600 text-center -mt-1">Edit inputs and click again to regenerate at any
+                        time.</p>
 
-            <!-- Manual Entry mode -->
-            <div id="manual-mode" class="manual-mode hidden space-y-4">
+                </div><!-- /manual-mode -->
 
-                <!-- Row 1: Name + Role -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Full Name <span
-                                class="text-indigo-400">*</span></label>
-                        <input id="m-name" type="text" placeholder="John Doe"
-                            class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Target Role <span
-                                class="text-indigo-400">*</span></label>
-                        <input id="m-title" type="text" placeholder="e.g. Full Stack Developer"
-                            class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                    </div>
-                </div>
+                <p id="error-message" class="app-alert hidden">
+                </p>
+            </section>
 
-                <!-- Row 2: Contact (4 cols) -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <input id="m-email" type="email" placeholder="Email"
-                        class="bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                    <input id="m-phone" type="tel" placeholder="Phone"
-                        class="bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                    <input id="m-linkedin" type="text" placeholder="LinkedIn URL"
-                        class="bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                    <input id="m-github" type="text" placeholder="GitHub URL"
-                        class="bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                </div>
+            <!-- Manual Mode — Skill Analysis Results (shown when JD is provided) -->
+            <section id="manual-analysis-section" class="hidden analysis-section manual-results">
+                <div class="results-card results-card--stacked">
+                    <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2"><span>⚡</span> Skill Analysis
+                    </h2>
 
-                <!-- Row 3: Education + Experience -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Education</label>
-                        <textarea id="m-education" rows="3"
-                            placeholder="B.Tech Computer Science, MIT, 2020–2024&#10;(one entry per line)"
-                            class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Experience <span
-                                class="text-slate-600 normal-case font-normal">(optional)</span></label>
-                        <textarea id="m-experience" rows="3"
-                            placeholder="Software Engineer, Google, 2022–Present&#10;Led payment gateway integration, reduced checkout errors by 30%"
-                            class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
-                    </div>
-                </div>
-
-                <!-- Row 4: Projects + Certifications -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Projects <span
-                                class="text-slate-600 normal-case font-normal">(optional)</span></label>
-                        <textarea id="m-projects" rows="3"
-                            placeholder="E-Commerce App | React, Node.js, MongoDB | Built cart + checkout, integrated Stripe&#10;(one project per line)"
-                            class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Certifications
-                            <span class="text-slate-600 normal-case font-normal">(optional)</span></label>
-                        <textarea id="m-certifications" rows="3"
-                            placeholder="AWS Solutions Architect — Amazon (2023)&#10;Google Cloud Professional — Google (2024)"
-                            class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
-                    </div>
-                </div>
-
-                <!-- Row 5: Skills (3 cols) -->
-                <div class="grid grid-cols-3 gap-3">
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-indigo-400 uppercase tracking-widest">Technical
-                            Skills</label>
-                        <input id="m-technical" type="text" placeholder="Python, React, Docker, PostgreSQL"
-                            class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-violet-400 uppercase tracking-widest">Soft
-                            Skills</label>
-                        <input id="m-soft" type="text" placeholder="Leadership, Communication"
-                            class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-sky-400 uppercase tracking-widest">Languages</label>
-                        <input id="m-languages" type="text" placeholder="English, Hindi"
-                            class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                    </div>
-                </div>
-
-                <!-- JD Input -->
-                <div class="space-y-1">
-                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Paste Job Description
-                        <span class="text-slate-600 normal-case font-normal">(optional — enables skill matching &amp;
-                            JD-optimized resume)</span></label>
-                    <textarea id="m-jd-text" rows="4"
-                        placeholder="Paste the job description here to get skill gap analysis, improvement suggestions, and a JD-optimized resume..."
-                        class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
-                </div>
-
-                <!-- Generate button -->
-                <button id="generate-manual-btn"
-                    class="w-full bg-[#8358ff] text-white font-medium py-3.5 rounded-xl hover:bg-[#724aeb] transition-colors flex justify-center items-center gap-2">
-                    <span id="gen-btn-text">✨ Generate Resume from Inputs</span>
-                    <svg id="gen-spinner" class="animate-spin h-5 w-5 text-white hidden"
-                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                        </circle>
-                        <path class="opacity-75" fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                        </path>
-                    </svg>
-                </button>
-                <p class="text-xs text-slate-600 text-center -mt-1">Edit inputs and click again to regenerate at any
-                    time.</p>
-
-            </div><!-- /manual-mode -->
-
-            <p id="error-message" class="app-alert hidden">
-            </p>
-        </section>
-
-        <!-- Manual Mode — Skill Analysis Results (shown when JD is provided) -->
-        <section id="manual-analysis-section" class="hidden analysis-section manual-results">
-            <div class="results-card results-card--stacked">
-                <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2"><span>⚡</span> Skill Analysis</h2>
-
-                <!-- Two columns: Your Skills | JD Requirements -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Your Skills</h3>
-                        <div>
-                            <p class="text-xs font-semibold text-indigo-400 mb-1.5">Technical</p>
-                            <div id="manual-skills-technical" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
+                    <!-- Two columns: Your Skills | JD Requirements -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Your Skills</h3>
+                            <div>
+                                <p class="text-xs font-semibold text-indigo-400 mb-1.5">Technical</p>
+                                <div id="manual-skills-technical" class="flex flex-wrap gap-2 min-h-[22px]"></div>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-violet-400 mb-1.5">Soft Skills</p>
+                                <div id="manual-skills-soft" class="flex flex-wrap gap-2 min-h-[22px]"></div>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-sky-400 mb-1.5">Languages</p>
+                                <div id="manual-skills-languages" class="flex flex-wrap gap-2 min-h-[22px]"></div>
+                            </div>
                         </div>
-                        <div>
-                            <p class="text-xs font-semibold text-violet-400 mb-1.5">Soft Skills</p>
-                            <div id="manual-skills-soft" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
-                        </div>
-                        <div>
-                            <p class="text-xs font-semibold text-sky-400 mb-1.5">Languages</p>
-                            <div id="manual-skills-languages" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
+
+                        <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Job Description
+                                Requirements</h3>
+                            <div>
+                                <p class="text-xs font-semibold text-amber-400 mb-1.5">Technical</p>
+                                <div id="manual-jd-technical" class="flex flex-wrap gap-2 min-h-[22px]"></div>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-orange-400 mb-1.5">Soft Skills</p>
+                                <div id="manual-jd-soft" class="flex flex-wrap gap-2 min-h-[22px]"></div>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-teal-400 mb-1.5">Languages</p>
+                                <div id="manual-jd-languages" class="flex flex-wrap gap-2 min-h-[22px]"></div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Job Description
-                            Requirements</h3>
-                        <div>
-                            <p class="text-xs font-semibold text-amber-400 mb-1.5">Technical</p>
-                            <div id="manual-jd-technical" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
-                        </div>
-                        <div>
-                            <p class="text-xs font-semibold text-orange-400 mb-1.5">Soft Skills</p>
-                            <div id="manual-jd-soft" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
-                        </div>
-                        <div>
-                            <p class="text-xs font-semibold text-teal-400 mb-1.5">Languages</p>
-                            <div id="manual-jd-languages" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
+                    <!-- Skill Match: Matched vs Missing -->
+                    <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Skill Match</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <p class="text-xs font-semibold text-emerald-400 mb-1.5">Matching Skills</p>
+                                <div id="manual-skills-matched" class="flex flex-wrap gap-2 min-h-[22px]"></div>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-red-400 mb-1.5">Missing Skills</p>
+                                <div id="manual-skills-missing" class="flex flex-wrap gap-2 min-h-[22px]"></div>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Skill Match: Matched vs Missing -->
-                <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50">
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Skill Match</h3>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <p class="text-xs font-semibold text-emerald-400 mb-1.5">Matching Skills</p>
-                            <div id="manual-skills-matched" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
-                        </div>
-                        <div>
-                            <p class="text-xs font-semibold text-red-400 mb-1.5">Missing Skills</p>
-                            <div id="manual-skills-missing" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
-                        </div>
+                    <!-- Suggestions -->
+                    <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">How to Improve Match
+                        </h3>
+                        <ul id="manual-suggestions-list" class="space-y-2"></ul>
                     </div>
                 </div>
-
-                <!-- Suggestions -->
-                <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50">
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">How to Improve Match
-                    </h3>
-                    <ul id="manual-suggestions-list" class="space-y-2"></ul>
-                </div>
-            </div>
-        </section>
+            </section>
         </section><!-- /input-section -->
 
         <!-- Results Section (Below) -->
         <section id="main-results-wrapper" class="results-shell">
-            
+
             <!-- Empty State -->
             <div id="empty-state" class="empty-state">
                 <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <p class="text-gray-500 font-medium">Upload your resume and click optimize to see your ATS score</p>
             </div>
 
             <!-- New Score Card Section -->
-            <section id="scoreCard" class="hidden results-scorecard hover-lift smooth-ui">
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <h2 class="text-xl font-bold text-gray-900">ATS Optimization Results</h2>
-                        <p id="scoreLabel" class="text-gray-500 text-sm mt-1">Analyzing...</p>
-                    </div>
-                    <div class="text-right flex flex-col items-end">
-                        <div class="flex items-center space-x-3 mb-2">
+            <section id="scoreCard" class="hidden bg-white shadow-sm rounded-2xl border border-gray-100 p-6 mb-8 hover-lift smooth-ui">
+                <div class="flex flex-col md:flex-row justify-between items-start mb-6">
+                    <!-- LEFT SIDE -->
+                    <div class="flex-1">
+                        <h2 class="text-xl font-bold text-gray-900 mb-6">ATS Compatibility Score</h2>
+                        <p id="scoreLabel" class="sr-only">Analyzing...</p>
+
+                        <!-- BEFORE vs AFTER -->
+                        <div class="flex items-center gap-6 mb-4">
                             <div class="text-center">
-                                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-1">Original</p>
-                                <span id="originalScoreValue" class="text-xl font-bold text-gray-400">0</span>
+                                <span class="text-[10px] text-gray-400 uppercase tracking-widest font-bold block mb-1">Original</span>
+                                <div class="text-3xl font-bold text-gray-400">
+                                    <span id="originalScoreValue">0</span><span class="text-lg text-gray-300 font-medium">/100</span>
+                                </div>
                             </div>
-                            <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#3b82f6]/10 border-4 border-[#3b82f6]/20">
-                                <span id="scoreValue" class="text-2xl font-bold text-[#3b82f6]">0</span>
+                            <div class="text-gray-300">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            </div>
+                            <div class="text-center">
+                                <span class="text-[10px] text-blue-600 uppercase tracking-widest font-bold block mb-1">Optimized</span>
+                                <div class="text-5xl font-bold text-gray-900">
+                                    <span id="scoreValue">0</span><span class="text-xl text-gray-400 font-medium">/100</span>
+                                </div>
                             </div>
                         </div>
-                        <p class="text-xs text-gray-400 mt-1">Confidence: <span id="confidenceValue">0</span>%</p>
-                        <p class="text-[10px] text-gray-400 mt-1">Based on resume completeness and structure</p>
+
+                        <!-- Full-width progress bar -->
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-4 max-w-sm">
+                            <div id="scoreProgressBar" class="bg-gray-900 h-1.5 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT SIDE -->
+                    <div class="text-right mt-6 md:mt-0 flex flex-col items-end">
+                        <div id="scoreImprovement" class="hidden text-emerald-600 font-medium text-sm mb-1 flex items-center justify-end">
+                            ↗ <span id="improvementValue" class="ml-1">0</span>% potential improvement
+                        </div>
+                        <p class="text-sm text-gray-500"><span id="confidenceValue" class="font-medium text-gray-900">0</span>% confidence</p>
                     </div>
                 </div>
-                
-                <div id="scoreImprovement" class="hidden bg-[#16a34a]/10 text-[#16a34a] px-4 py-3 rounded-lg mb-6 text-sm font-medium flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-[#16a34a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                    Score improved by +<span id="improvementValue">0</span> points
-                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-gray-100">
                     <div>
                         <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Score Breakdown</h3>
                         <div id="breakdownBars" class="space-y-4">
@@ -351,293 +373,292 @@
                         </ul>
                     </div>
                 </div>
+
+
+            <section id="results-section" class="hidden analysis-section">
+                <div class="results-grid">
+
+                    <div class="results-card results-card--viewer flex flex-col h-[850px] overflow-hidden">
+                        <div class="results-card__header flex justify-between items-center">
+                            <h2 class="text-lg font-bold text-slate-200 flex items-center">
+                                <span class="mr-2">📄</span> Your Resume
+                            </h2>
+                        </div>
+                        <iframe id="pdf-viewer" class="w-full flex-grow bg-slate-900" src=""></iframe>
+                    </div>
+
+                    <div class="results-card results-card--insights flex flex-col h-[850px] overflow-hidden">
+
+                        <div class="results-card__header">
+                            <h2 class="text-lg font-bold text-slate-200 flex items-center">
+                                <span class="mr-2">⚡</span> Resume Optimizer
+                            </h2>
+                        </div>
+
+                        <div class="p-6 overflow-y-auto custom-scrollbar flex-grow space-y-5">
+
+                            <!-- Success -->
+                            <div class="bg-emerald-900/20 border border-emerald-700/40 p-3 rounded-xl text-center">
+                                <p class="text-emerald-400 font-medium text-sm">Resume extracted successfully.</p>
+                            </div>
+
+                            <!-- Your Skills -->
+                            <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Your Skills</h3>
+
+                                <div>
+                                    <p class="text-xs font-semibold text-indigo-400 mb-1.5">Technical</p>
+                                    <div id="skills-technical" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold text-violet-400 mb-1.5">Soft Skills</p>
+                                    <div id="skills-soft" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold text-sky-400 mb-1.5">Languages</p>
+                                    <div id="skills-languages" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
+                                </div>
+
+                                <!-- Add skill row -->
+                                <div class="flex gap-2 pt-1">
+                                    <input type="text" id="new-skill-input" placeholder="Add a skill..."
+                                        class="flex-1 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                    <select id="new-skill-category"
+                                        class="bg-slate-700 border border-slate-600 text-slate-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500">
+                                        <option value="technical">Technical</option>
+                                        <option value="soft">Soft</option>
+                                        <option value="languages">Language</option>
+                                    </select>
+                                    <button id="add-skill-btn"
+                                        class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-indigo-500 transition-colors">Add</button>
+                                </div>
+                            </div>
+
+                            <!-- JD Requirements -->
+                            <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Job Description
+                                    Requirements</h3>
+                                <div>
+                                    <p class="text-xs font-semibold text-amber-400 mb-1.5">Technical</p>
+                                    <div id="jd-technical" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold text-orange-400 mb-1.5">Soft Skills</p>
+                                    <div id="jd-soft" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold text-teal-400 mb-1.5">Languages</p>
+                                    <div id="jd-languages" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
+                                </div>
+                            </div>
+
+                            <!-- How to Improve Match -->
+                            <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50">
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">How to
+                                    Improve
+                                    Match</h3>
+                                <ul id="suggestions-list" class="space-y-2"></ul>
+                            </div>
+
+                            <!-- Optimize button -->
+                            <button id="start-rewrite-btn" class="primary-button w-full">
+                                Optimize Resume for Job Description
+                            </button>
+
+                        </div>
+                    </div>
+
+                </div>
             </section>
 
-        <section id="results-section" class="hidden analysis-section">
-            <div class="results-grid">
+            <section id="builder-section" class="hidden builder-surface">
+                <div class="builder-header flex justify-between items-center">
+                    <div class="flex items-center space-x-4">
+                        <h2 class="text-2xl font-bold text-slate-200">Live Resume Editor</h2>
 
-                <div
-                    class="results-card results-card--viewer flex flex-col h-[850px] overflow-hidden">
-                    <div
-                        class="results-card__header flex justify-between items-center">
-                        <h2 class="text-lg font-bold text-slate-200 flex items-center">
-                            <span class="mr-2">📄</span> Your Resume
-                        </h2>
+                        <select id="templateSelect"
+                            class="bg-slate-700 text-white border border-slate-600 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="ats_classic">Classic ATS (Best for portals)</option>
+                            <option value="executive">Executive (Sleek & Professional)</option>
+                            <option value="tech_modern">Tech Modern (Clean & Grid-based)</option>
+                            <option value="sidebar_pro">Sidebar Pro (Two-Column Creative)</option>
+                        </select>
                     </div>
-                    <iframe id="pdf-viewer" class="w-full flex-grow bg-slate-900" src=""></iframe>
+
+                    <button id="download-pdf-btn"
+                        class="bg-blue-600 px-6 py-2 rounded-lg text-white font-bold hover:bg-blue-500 transition-colors">
+                        📥 Download ATS PDF
+                    </button>
                 </div>
 
-                <div
-                    class="results-card results-card--insights flex flex-col h-[850px] overflow-hidden">
+                <!-- Entry Forms Grid -->
+                <div class="grid grid-cols-2 gap-3 mb-3 items-start">
 
-                    <div class="results-card__header">
-                        <h2 class="text-lg font-bold text-slate-200 flex items-center">
-                            <span class="mr-2">⚡</span> Resume Optimizer
-                        </h2>
-                    </div>
-
-                    <div class="p-6 overflow-y-auto custom-scrollbar flex-grow space-y-5">
-
-                        <!-- Success -->
-                        <div class="bg-emerald-900/20 border border-emerald-700/40 p-3 rounded-xl text-center">
-                            <p class="text-emerald-400 font-medium text-sm">Resume extracted successfully.</p>
-                        </div>
-
-                        <!-- Your Skills -->
-                        <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Your Skills</h3>
-
-                            <div>
-                                <p class="text-xs font-semibold text-indigo-400 mb-1.5">Technical</p>
-                                <div id="skills-technical" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
-                            </div>
-                            <div>
-                                <p class="text-xs font-semibold text-violet-400 mb-1.5">Soft Skills</p>
-                                <div id="skills-soft" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
-                            </div>
-                            <div>
-                                <p class="text-xs font-semibold text-sky-400 mb-1.5">Languages</p>
-                                <div id="skills-languages" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
-                            </div>
-
-                            <!-- Add skill row -->
-                            <div class="flex gap-2 pt-1">
-                                <input type="text" id="new-skill-input" placeholder="Add a skill..."
-                                    class="flex-1 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                                <select id="new-skill-category"
-                                    class="bg-slate-700 border border-slate-600 text-slate-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500">
-                                    <option value="technical">Technical</option>
-                                    <option value="soft">Soft</option>
-                                    <option value="languages">Language</option>
-                                </select>
-                                <button id="add-skill-btn"
-                                    class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-indigo-500 transition-colors">Add</button>
-                            </div>
-                        </div>
-
-                        <!-- JD Requirements -->
-                        <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Job Description
-                                Requirements</h3>
-                            <div>
-                                <p class="text-xs font-semibold text-amber-400 mb-1.5">Technical</p>
-                                <div id="jd-technical" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
-                            </div>
-                            <div>
-                                <p class="text-xs font-semibold text-orange-400 mb-1.5">Soft Skills</p>
-                                <div id="jd-soft" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
-                            </div>
-                            <div>
-                                <p class="text-xs font-semibold text-teal-400 mb-1.5">Languages</p>
-                                <div id="jd-languages" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
-                            </div>
-                        </div>
-
-                        <!-- How to Improve Match -->
-                        <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">How to Improve
-                                Match</h3>
-                            <ul id="suggestions-list" class="space-y-2"></ul>
-                        </div>
-
-                        <!-- Optimize button -->
-                        <button id="start-rewrite-btn"
-                            class="primary-button w-full">
-                            Optimize Resume for Job Description
+                    <!-- Add Experience Block -->
+                    <div class="border border-slate-700 rounded-xl overflow-hidden">
+                        <button id="toggle-exp-form"
+                            class="w-full flex items-center justify-between px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 transition-colors text-sm font-medium text-slate-300">
+                            <span class="flex items-center gap-2">
+                                <span class="text-indigo-400 font-bold text-base leading-none"
+                                    id="toggle-exp-icon">+</span>
+                                Add Experience Entry
+                            </span>
+                            <span class="text-xs text-slate-500">Role · Company · Duration · Bullets</span>
                         </button>
-
+                        <div id="exp-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
+                            <div class="grid grid-cols-3 gap-3">
+                                <input id="exp-role" type="text" placeholder="Role / Job Title"
+                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                <input id="exp-company" type="text" placeholder="Company / Organization"
+                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                <input id="exp-duration" type="text" placeholder="Duration (e.g. Jan 2023 – Present)"
+                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                            </div>
+                            <textarea id="exp-desc" rows="3"
+                                placeholder="2 Bullet points, one per line (e.g. Led backend migration, reducing API latency by 40%)"
+                                class="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none"></textarea>
+                            <button id="add-exp-btn"
+                                class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-500 transition-colors">
+                                Add to Resume
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-            </div>
-        </section>
+                    <!-- Add Project Block -->
+                    <div class="border border-slate-700 rounded-xl overflow-hidden">
+                        <button id="toggle-proj-form"
+                            class="w-full flex items-center justify-between px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 transition-colors text-sm font-medium text-slate-300">
+                            <span class="flex items-center gap-2">
+                                <span class="text-indigo-400 font-bold text-base leading-none"
+                                    id="toggle-proj-icon">+</span>
+                                Add Project Entry
+                            </span>
+                            <span class="text-xs text-slate-500">Title · Stack · Bullets</span>
+                        </button>
+                        <div id="proj-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <input id="proj-title" type="text" placeholder="Project Title"
+                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                <input id="proj-stack" type="text" placeholder="Tech Stack (comma-separated)"
+                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                            </div>
+                            <textarea id="proj-desc" rows="3"
+                                placeholder="3 Bullet points, one per line (e.g. Built REST API serving 10k daily requests)"
+                                class="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none"></textarea>
+                            <button id="add-proj-btn"
+                                class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-500 transition-colors">
+                                Add to Resume
+                            </button>
+                        </div>
+                    </div>
 
-        <section id="builder-section"
-            class="hidden builder-surface">
-            <div class="builder-header flex justify-between items-center">
-                <div class="flex items-center space-x-4">
-                    <h2 class="text-2xl font-bold text-slate-200">Live Resume Editor</h2>
+                    <!-- Add Education Block -->
+                    <div class="border border-slate-700 rounded-xl overflow-hidden">
+                        <button id="toggle-edu-form"
+                            class="w-full flex items-center justify-between px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 transition-colors text-sm font-medium text-slate-300">
+                            <span class="flex items-center gap-2">
+                                <span class="text-indigo-400 font-bold text-base leading-none"
+                                    id="toggle-edu-icon">+</span>
+                                Add Education Entry
+                            </span>
+                            <span class="text-xs text-slate-500">Degree · Institution · Year · GPA</span>
+                        </button>
+                        <div id="edu-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <input id="edu-degree" type="text" placeholder="Degree (e.g. B.Tech Computer Science)"
+                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                <input id="edu-institution" type="text" placeholder="Institution"
+                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <input id="edu-year" type="text" placeholder="Year / Duration (e.g. 2019–2023)"
+                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                <input id="edu-gpa" type="text" placeholder="GPA / Score (optional)"
+                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                            </div>
+                            <button id="add-edu-btn"
+                                class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-500 transition-colors">
+                                Add to Resume
+                            </button>
+                        </div>
+                    </div>
 
-                    <select id="templateSelect"
-                        class="bg-slate-700 text-white border border-slate-600 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="ats_classic">Classic ATS (Best for portals)</option>
-                        <option value="executive">Executive (Sleek & Professional)</option>
-                        <option value="tech_modern">Tech Modern (Clean & Grid-based)</option>
-                        <option value="sidebar_pro">Sidebar Pro (Two-Column Creative)</option>
-                    </select>
-                </div>
+                    <!-- Add Certification Block -->
+                    <div class="border border-slate-700 rounded-xl overflow-hidden">
+                        <button id="toggle-cert-form"
+                            class="w-full flex items-center justify-between px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 transition-colors text-sm font-medium text-slate-300">
+                            <span class="flex items-center gap-2">
+                                <span class="text-indigo-400 font-bold text-base leading-none"
+                                    id="toggle-cert-icon">+</span>
+                                Add Certification
+                            </span>
+                            <span class="text-xs text-slate-500">Name · Issuer · Date</span>
+                        </button>
+                        <div id="cert-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
+                            <div class="grid grid-cols-3 gap-3">
+                                <input id="cert-name" type="text" placeholder="Certification Name"
+                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                <input id="cert-org" type="text" placeholder="Issuing Organization"
+                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                <input id="cert-date" type="text" placeholder="Date / Validity (e.g. Jan 2024)"
+                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                            </div>
+                            <button id="add-cert-btn"
+                                class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-500 transition-colors">
+                                Add to Resume
+                            </button>
+                        </div>
+                    </div>
 
-                <button id="download-pdf-btn"
-                    class="bg-blue-600 px-6 py-2 rounded-lg text-white font-bold hover:bg-blue-500 transition-colors">
-                    📥 Download ATS PDF
-                </button>
-            </div>
+                </div><!-- /entry-forms-grid -->
 
-            <!-- Entry Forms Grid -->
-            <div class="grid grid-cols-2 gap-3 mb-3 items-start">
-
-                <!-- Add Experience Block -->
-                <div class="border border-slate-700 rounded-xl overflow-hidden">
-                    <button id="toggle-exp-form"
-                        class="w-full flex items-center justify-between px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 transition-colors text-sm font-medium text-slate-300">
+                <!-- Optimize for Job Description (works in both upload + manual modes) -->
+                <div class="mb-3 border border-emerald-800/40 rounded-xl overflow-hidden">
+                    <button id="toggle-builder-jd"
+                        class="w-full flex items-center justify-between px-4 py-2.5 bg-emerald-900/20 hover:bg-emerald-900/30 transition-colors text-sm font-medium text-emerald-400">
                         <span class="flex items-center gap-2">
-                            <span class="text-indigo-400 font-bold text-base leading-none" id="toggle-exp-icon">+</span>
-                            Add Experience Entry
+                            <span id="builder-jd-icon" class="font-bold text-base leading-none">+</span>
+                            Optimize for a Job Description
                         </span>
-                        <span class="text-xs text-slate-500">Role · Company · Duration · Bullets</span>
+                        <span class="text-xs text-slate-500">Paste JD → AI rewrites resume for ATS match</span>
                     </button>
-                    <div id="exp-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
-                        <div class="grid grid-cols-3 gap-3">
-                            <input id="exp-role" type="text" placeholder="Role / Job Title"
-                                class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                            <input id="exp-company" type="text" placeholder="Company / Organization"
-                                class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                            <input id="exp-duration" type="text" placeholder="Duration (e.g. Jan 2023 – Present)"
-                                class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                        </div>
-                        <textarea id="exp-desc" rows="3"
-                            placeholder="2 Bullet points, one per line (e.g. Led backend migration, reducing API latency by 40%)"
-                            class="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none"></textarea>
-                        <button id="add-exp-btn"
-                            class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-500 transition-colors">
-                            Add to Resume
+                    <div id="builder-jd-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
+                        <textarea id="builder-jd-text" rows="4" placeholder="Paste the job description here..."
+                            class="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-emerald-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
+                        <button id="builder-optimize-btn"
+                            class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition-colors flex items-center gap-2">
+                            <span id="builder-opt-text">Optimize Resume</span>
+                            <svg id="builder-opt-spinner" class="animate-spin h-4 w-4 text-white hidden"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4">
+                                </circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
                         </button>
                     </div>
                 </div>
 
-                <!-- Add Project Block -->
-                <div class="border border-slate-700 rounded-xl overflow-hidden">
-                    <button id="toggle-proj-form"
-                        class="w-full flex items-center justify-between px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 transition-colors text-sm font-medium text-slate-300">
-                        <span class="flex items-center gap-2">
-                            <span class="text-indigo-400 font-bold text-base leading-none"
-                                id="toggle-proj-icon">+</span>
-                            Add Project Entry
-                        </span>
-                        <span class="text-xs text-slate-500">Title · Stack · Bullets</span>
-                    </button>
-                    <div id="proj-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
-                        <div class="grid grid-cols-2 gap-3">
-                            <input id="proj-title" type="text" placeholder="Project Title"
-                                class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                            <input id="proj-stack" type="text" placeholder="Tech Stack (comma-separated)"
-                                class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                        </div>
-                        <textarea id="proj-desc" rows="3"
-                            placeholder="3 Bullet points, one per line (e.g. Built REST API serving 10k daily requests)"
-                            class="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none"></textarea>
-                        <button id="add-proj-btn"
-                            class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-500 transition-colors">
-                            Add to Resume
-                        </button>
+                <!-- Section Toggle Manager -->
+                <div class="mb-4 px-1">
+                    <p class="text-xs text-slate-500 mb-2 font-medium uppercase tracking-wider">Toggle Sections</p>
+                    <div id="section-pills" class="flex flex-wrap gap-2">
+                        <button class="sec-pill" data-section="experience">Experience</button>
+                        <button class="sec-pill" data-section="projects">Projects</button>
+                        <button class="sec-pill" data-section="certifications">Certifications</button>
+                        <button class="sec-pill" data-section="education">Education</button>
+                        <button class="sec-pill" data-section="technical">Technical Skills</button>
+                        <button class="sec-pill" data-section="soft">Soft Skills</button>
+                        <button class="sec-pill" data-section="languages">Languages</button>
                     </div>
                 </div>
 
-                <!-- Add Education Block -->
-                <div class="border border-slate-700 rounded-xl overflow-hidden">
-                    <button id="toggle-edu-form"
-                        class="w-full flex items-center justify-between px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 transition-colors text-sm font-medium text-slate-300">
-                        <span class="flex items-center gap-2">
-                            <span class="text-indigo-400 font-bold text-base leading-none" id="toggle-edu-icon">+</span>
-                            Add Education Entry
-                        </span>
-                        <span class="text-xs text-slate-500">Degree · Institution · Year · GPA</span>
-                    </button>
-                    <div id="edu-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
-                        <div class="grid grid-cols-2 gap-3">
-                            <input id="edu-degree" type="text" placeholder="Degree (e.g. B.Tech Computer Science)"
-                                class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                            <input id="edu-institution" type="text" placeholder="Institution"
-                                class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <input id="edu-year" type="text" placeholder="Year / Duration (e.g. 2019–2023)"
-                                class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                            <input id="edu-gpa" type="text" placeholder="GPA / Score (optional)"
-                                class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                        </div>
-                        <button id="add-edu-btn"
-                            class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-500 transition-colors">
-                            Add to Resume
-                        </button>
-                    </div>
+                <div class="flex justify-center bg-slate-900 p-8 rounded-lg overflow-x-auto">
+                    <div id="resume-document"></div>
                 </div>
-
-                <!-- Add Certification Block -->
-                <div class="border border-slate-700 rounded-xl overflow-hidden">
-                    <button id="toggle-cert-form"
-                        class="w-full flex items-center justify-between px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 transition-colors text-sm font-medium text-slate-300">
-                        <span class="flex items-center gap-2">
-                            <span class="text-indigo-400 font-bold text-base leading-none"
-                                id="toggle-cert-icon">+</span>
-                            Add Certification
-                        </span>
-                        <span class="text-xs text-slate-500">Name · Issuer · Date</span>
-                    </button>
-                    <div id="cert-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
-                        <div class="grid grid-cols-3 gap-3">
-                            <input id="cert-name" type="text" placeholder="Certification Name"
-                                class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                            <input id="cert-org" type="text" placeholder="Issuing Organization"
-                                class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                            <input id="cert-date" type="text" placeholder="Date / Validity (e.g. Jan 2024)"
-                                class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                        </div>
-                        <button id="add-cert-btn"
-                            class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-500 transition-colors">
-                            Add to Resume
-                        </button>
-                    </div>
-                </div>
-
-            </div><!-- /entry-forms-grid -->
-
-            <!-- Optimize for Job Description (works in both upload + manual modes) -->
-            <div class="mb-3 border border-emerald-800/40 rounded-xl overflow-hidden">
-                <button id="toggle-builder-jd"
-                    class="w-full flex items-center justify-between px-4 py-2.5 bg-emerald-900/20 hover:bg-emerald-900/30 transition-colors text-sm font-medium text-emerald-400">
-                    <span class="flex items-center gap-2">
-                        <span id="builder-jd-icon" class="font-bold text-base leading-none">+</span>
-                        Optimize for a Job Description
-                    </span>
-                    <span class="text-xs text-slate-500">Paste JD → AI rewrites resume for ATS match</span>
-                </button>
-                <div id="builder-jd-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
-                    <textarea id="builder-jd-text" rows="4" placeholder="Paste the job description here..."
-                        class="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-emerald-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
-                    <button id="builder-optimize-btn"
-                        class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition-colors flex items-center gap-2">
-                        <span id="builder-opt-text">Optimize Resume</span>
-                        <svg id="builder-opt-spinner" class="animate-spin h-4 w-4 text-white hidden"
-                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                            </circle>
-                            <path class="opacity-75" fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                            </path>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Section Toggle Manager -->
-            <div class="mb-4 px-1">
-                <p class="text-xs text-slate-500 mb-2 font-medium uppercase tracking-wider">Toggle Sections</p>
-                <div id="section-pills" class="flex flex-wrap gap-2">
-                    <button class="sec-pill" data-section="experience">Experience</button>
-                    <button class="sec-pill" data-section="projects">Projects</button>
-                    <button class="sec-pill" data-section="certifications">Certifications</button>
-                    <button class="sec-pill" data-section="education">Education</button>
-                    <button class="sec-pill" data-section="technical">Technical Skills</button>
-                    <button class="sec-pill" data-section="soft">Soft Skills</button>
-                    <button class="sec-pill" data-section="languages">Languages</button>
-                </div>
-            </div>
-
-            <div class="flex justify-center bg-slate-900 p-8 rounded-lg overflow-x-auto">
-                <div id="resume-document"></div>
-            </div>
-        </section>
+            </section>
         </section><!-- /main-results-wrapper -->
     </main>
 
