@@ -318,62 +318,63 @@
             </div>
 
             <!-- New Score Card Section -->
-            <section id="scoreCard" class="hidden bg-white shadow-sm rounded-2xl border border-gray-100 p-6 mb-8 hover-lift smooth-ui">
-                <div class="flex flex-col md:flex-row justify-between items-start mb-6">
+            <section id="scoreCard" class="hidden score-card hover-lift smooth-ui">
+                <div class="score-card__top">
                     <!-- LEFT SIDE -->
-                    <div class="flex-1">
-                        <h2 class="text-xl font-bold text-gray-900 mb-6">ATS Compatibility Score</h2>
+                    <div class="score-card__lead">
+                        <h2 class="score-card__title">ATS Compatibility Score</h2>
                         <p id="scoreLabel" class="sr-only">Analyzing...</p>
 
                         <!-- BEFORE vs AFTER -->
-                        <div class="flex items-center gap-6 mb-4">
-                            <div class="text-center">
-                                <span class="text-[10px] text-gray-400 uppercase tracking-widest font-bold block mb-1">Original</span>
-                                <div class="text-3xl font-bold text-gray-400">
-                                    <span id="originalScoreValue">0</span><span class="text-lg text-gray-300 font-medium">/100</span>
+                        <div class="score-compare">
+                            <div class="score-compare__col score-compare__col--before">
+                                <span class="score-compare__label">Original</span>
+                                <div class="score-compare__value">
+                                    <span id="originalScoreValue">0</span><span class="score-compare__suffix">/100</span>
                                 </div>
                             </div>
-                            <div class="text-gray-300">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            <div class="score-compare__arrow" aria-hidden="true">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                             </div>
-                            <div class="text-center">
-                                <span class="text-[10px] text-blue-600 uppercase tracking-widest font-bold block mb-1">Optimized</span>
-                                <div class="text-5xl font-bold text-gray-900">
-                                    <span id="scoreValue">0</span><span class="text-xl text-gray-400 font-medium">/100</span>
+                            <div class="score-compare__col score-compare__col--after">
+                                <span class="score-compare__label score-compare__label--accent">Optimized</span>
+                                <div class="score-compare__value score-compare__value--primary">
+                                    <span id="scoreValue">0</span><span class="score-compare__suffix">/100</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Full-width progress bar -->
-                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-4 max-w-sm">
-                            <div id="scoreProgressBar" class="bg-gray-900 h-1.5 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                        <div class="score-progress">
+                            <div id="scoreProgressBar" class="score-progress__fill" style="width: 0%"></div>
                         </div>
                     </div>
 
                     <!-- RIGHT SIDE -->
-                    <div class="text-right mt-6 md:mt-0 flex flex-col items-end">
-                        <div id="scoreImprovement" class="hidden text-emerald-600 font-medium text-sm mb-1 flex items-center justify-end">
-                            ↗ <span id="improvementValue" class="ml-1">0</span>% potential improvement
+                    <div class="score-card__meta">
+                        <div id="scoreImprovement" class="hidden score-improvement">
+                            <span class="score-improvement__arrow">↗</span>
+                            <span id="improvementValue">0</span>% potential improvement
                         </div>
-                        <p class="text-sm text-gray-500"><span id="confidenceValue" class="font-medium text-gray-900">0</span>% confidence</p>
+                        <p class="score-confidence"><span id="confidenceValue">0</span>% confidence</p>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-gray-100">
+                <div class="score-card__split">
                     <div>
-                        <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Score Breakdown</h3>
+                        <h3 class="score-section-title">Score Breakdown</h3>
                         <div id="breakdownBars" class="space-y-4">
                             <!-- dynamically populated -->
                         </div>
                     </div>
                     <div>
-                        <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Key Insights</h3>
+                        <h3 class="score-section-title">Key Insights</h3>
                         <ul id="insightList" class="space-y-3">
                             <!-- dynamically populated -->
                         </ul>
                     </div>
                 </div>
-
+            </section>
 
             <section id="results-section" class="hidden analysis-section">
                 <div class="results-grid">
@@ -472,23 +473,26 @@
             </section>
 
             <section id="builder-section" class="hidden builder-surface">
-                <div class="builder-header flex justify-between items-center">
-                    <div class="flex items-center space-x-4">
-                        <h2 class="text-2xl font-bold text-slate-200">Live Resume Editor</h2>
-
-                        <select id="templateSelect"
-                            class="bg-slate-700 text-white border border-slate-600 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="ats_classic">Classic ATS (Best for portals)</option>
-                            <option value="executive">Executive (Sleek & Professional)</option>
-                            <option value="tech_modern">Tech Modern (Clean & Grid-based)</option>
-                            <option value="sidebar_pro">Sidebar Pro (Two-Column Creative)</option>
-                        </select>
+                <div class="builder-header">
+                    <div class="builder-header__lead">
+                        <h2 class="builder-header__title">Live Resume Editor</h2>
+                        <p class="builder-header__subtitle">Pick a template, toggle sections, and download a clean ATS-friendly PDF.</p>
                     </div>
-
-                    <button id="download-pdf-btn"
-                        class="bg-blue-600 px-6 py-2 rounded-lg text-white font-bold hover:bg-blue-500 transition-colors">
-                        📥 Download ATS PDF
-                    </button>
+                    <div class="builder-header__actions">
+                        <label class="builder-template">
+                            <span class="builder-template__label">Template</span>
+                            <select id="templateSelect" class="builder-template__select">
+                                <option value="ats_classic">Classic ATS — Best for portals</option>
+                                <option value="executive">Executive — Sleek & Professional</option>
+                                <option value="tech_modern">Tech Modern — Clean & Grid-based</option>
+                                <option value="sidebar_pro">Sidebar Pro — Two-Column Creative</option>
+                            </select>
+                        </label>
+                        <button id="download-pdf-btn" class="builder-download-btn">
+                            <span aria-hidden="true">📥</span>
+                            Download ATS PDF
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Entry Forms Grid -->
@@ -642,9 +646,9 @@
                 </div>
 
                 <!-- Section Toggle Manager -->
-                <div class="mb-4 px-1">
-                    <p class="text-xs text-slate-500 mb-2 font-medium uppercase tracking-wider">Toggle Sections</p>
-                    <div id="section-pills" class="flex flex-wrap gap-2">
+                <div class="section-toggle">
+                    <p class="section-toggle__label">Toggle Sections</p>
+                    <div id="section-pills" class="section-toggle__pills">
                         <button class="sec-pill" data-section="experience">Experience</button>
                         <button class="sec-pill" data-section="projects">Projects</button>
                         <button class="sec-pill" data-section="certifications">Certifications</button>
@@ -655,7 +659,7 @@
                     </div>
                 </div>
 
-                <div class="flex justify-center bg-slate-900 p-8 rounded-lg overflow-x-auto">
+                <div class="resume-stage">
                     <div id="resume-document"></div>
                 </div>
             </section>
