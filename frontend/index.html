@@ -281,53 +281,61 @@
             </div>
 
             <!-- Score Card -->
-            <section id="scoreCard" class="hidden hover-lift smooth-ui">
-                <div class="results-card__header" style="border-bottom:0;background:transparent;padding:0;margin-bottom:var(--space-3);align-items:flex-start;flex-wrap:wrap;gap:var(--space-2);">
-                    <div style="flex:1;min-width:240px;">
-                        <h2 style="margin:0 0 var(--space-3);font-size:1.25rem;font-weight:700;">ATS Compatibility Score</h2>
+            <section id="scoreCard" class="hidden hover-lift smooth-ui scorecard">
+                <header class="scorecard__head">
+                    <div>
+                        <h2 class="scorecard__title">ATS Compatibility Score</h2>
+                        <p class="scorecard__subtitle">This score shows how well your resume matches ATS criteria</p>
                         <p id="scoreLabel" class="sr-only">Analyzing...</p>
-
-                        <!-- BEFORE vs AFTER -->
-                        <div style="display:flex;align-items:center;gap:24px;margin-bottom:16px;">
-                            <div style="text-align:center;">
-                                <span style="font-size:10px;color:var(--color-text-faint);text-transform:uppercase;letter-spacing:0.08em;font-weight:700;display:block;margin-bottom:4px;">Original</span>
-                                <div style="font-size:1.875rem;font-weight:700;color:var(--color-text-faint);">
-                                    <span id="originalScoreValue">0</span><span style="font-size:1.125rem;color:var(--color-text-faint);font-weight:500;">/100</span>
-                                </div>
-                            </div>
-                            <div style="color:var(--color-text-faint);">
-                                <svg style="width:24px;height:24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                            </div>
-                            <div style="text-align:center;">
-                                <span style="font-size:10px;color:var(--color-primary);text-transform:uppercase;letter-spacing:0.08em;font-weight:700;display:block;margin-bottom:4px;">Optimized</span>
-                                <div style="font-size:3rem;font-weight:700;color:var(--color-text);">
-                                    <span id="scoreValue">0</span><span style="font-size:1.25rem;color:var(--color-text-faint);font-weight:500;">/100</span>
-                                </div>
+                    </div>
+                    <div class="scorecard__head-actions">
+                        <div id="scoreImprovement" class="hidden">↗ <span id="improvementValue">0</span>% potential improvement</div>
+                        <div class="scorecard__confidence">
+                            <svg class="scorecard__confidence-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                <path d="M9 12l2 2 4-4"/>
+                            </svg>
+                            <div class="scorecard__confidence-text">
+                                <p class="scorecard__confidence-value"><span id="confidenceValue">0</span>% confidence</p>
+                                <p class="scorecard__confidence-label">High reliability</p>
                             </div>
                         </div>
+                    </div>
+                </header>
 
-                        <!-- Full-width progress bar -->
-                        <div style="width:100%;max-width:24rem;background:var(--color-surface-muted);border-radius:999px;height:6px;margin-top:16px;">
-                            <div id="scoreProgressBar" style="background:var(--color-primary);height:6px;border-radius:999px;transition:width 1s;width:0%"></div>
+                <div class="scorecard__body">
+                    <!-- Donut -->
+                    <div class="scorecard__donut">
+                        <svg class="scorecard__donut-svg" viewBox="0 0 120 120">
+                            <circle class="scorecard__donut-track" cx="60" cy="60" r="50"></circle>
+                            <circle id="scoreDonutProgress" class="scorecard__donut-progress" cx="60" cy="60" r="50"
+                                stroke-dasharray="314.159" stroke-dashoffset="314.159"></circle>
+                        </svg>
+                        <div class="scorecard__donut-center">
+                            <div class="scorecard__donut-value"><span id="scoreValue">0</span></div>
+                            <div class="scorecard__donut-suffix">/100</div>
                         </div>
                     </div>
 
-                    <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;">
-                        <div id="scoreImprovement" class="hidden" style="font-weight:500;font-size:0.875rem;margin-bottom:4px;display:flex;align-items:center;justify-content:flex-end;">
-                            ↗ <span id="improvementValue" style="margin-left:4px;">0</span>% potential improvement
-                        </div>
-                        <p style="font-size:0.875rem;color:var(--color-text-muted);margin:0;"><span id="confidenceValue" style="font-weight:500;color:var(--color-text);">0</span>% confidence</p>
+                    <!-- Compare column -->
+                    <div class="scorecard__compare">
+                        <p class="scorecard__compare-label">Original Score</p>
+                        <p class="scorecard__compare-value"><span id="originalScoreValue">0</span>/100</p>
+                        <div class="scorecard__compare-arrow" aria-hidden="true">↓</div>
+                        <p class="scorecard__compare-label">Optimized Score</p>
+                        <p class="scorecard__compare-value scorecard__compare-value--optimized"><span id="optimizedScoreValue">0</span>/100</p>
                     </div>
-                </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;padding-top:24px;border-top:1px solid var(--color-border);">
-                    <div>
-                        <h3 style="font-size:0.875rem;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.06em;margin:0 0 16px;">Score Breakdown</h3>
-                        <div id="breakdownBars" style="display:flex;flex-direction:column;gap:16px;"></div>
+                    <!-- Breakdown -->
+                    <div class="scorecard__breakdown">
+                        <h3 class="scorecard__section-title">Score Breakdown</h3>
+                        <div id="breakdownBars" class="scorecard__breakdown-list"></div>
                     </div>
-                    <div>
-                        <h3 style="font-size:0.875rem;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.06em;margin:0 0 16px;">Key Insights</h3>
-                        <ul id="insightList" style="display:flex;flex-direction:column;gap:12px;list-style:none;padding:0;margin:0;"></ul>
+
+                    <!-- Insights -->
+                    <div class="scorecard__insights">
+                        <h3 class="scorecard__section-title">Key Insights</h3>
+                        <ul id="insightList" class="scorecard__insight-list"></ul>
                     </div>
                 </div>
             </section>
@@ -422,7 +430,7 @@
 
                 <div class="builder-header">
                     <div class="builder-header__title-group">
-                        <h2 style="margin:0;font-size:1.5rem;font-weight:700;">Live Resume Editor</h2>
+                        <h2 class="builder-header__title">Live Resume Editor</h2>
                         <select id="templateSelect" class="field-input">
                             <option value="ats_classic">Classic ATS (Best for portals)</option>
                             <option value="executive">Executive (Sleek &amp; Professional)</option>

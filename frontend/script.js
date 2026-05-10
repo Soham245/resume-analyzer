@@ -1094,115 +1094,148 @@ function animateNumber(el, start, end, baseDuration = 800) {
     el._animId = requestAnimationFrame(step);
 }
 
+// ── Scorecard: metric icons (inline SVG, PDF-safe) ──────────────────────
+const SCORE_METRIC_ICONS = {
+    keywords: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9 7v12M15 7v12"/></svg>`,
+    skills:   `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.5 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 9.2l7.1-.7z"/></svg>`,
+    experience: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"/></svg>`,
+    projects: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg>`,
+};
+
+const SCORE_METRICS = [
+    { key: 'keywords',   label: 'Keywords',   max: 40 },
+    { key: 'skills',     label: 'Skills',     max: 30 },
+    { key: 'experience', label: 'Experience', max: 20 },
+    { key: 'projects',   label: 'Projects',   max: 10 },
+];
+
+function setScoreDonut(progressEl, score) {
+    if (!progressEl) return;
+    const circumference = 2 * Math.PI * 50;
+    progressEl.setAttribute('stroke-dasharray', circumference.toFixed(3));
+    const offset = circumference * (1 - Math.max(0, Math.min(100, score)) / 100);
+    progressEl.setAttribute('stroke-dashoffset', offset.toFixed(3));
+}
+
+function renderBreakdown(container, breakdown) {
+    if (!container || !breakdown) return;
+    container.innerHTML = '';
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    SCORE_METRICS.forEach((metric, index) => {
+        const raw = Number(breakdown[metric.key]) || 0;
+        const val = Math.max(0, Math.min(metric.max, raw));
+        const pct = Math.round((val / metric.max) * 100) || 0;
+
+        const row = document.createElement('div');
+        row.className = 'scorecard__metric';
+        row.innerHTML = `
+            <span class="scorecard__metric-icon">${SCORE_METRIC_ICONS[metric.key] || ''}</span>
+            <div class="scorecard__metric-body">
+                <div class="scorecard__metric-row">
+                    <span class="scorecard__metric-label">${metric.label}</span>
+                    <span class="scorecard__metric-value">${val}/${metric.max} pts</span>
+                </div>
+                <div class="scorecard__metric-bar">
+                    <div class="scorecard__metric-bar-fill"></div>
+                </div>
+            </div>
+        `;
+        container.appendChild(row);
+
+        const fill = row.querySelector('.scorecard__metric-bar-fill');
+        if (!fill) return;
+        if (reducedMotion) {
+            fill.style.width = pct + '%';
+        } else {
+            setTimeout(() => { fill.style.width = pct + '%'; }, 150 + index * 80);
+        }
+    });
+}
+
+const INSIGHT_ICON = `<svg class="scorecard__insight-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>`;
+
+function renderInsights(container, insights) {
+    if (!container) return;
+    container.innerHTML = '';
+    (insights || []).forEach(insight => {
+        const text = String(insight || '').trim();
+        if (!text) return;
+
+        let title = '';
+        let body = text;
+        const sepIdx = text.indexOf(':');
+        if (sepIdx > 0 && sepIdx < 60) {
+            title = text.slice(0, sepIdx).trim();
+            body = text.slice(sepIdx + 1).trim();
+        }
+
+        const li = document.createElement('li');
+        li.className = 'scorecard__insight';
+        li.innerHTML = `
+            ${INSIGHT_ICON}
+            <div class="scorecard__insight-body">
+                ${title ? `<p class="scorecard__insight-title">${title}</p>` : ''}
+                <p class="scorecard__insight-text">${body}</p>
+            </div>
+        `;
+        container.appendChild(li);
+    });
+}
+
 // Helper for UI Redesign Scorecard
 function updateScoreCard(payload) {
     const scoreCard = document.getElementById('scoreCard');
     const emptyState = document.getElementById('empty-state');
-    
+
     if (emptyState) emptyState.style.display = 'none';
     if (!scoreCard) return;
-    
+
     const isHidden = scoreCard.classList.contains('hidden');
     scoreCard.classList.remove('hidden');
-    
-    // Only trigger fade-in if the card was completely hidden
+
     if (isHidden) {
         scoreCard.classList.remove('fade-in');
-        void scoreCard.offsetWidth; // trigger reflow
+        void scoreCard.offsetWidth;
         scoreCard.classList.add('fade-in');
     }
-    
+
     const orig = payload.original_score || {};
     const opt = payload.optimized_score || {};
-    
+
     const safeOrigScore = Math.max(0, Math.min(100, Number(orig.score) || 0));
     const safeOptScore = Math.max(0, Math.min(100, Number(opt.score) || 0));
     const safeConfidence = Math.max(0, Math.min(100, Number(payload.confidence) || 0));
 
-    if (document.getElementById('originalScoreValue')) {
-        const current = parseInt(document.getElementById('originalScoreValue').textContent) || 0;
-        animateNumber(document.getElementById('originalScoreValue'), current, safeOrigScore);
-    }
-    if (document.getElementById('scoreValue')) {
-        const current = parseInt(document.getElementById('scoreValue').textContent) || 0;
-        animateNumber(document.getElementById('scoreValue'), current, safeOptScore);
-    }
-    if (document.getElementById('confidenceValue')) {
-        const current = parseInt(document.getElementById('confidenceValue').textContent) || 0;
-        animateNumber(document.getElementById('confidenceValue'), current, safeConfidence);
-    }
-    if (document.getElementById('scoreLabel')) {
-        document.getElementById('scoreLabel').textContent = payload.optimized_label || "Analyzed";
-    }
+    const animateInto = (id, target) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const current = parseInt(el.textContent) || 0;
+        animateNumber(el, current, target);
+    };
 
-    const progressBar = document.getElementById('scoreProgressBar');
-    if (progressBar) {
-        setTimeout(() => {
-            progressBar.style.width = safeOptScore + '%';
-        }, 100);
-    }
-    
+    animateInto('originalScoreValue', safeOrigScore);
+    animateInto('scoreValue', safeOptScore);
+    animateInto('optimizedScoreValue', safeOptScore);
+    animateInto('confidenceValue', safeConfidence);
+
+    const scoreLabel = document.getElementById('scoreLabel');
+    if (scoreLabel) scoreLabel.textContent = payload.optimized_label || "Analyzed";
+
+    setScoreDonut(document.getElementById('scoreDonutProgress'), safeOptScore);
+
     const impEl = document.getElementById('scoreImprovement');
     if (impEl && payload.improvement > 0) {
         impEl.classList.remove('hidden');
-        impEl.classList.add('improvement-pill', 'fade-in');
-        document.getElementById('improvementValue').textContent = payload.improvement;
+        const impVal = document.getElementById('improvementValue');
+        if (impVal) impVal.textContent = payload.improvement;
     } else if (impEl) {
         impEl.classList.add('hidden');
     }
-    
-    const insightList = document.getElementById('insightList');
-    if (insightList && payload.insights) {
-        insightList.innerHTML = '';
-        payload.insights.forEach(insight => {
-            const li = document.createElement('li');
-            li.className = "flex items-start text-sm text-gray-600";
-            li.innerHTML = `<svg class="w-4 h-4 mr-2 mt-0.5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <span>${insight}</span>`;
-            insightList.appendChild(li);
-        });
-    }
-    
-    const barsContainer = document.getElementById('breakdownBars');
-    if (barsContainer && opt.breakdown) {
-        barsContainer.innerHTML = '';
-        const metrics = [
-            { key: 'keywords', label: 'Keywords', max: 40, color: 'bg-blue-500' },
-            { key: 'skills', label: 'Skills', max: 30, color: 'bg-indigo-500' },
-            { key: 'experience', label: 'Experience', max: 20, color: 'bg-violet-500' },
-            { key: 'projects', label: 'Projects', max: 10, color: 'bg-purple-500' }
-        ];
-        
-        metrics.forEach((m, index) => {
-            const rawVal = opt.breakdown[m.key] || 0;
-            const val = Math.max(0, Math.min(m.max, Number(rawVal) || 0));
-            const pct = Math.max(0, Math.min(100, Math.round((val / m.max) * 100) || 0));
-            
-            const div = document.createElement('div');
-            div.innerHTML = `
-                <div class="flex justify-between text-xs mb-1">
-                    <span class="font-medium text-gray-700">${m.label}</span>
-                    <span class="text-gray-500">${val}/${m.max} pts</span>
-                </div>
-                <div class="w-full bg-gray-100 rounded-full h-2">
-                    <div class="${m.color} h-2 rounded-full progress-bar-fill" style="width: 0%"></div>
-                </div>
-            `;
-            barsContainer.appendChild(div);
-            
-            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                const bar = div.querySelector('div > div');
-                if (bar) bar.style.width = `${pct}%`;
-            } else {
-                setTimeout(() => {
-                    const bar = div.querySelector('div > div');
-                    if (bar) bar.style.width = `${pct}%`;
-                }, 150 + (index * 80));
-            }
-        });
-    }
 
-    // Subtle completion feedback
+    renderInsights(document.getElementById('insightList'), payload.insights);
+    renderBreakdown(document.getElementById('breakdownBars'), opt.breakdown);
+
     if (scoreCard._pulseTimeout) clearTimeout(scoreCard._pulseTimeout);
     scoreCard.classList.remove('completion-pulse');
     void scoreCard.offsetWidth;
