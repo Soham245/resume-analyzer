@@ -49,6 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const controllers = { analyze: null, optimize: null, manual: null, builder: null, pdf: null };
     const latestRequestIds = { analyze: 0, optimize: 0, manual: 0, builder: 0, pdf: 0 };
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const API_BASE_URL = 'https://resume-analyzer-c5s7.onrender.com';
+    const apiUrl = (path) => `${API_BASE_URL}${path}`;
 
     function fetchWithTimeout(url, options = {}, timeout = 25000) {
         const controller = new AbortController();
@@ -411,7 +413,7 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('jd', savedJdText);
 
         try {
-            const response = await fetchWithTimeout('https://resume-analyzer-23x0.onrender.com/analyze', {
+            const response = await fetchWithTimeout(apiUrl('/analyze'), {
                 method: 'POST',
                 body: formData,
                 signal
@@ -477,7 +479,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (mainResults) mainResults.classList.add('loading-state');
 
         try {
-            const res = await fetchWithTimeout('https://resume-analyzer-23x0.onrender.com/optimize', {
+            const res = await fetchWithTimeout(apiUrl('/optimize'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -641,7 +643,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (jdText) {
                 // ── JD path: analyze → show skill panel → optimize ────────────
                 genBtnText.textContent = 'Analyzing skills...';
-                const analysisRes = await fetchWithTimeout('https://resume-analyzer-23x0.onrender.com/analyze-manual', {
+                const analysisRes = await fetchWithTimeout(apiUrl('/analyze-manual'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -663,7 +665,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 genBtnText.textContent = 'Analyzing resume...';
                 const mainResults = document.getElementById('main-results-wrapper');
                 if (mainResults) mainResults.classList.add('loading-state');
-                const optimizeRes = await fetchWithTimeout('https://resume-analyzer-23x0.onrender.com/optimize', {
+                const optimizeRes = await fetchWithTimeout(apiUrl('/optimize'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -685,7 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } else {
                 // ── No JD: generate plain resume from inputs ──────────────────
-                const res = await fetchWithTimeout('https://resume-analyzer-23x0.onrender.com/generate-from-inputs', {
+                const res = await fetchWithTimeout(apiUrl('/generate-from-inputs'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ inputs }),
@@ -772,7 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (mainResults) mainResults.classList.add('loading-state');
 
         try {
-            const res = await fetchWithTimeout('https://resume-analyzer-23x0.onrender.com/optimize', {
+            const res = await fetchWithTimeout(apiUrl('/optimize'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1038,7 +1040,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </head><body>${clone.outerHTML}</body></html>`;
 
         try {
-            const res = await fetch('https://resume-analyzer-23x0.onrender.com/generate-pdf', {
+            const res = await fetch(apiUrl('/generate-pdf'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ html: finalHtml }),
