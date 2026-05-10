@@ -188,14 +188,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderSuggestions(suggestions) {
-        suggestionsList.innerHTML = '';
-        suggestions.forEach(tip => {
+    function renderTipList(container, tips) {
+        container.innerHTML = '';
+        (tips || []).forEach(tip => {
             const li = document.createElement('li');
-            li.style.cssText = 'display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#cbd5e1;line-height:1.4;';
-            li.innerHTML = `<span style="color:#f59e0b;flex-shrink:0;margin-top:1px;">›</span><span>${tip}</span>`;
-            suggestionsList.appendChild(li);
+            li.className = 'skill-panel__suggestion-item';
+            li.innerHTML = `<span class="skill-panel__suggestion-marker">›</span><span>${tip}</span>`;
+            container.appendChild(li);
         });
+    }
+
+    function renderSuggestions(suggestions) {
+        renderTipList(suggestionsList, suggestions);
     }
 
     // ── Manual analysis render helpers ──────────────────────────────────────
@@ -232,13 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderManualSuggestions(suggestions) {
-        manualSuggestionsList.innerHTML = '';
-        suggestions.forEach(tip => {
-            const li = document.createElement('li');
-            li.style.cssText = 'display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#cbd5e1;line-height:1.4;';
-            li.innerHTML = `<span style="color:#f59e0b;flex-shrink:0;margin-top:1px;">›</span><span>${tip}</span>`;
-            manualSuggestionsList.appendChild(li);
-        });
+        renderTipList(manualSuggestionsList, suggestions);
     }
 
     // ── Utility: parse comma-separated skill string → array ──────────────────
@@ -278,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentStructuredData) return;
         if (!skipHarvest) harvestEdits(); // persist any inline edits before replacing innerHTML
         const tpl = templateSelect.value || 'ats_classic';
-        resumeDocument.style.cssText = 'display:flex;flex-direction:column;align-items:center;width:100%;padding:40px 0;background:#0f172a;';
+        resumeDocument.style.cssText = 'display:flex;flex-direction:column;align-items:center;width:100%;padding:0;background:transparent;';
         resumeDocument.innerHTML = ResumeTemplates[tpl](currentStructuredData, activeSections);
         autoFitPage();
     }
@@ -400,7 +398,6 @@ document.addEventListener('DOMContentLoaded', () => {
         builderSection.classList.add('hidden');
 
         submitBtn.disabled = true;
-        submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
         btnText.textContent = 'Processing...';
         spinner.classList.remove('hidden');
 
@@ -445,7 +442,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             if (requestId === latestRequestIds.analyze) {
                 submitBtn.disabled = false;
-                submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
                 btnText.textContent = 'Analyze Resume';
                 spinner.classList.add('hidden');
             }
@@ -752,19 +748,16 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const jd = document.getElementById('builder-jd-text').value.trim();
         if (!jd) {
-            isProcessing = false;
             errorMessage.textContent = 'Paste a job description to optimize the resume.';
             errorMessage.classList.remove('hidden');
             return;
         }
         if (!currentStructuredData) {
-            isProcessing = false;
             errorMessage.textContent = 'Generate or analyze a resume first.';
             errorMessage.classList.remove('hidden');
             return;
         }
         if (!savedRawText) {
-            isProcessing = false;
             errorMessage.textContent = 'No resume source text available for optimization.';
             errorMessage.classList.remove('hidden');
             return;
@@ -833,7 +826,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         addBtn.addEventListener('click', () => {
-            if (isProcessing) return;
             if (!currentStructuredData) {
                 errorMessage.textContent = 'Run "Optimize Resume" first, then add entries.';
                 errorMessage.classList.remove('hidden');
