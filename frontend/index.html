@@ -6,32 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <title>AI Resume Analyzer</title>
-    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    typography: (theme) => ({
-                        invert: {
-                            css: {
-                                '--tw-prose-body': theme('colors.slate[300]'),
-                                '--tw-prose-headings': theme('colors.white'),
-                                '--tw-prose-bold': theme('colors.white'),
-                                '--tw-prose-links': theme('colors.blue[400]'),
-                                strong: { color: theme('colors.blue[400]') },
-                            },
-                        },
-                    }),
-                },
-            },
-        }
-    </script>
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body class="app-body selection:bg-[rgba(139,111,71,0.18)]">
+<body class="app-body">
 
     <!-- ARIA Live Region for Accessibility -->
     <div id="ariaStatus" aria-live="polite" class="sr-only"></div>
@@ -47,7 +25,9 @@
 
     <main class="app-shell">
 
-        <!-- Upload / Input Section -->
+        <!-- ─────────────────────────────────────────────────────────────────
+             INPUT SECTION
+             ───────────────────────────────────────────────────────────────── -->
         <section id="input-section" class="app-stage">
 
             <section class="control-surface">
@@ -63,50 +43,44 @@
                     <form id="analyzer-form" class="analysis-form">
                         <div class="analysis-grid">
 
-                            <div data-panel-label="Resume Upload"
-                                class="upload-dropzone relative h-48 rounded-xl border-2 border-dashed transition-colors flex flex-col items-center justify-center group overflow-hidden">
+                            <div data-panel-label="Resume Upload" class="upload-dropzone">
                                 <input type="file" id="resume-file" accept=".pdf" required
-                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                                    class="upload-dropzone__file-input">
 
-                                <div id="upload-text"
-                                    class="text-center group-hover:scale-105 transition-transform duration-300">
-                                    <div class="flex items-center justify-center space-x-2 text-white">
-                                        <svg class="w-5 h-5 text-slate-300" fill="currentColor" viewBox="0 0 20 20">
+                                <div id="upload-text" class="upload-dropzone__prompt">
+                                    <div class="upload-dropzone__prompt-row">
+                                        <svg class="upload-dropzone__prompt-icon" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd"
                                                 d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
                                                 clip-rule="evenodd"></path>
                                         </svg>
-                                        <span class="font-medium text-base">Drag & drop your resume</span>
+                                        <span>Drag &amp; drop your resume</span>
                                     </div>
-                                    <p class="text-slate-400 text-sm mt-1">or click to upload</p>
+                                    <p class="upload-dropzone__hint">or click to upload</p>
                                 </div>
 
-                                <div id="file-name" class="hidden text-center z-0 px-4">
-                                    <svg class="w-8 h-8 text-indigo-400 mx-auto mb-2" fill="none" stroke="currentColor"
+                                <div id="file-name" class="hidden upload-dropzone__filename">
+                                    <svg class="upload-dropzone__filename-icon" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    <p id="file-name-text"
-                                        class="text-indigo-300 font-medium truncate w-full max-w-[200px]"></p>
+                                    <p id="file-name-text" class="upload-dropzone__filename-text"></p>
                                 </div>
                             </div>
 
-                            <div data-panel-label="Job Description"
-                                class="job-description-panel relative w-full h-full rounded-xl overflow-y-auto p-4 transition-all flex">
+                            <div data-panel-label="Job Description" class="job-description-panel">
                                 <textarea id="jd-text" required placeholder="Paste job description here..."
-                                    class="custom-scrollbar w-full h-full bg-transparent border-none outline-none focus:ring-0 text-slate-200 placeholder-slate-500 resize-none"></textarea>
+                                    class="custom-scrollbar"></textarea>
                             </div>
                         </div>
 
-                        <button type="submit" id="submit-btn"
-                            class="primary-button w-full flex justify-center items-center">
+                        <button type="submit" id="submit-btn" class="primary-button">
                             <span>Analyze Resume</span>
-                            <svg id="loading-spinner" class="animate-spin ml-2 h-5 w-5 text-white hidden"
+                            <svg id="loading-spinner" class="icon-spinner hidden"
                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                    stroke-width="4">
-                                </circle>
+                                    stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor"
                                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
                                 </path>
@@ -116,111 +90,102 @@
                 </div><!-- /upload-mode -->
 
                 <!-- Manual Entry mode -->
-                <div id="manual-mode" class="manual-mode hidden space-y-4">
+                <div id="manual-mode" class="manual-mode hidden">
 
                     <!-- Row 1: Name + Role -->
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="space-y-1">
-                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Full Name
-                                <span class="text-indigo-400">*</span></label>
-                            <input id="m-name" type="text" placeholder="John Doe"
-                                class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                    <div class="manual-mode__row manual-mode__row--2">
+                        <div class="manual-mode__field">
+                            <label class="field-label" for="m-name">
+                                Full Name <span class="field-label__required">*</span>
+                            </label>
+                            <input id="m-name" type="text" placeholder="John Doe" class="field-input">
                         </div>
-                        <div class="space-y-1">
-                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Target Role
-                                <span class="text-indigo-400">*</span></label>
-                            <input id="m-title" type="text" placeholder="e.g. Full Stack Developer"
-                                class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                        <div class="manual-mode__field">
+                            <label class="field-label" for="m-title">
+                                Target Role <span class="field-label__required">*</span>
+                            </label>
+                            <input id="m-title" type="text" placeholder="e.g. Full Stack Developer" class="field-input">
                         </div>
                     </div>
 
                     <!-- Row 2: Contact (4 cols) -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <input id="m-email" type="email" placeholder="Email"
-                            class="bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                        <input id="m-phone" type="tel" placeholder="Phone"
-                            class="bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                        <input id="m-linkedin" type="text" placeholder="LinkedIn URL"
-                            class="bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                        <input id="m-github" type="text" placeholder="GitHub URL"
-                            class="bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                    <div class="manual-mode__row manual-mode__row--4">
+                        <input id="m-email" type="email" placeholder="Email" class="field-input">
+                        <input id="m-phone" type="tel" placeholder="Phone" class="field-input">
+                        <input id="m-linkedin" type="text" placeholder="LinkedIn URL" class="field-input">
+                        <input id="m-github" type="text" placeholder="GitHub URL" class="field-input">
                     </div>
 
                     <!-- Row 3: Education + Experience -->
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="space-y-1">
-                            <label
-                                class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Education</label>
+                    <div class="manual-mode__row manual-mode__row--2">
+                        <div class="manual-mode__field">
+                            <label class="field-label" for="m-education">Education</label>
                             <textarea id="m-education" rows="3"
                                 placeholder="B.Tech Computer Science, MIT, 2020–2024&#10;(one entry per line)"
-                                class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
+                                class="field-input field-input--block custom-scrollbar"></textarea>
                         </div>
-                        <div class="space-y-1">
-                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Experience
-                                <span class="text-slate-600 normal-case font-normal">(optional)</span></label>
+                        <div class="manual-mode__field">
+                            <label class="field-label" for="m-experience">
+                                Experience <span class="field-label__optional">(optional)</span>
+                            </label>
                             <textarea id="m-experience" rows="3"
                                 placeholder="Software Engineer, Google, 2022–Present&#10;Led payment gateway integration, reduced checkout errors by 30%"
-                                class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
+                                class="field-input field-input--block custom-scrollbar"></textarea>
                         </div>
                     </div>
 
                     <!-- Row 4: Projects + Certifications -->
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="space-y-1">
-                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Projects <span
-                                    class="text-slate-600 normal-case font-normal">(optional)</span></label>
+                    <div class="manual-mode__row manual-mode__row--2">
+                        <div class="manual-mode__field">
+                            <label class="field-label" for="m-projects">
+                                Projects <span class="field-label__optional">(optional)</span>
+                            </label>
                             <textarea id="m-projects" rows="3"
                                 placeholder="E-Commerce App | React, Node.js, MongoDB | Built cart + checkout, integrated Stripe&#10;(one project per line)"
-                                class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
+                                class="field-input field-input--block custom-scrollbar"></textarea>
                         </div>
-                        <div class="space-y-1">
-                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Certifications
-                                <span class="text-slate-600 normal-case font-normal">(optional)</span></label>
+                        <div class="manual-mode__field">
+                            <label class="field-label" for="m-certifications">
+                                Certifications <span class="field-label__optional">(optional)</span>
+                            </label>
                             <textarea id="m-certifications" rows="3"
                                 placeholder="AWS Solutions Architect — Amazon (2023)&#10;Google Cloud Professional — Google (2024)"
-                                class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
+                                class="field-input field-input--block custom-scrollbar"></textarea>
                         </div>
                     </div>
 
                     <!-- Row 5: Skills (3 cols) -->
-                    <div class="grid grid-cols-3 gap-3">
-                        <div class="space-y-1">
-                            <label class="text-xs font-semibold text-indigo-400 uppercase tracking-widest">Technical
-                                Skills</label>
+                    <div class="manual-mode__row manual-mode__row--3">
+                        <div class="manual-mode__field">
+                            <label class="field-label" for="m-technical">Technical Skills</label>
                             <input id="m-technical" type="text" placeholder="Python, React, Docker, PostgreSQL"
-                                class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                class="field-input">
                         </div>
-                        <div class="space-y-1">
-                            <label class="text-xs font-semibold text-violet-400 uppercase tracking-widest">Soft
-                                Skills</label>
-                            <input id="m-soft" type="text" placeholder="Leadership, Communication"
-                                class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                        <div class="manual-mode__field">
+                            <label class="field-label" for="m-soft">Soft Skills</label>
+                            <input id="m-soft" type="text" placeholder="Leadership, Communication" class="field-input">
                         </div>
-                        <div class="space-y-1">
-                            <label
-                                class="text-xs font-semibold text-sky-400 uppercase tracking-widest">Languages</label>
-                            <input id="m-languages" type="text" placeholder="English, Hindi"
-                                class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                        <div class="manual-mode__field">
+                            <label class="field-label" for="m-languages">Languages</label>
+                            <input id="m-languages" type="text" placeholder="English, Hindi" class="field-input">
                         </div>
                     </div>
 
                     <!-- JD Input -->
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Paste Job
-                            Description
-                            <span class="text-slate-600 normal-case font-normal">(optional — enables skill matching
-                                &amp;
-                                JD-optimized resume)</span></label>
+                    <div class="manual-mode__field">
+                        <label class="field-label" for="m-jd-text">
+                            Paste Job Description
+                            <span class="field-label__optional">(optional — enables skill matching &amp; JD-optimized resume)</span>
+                        </label>
                         <textarea id="m-jd-text" rows="4"
                             placeholder="Paste the job description here to get skill gap analysis, improvement suggestions, and a JD-optimized resume..."
-                            class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
+                            class="field-input field-input--block custom-scrollbar"></textarea>
                     </div>
 
                     <!-- Generate button -->
-                    <button id="generate-manual-btn"
-                        class="w-full bg-[#8358ff] text-white font-medium py-3.5 rounded-xl hover:bg-[#724aeb] transition-colors flex justify-center items-center gap-2">
+                    <button id="generate-manual-btn" class="primary-button">
                         <span id="gen-btn-text">✨ Generate Resume from Inputs</span>
-                        <svg id="gen-spinner" class="animate-spin h-5 w-5 text-white hidden"
+                        <svg id="gen-spinner" class="icon-spinner hidden"
                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
                             </circle>
@@ -229,240 +194,218 @@
                             </path>
                         </svg>
                     </button>
-                    <p class="text-xs text-slate-600 text-center -mt-1">Edit inputs and click again to regenerate at any
-                        time.</p>
+                    <p class="manual-mode__hint">Edit inputs and click again to regenerate at any time.</p>
 
                 </div><!-- /manual-mode -->
 
-                <p id="error-message" class="app-alert hidden">
-                </p>
+                <p id="error-message" class="app-alert hidden"></p>
             </section>
 
             <!-- Manual Mode — Skill Analysis Results (shown when JD is provided) -->
-            <section id="manual-analysis-section" class="hidden analysis-section manual-results">
-                <div class="results-card results-card--stacked">
-                    <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2"><span>⚡</span> Skill Analysis
-                    </h2>
+            <section id="manual-analysis-section" class="hidden manual-results">
+                <div class="results-card">
+                    <h2>⚡ Skill Analysis</h2>
 
                     <!-- Two columns: Your Skills | JD Requirements -->
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Your Skills</h3>
-                            <div>
-                                <p class="text-xs font-semibold text-indigo-400 mb-1.5">Technical</p>
-                                <div id="manual-skills-technical" class="flex flex-wrap gap-2 min-h-[22px]"></div>
+                    <div class="skill-panel__group">
+                        <div class="skill-panel">
+                            <h3 class="skill-panel__title">Your Skills</h3>
+                            <div class="skill-panel__section">
+                                <p class="skill-panel__section-title">Technical</p>
+                                <div id="manual-skills-technical" class="chip-row"></div>
                             </div>
-                            <div>
-                                <p class="text-xs font-semibold text-violet-400 mb-1.5">Soft Skills</p>
-                                <div id="manual-skills-soft" class="flex flex-wrap gap-2 min-h-[22px]"></div>
+                            <div class="skill-panel__section">
+                                <p class="skill-panel__section-title">Soft Skills</p>
+                                <div id="manual-skills-soft" class="chip-row"></div>
                             </div>
-                            <div>
-                                <p class="text-xs font-semibold text-sky-400 mb-1.5">Languages</p>
-                                <div id="manual-skills-languages" class="flex flex-wrap gap-2 min-h-[22px]"></div>
+                            <div class="skill-panel__section">
+                                <p class="skill-panel__section-title">Languages</p>
+                                <div id="manual-skills-languages" class="chip-row"></div>
                             </div>
                         </div>
 
-                        <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Job Description
-                                Requirements</h3>
-                            <div>
-                                <p class="text-xs font-semibold text-amber-400 mb-1.5">Technical</p>
-                                <div id="manual-jd-technical" class="flex flex-wrap gap-2 min-h-[22px]"></div>
+                        <div class="skill-panel">
+                            <h3 class="skill-panel__title">Job Description Requirements</h3>
+                            <div class="skill-panel__section">
+                                <p class="skill-panel__section-title">Technical</p>
+                                <div id="manual-jd-technical" class="chip-row"></div>
                             </div>
-                            <div>
-                                <p class="text-xs font-semibold text-orange-400 mb-1.5">Soft Skills</p>
-                                <div id="manual-jd-soft" class="flex flex-wrap gap-2 min-h-[22px]"></div>
+                            <div class="skill-panel__section">
+                                <p class="skill-panel__section-title">Soft Skills</p>
+                                <div id="manual-jd-soft" class="chip-row"></div>
                             </div>
-                            <div>
-                                <p class="text-xs font-semibold text-teal-400 mb-1.5">Languages</p>
-                                <div id="manual-jd-languages" class="flex flex-wrap gap-2 min-h-[22px]"></div>
+                            <div class="skill-panel__section">
+                                <p class="skill-panel__section-title">Languages</p>
+                                <div id="manual-jd-languages" class="chip-row"></div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Skill Match: Matched vs Missing -->
-                    <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Skill Match</h3>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <p class="text-xs font-semibold text-emerald-400 mb-1.5">Matching Skills</p>
-                                <div id="manual-skills-matched" class="flex flex-wrap gap-2 min-h-[22px]"></div>
+                    <div class="skill-panel">
+                        <h3 class="skill-panel__title">Skill Match</h3>
+                        <div class="skill-panel__group">
+                            <div class="skill-panel__section">
+                                <p class="skill-panel__section-title">Matching Skills</p>
+                                <div id="manual-skills-matched" class="chip-row"></div>
                             </div>
-                            <div>
-                                <p class="text-xs font-semibold text-red-400 mb-1.5">Missing Skills</p>
-                                <div id="manual-skills-missing" class="flex flex-wrap gap-2 min-h-[22px]"></div>
+                            <div class="skill-panel__section">
+                                <p class="skill-panel__section-title skill-panel__section-title--danger">Missing Skills</p>
+                                <div id="manual-skills-missing" class="chip-row"></div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Suggestions -->
-                    <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">How to Improve Match
-                        </h3>
-                        <ul id="manual-suggestions-list" class="space-y-2"></ul>
+                    <div class="skill-panel">
+                        <h3 class="skill-panel__title">How to Improve Match</h3>
+                        <ul id="manual-suggestions-list" class="skill-panel__suggestion-list"></ul>
                     </div>
                 </div>
             </section>
         </section><!-- /input-section -->
 
-        <!-- Results Section (Below) -->
+        <!-- ─────────────────────────────────────────────────────────────────
+             RESULTS SECTION
+             ───────────────────────────────────────────────────────────────── -->
         <section id="main-results-wrapper" class="results-shell">
 
             <!-- Empty State -->
             <div id="empty-state" class="empty-state">
-                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="upload-dropzone__filename-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    style="width:48px;height:48px;color:var(--color-text-faint);margin-bottom:16px;">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <p class="text-gray-500 font-medium">Upload your resume and click optimize to see your ATS score</p>
+                <p>Upload your resume and click optimize to see your ATS score</p>
             </div>
 
-            <!-- New Score Card Section -->
-            <section id="scoreCard" class="hidden score-card hover-lift smooth-ui">
-                <div class="score-card__top">
-                    <!-- LEFT SIDE -->
-                    <div class="score-card__lead">
-                        <h2 class="score-card__title">ATS Compatibility Score</h2>
+            <!-- Score Card -->
+            <section id="scoreCard" class="hidden hover-lift smooth-ui">
+                <div class="results-card__header" style="border-bottom:0;background:transparent;padding:0;margin-bottom:var(--space-3);align-items:flex-start;flex-wrap:wrap;gap:var(--space-2);">
+                    <div style="flex:1;min-width:240px;">
+                        <h2 style="margin:0 0 var(--space-3);font-size:1.25rem;font-weight:700;">ATS Compatibility Score</h2>
                         <p id="scoreLabel" class="sr-only">Analyzing...</p>
 
                         <!-- BEFORE vs AFTER -->
-                        <div class="score-compare">
-                            <div class="score-compare__col score-compare__col--before">
-                                <span class="score-compare__label">Original</span>
-                                <div class="score-compare__value">
-                                    <span id="originalScoreValue">0</span><span class="score-compare__suffix">/100</span>
+                        <div style="display:flex;align-items:center;gap:24px;margin-bottom:16px;">
+                            <div style="text-align:center;">
+                                <span style="font-size:10px;color:var(--color-text-faint);text-transform:uppercase;letter-spacing:0.08em;font-weight:700;display:block;margin-bottom:4px;">Original</span>
+                                <div style="font-size:1.875rem;font-weight:700;color:var(--color-text-faint);">
+                                    <span id="originalScoreValue">0</span><span style="font-size:1.125rem;color:var(--color-text-faint);font-weight:500;">/100</span>
                                 </div>
                             </div>
-                            <div class="score-compare__arrow" aria-hidden="true">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            <div style="color:var(--color-text-faint);">
+                                <svg style="width:24px;height:24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                             </div>
-                            <div class="score-compare__col score-compare__col--after">
-                                <span class="score-compare__label score-compare__label--accent">Optimized</span>
-                                <div class="score-compare__value score-compare__value--primary">
-                                    <span id="scoreValue">0</span><span class="score-compare__suffix">/100</span>
+                            <div style="text-align:center;">
+                                <span style="font-size:10px;color:var(--color-primary);text-transform:uppercase;letter-spacing:0.08em;font-weight:700;display:block;margin-bottom:4px;">Optimized</span>
+                                <div style="font-size:3rem;font-weight:700;color:var(--color-text);">
+                                    <span id="scoreValue">0</span><span style="font-size:1.25rem;color:var(--color-text-faint);font-weight:500;">/100</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Full-width progress bar -->
-                        <div class="score-progress">
-                            <div id="scoreProgressBar" class="score-progress__fill" style="width: 0%"></div>
+                        <div style="width:100%;max-width:24rem;background:var(--color-surface-muted);border-radius:999px;height:6px;margin-top:16px;">
+                            <div id="scoreProgressBar" style="background:var(--color-primary);height:6px;border-radius:999px;transition:width 1s;width:0%"></div>
                         </div>
                     </div>
 
-                    <!-- RIGHT SIDE -->
-                    <div class="score-card__meta">
-                        <div id="scoreImprovement" class="hidden score-improvement">
-                            <span class="score-improvement__arrow">↗</span>
-                            <span id="improvementValue">0</span>% potential improvement
+                    <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;">
+                        <div id="scoreImprovement" class="hidden" style="font-weight:500;font-size:0.875rem;margin-bottom:4px;display:flex;align-items:center;justify-content:flex-end;">
+                            ↗ <span id="improvementValue" style="margin-left:4px;">0</span>% potential improvement
                         </div>
-                        <p class="score-confidence"><span id="confidenceValue">0</span>% confidence</p>
+                        <p style="font-size:0.875rem;color:var(--color-text-muted);margin:0;"><span id="confidenceValue" style="font-weight:500;color:var(--color-text);">0</span>% confidence</p>
                     </div>
                 </div>
 
-                <div class="score-card__split">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;padding-top:24px;border-top:1px solid var(--color-border);">
                     <div>
-                        <h3 class="score-section-title">Score Breakdown</h3>
-                        <div id="breakdownBars" class="space-y-4">
-                            <!-- dynamically populated -->
-                        </div>
+                        <h3 style="font-size:0.875rem;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.06em;margin:0 0 16px;">Score Breakdown</h3>
+                        <div id="breakdownBars" style="display:flex;flex-direction:column;gap:16px;"></div>
                     </div>
                     <div>
-                        <h3 class="score-section-title">Key Insights</h3>
-                        <ul id="insightList" class="space-y-3">
-                            <!-- dynamically populated -->
-                        </ul>
+                        <h3 style="font-size:0.875rem;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.06em;margin:0 0 16px;">Key Insights</h3>
+                        <ul id="insightList" style="display:flex;flex-direction:column;gap:12px;list-style:none;padding:0;margin:0;"></ul>
                     </div>
                 </div>
             </section>
 
-            <section id="results-section" class="hidden analysis-section">
+            <!-- Upload-mode analysis results (PDF viewer + insights) -->
+            <section id="results-section" class="hidden">
                 <div class="results-grid">
 
-                    <div class="results-card results-card--viewer flex flex-col h-[850px] overflow-hidden">
-                        <div class="results-card__header flex justify-between items-center">
-                            <h2 class="text-lg font-bold text-slate-200 flex items-center">
-                                <span class="mr-2">📄</span> Your Resume
-                            </h2>
+                    <div class="results-card results-card--viewer">
+                        <div class="results-card__header">
+                            <h2>📄 Your Resume</h2>
                         </div>
-                        <iframe id="pdf-viewer" class="w-full flex-grow bg-slate-900" src=""></iframe>
+                        <iframe id="pdf-viewer" src=""></iframe>
                     </div>
 
-                    <div class="results-card results-card--insights flex flex-col h-[850px] overflow-hidden">
+                    <div class="results-card results-card--insights">
 
                         <div class="results-card__header">
-                            <h2 class="text-lg font-bold text-slate-200 flex items-center">
-                                <span class="mr-2">⚡</span> Resume Optimizer
-                            </h2>
+                            <h2>⚡ Resume Optimizer</h2>
                         </div>
 
-                        <div class="p-6 overflow-y-auto custom-scrollbar flex-grow space-y-5">
+                        <div class="results-card--insights__body custom-scrollbar">
 
-                            <!-- Success -->
-                            <div class="bg-emerald-900/20 border border-emerald-700/40 p-3 rounded-xl text-center">
-                                <p class="text-emerald-400 font-medium text-sm">Resume extracted successfully.</p>
-                            </div>
+                            <div class="results-card__notice">Resume extracted successfully.</div>
 
                             <!-- Your Skills -->
-                            <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
-                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Your Skills</h3>
+                            <div class="skill-panel">
+                                <h3 class="skill-panel__title">Your Skills</h3>
+                                <div class="skill-panel__section">
+                                    <p class="skill-panel__section-title">Technical</p>
+                                    <div id="skills-technical" class="chip-row"></div>
+                                </div>
+                                <div class="skill-panel__section">
+                                    <p class="skill-panel__section-title">Soft Skills</p>
+                                    <div id="skills-soft" class="chip-row"></div>
+                                </div>
+                                <div class="skill-panel__section">
+                                    <p class="skill-panel__section-title">Languages</p>
+                                    <div id="skills-languages" class="chip-row"></div>
+                                </div>
 
-                                <div>
-                                    <p class="text-xs font-semibold text-indigo-400 mb-1.5">Technical</p>
-                                    <div id="skills-technical" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-semibold text-violet-400 mb-1.5">Soft Skills</p>
-                                    <div id="skills-soft" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-semibold text-sky-400 mb-1.5">Languages</p>
-                                    <div id="skills-languages" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
-                                </div>
-
-                                <!-- Add skill row -->
-                                <div class="flex gap-2 pt-1">
+                                <div class="skill-add-row">
                                     <input type="text" id="new-skill-input" placeholder="Add a skill..."
-                                        class="flex-1 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
-                                    <select id="new-skill-category"
-                                        class="bg-slate-700 border border-slate-600 text-slate-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500">
+                                        class="field-input field-input--sm">
+                                    <select id="new-skill-category" class="field-input field-input--sm">
                                         <option value="technical">Technical</option>
                                         <option value="soft">Soft</option>
                                         <option value="languages">Language</option>
                                     </select>
-                                    <button id="add-skill-btn"
-                                        class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-indigo-500 transition-colors">Add</button>
+                                    <button id="add-skill-btn">Add</button>
                                 </div>
                             </div>
 
                             <!-- JD Requirements -->
-                            <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
-                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Job Description
-                                    Requirements</h3>
-                                <div>
-                                    <p class="text-xs font-semibold text-amber-400 mb-1.5">Technical</p>
-                                    <div id="jd-technical" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
+                            <div class="skill-panel">
+                                <h3 class="skill-panel__title">Job Description Requirements</h3>
+                                <div class="skill-panel__section">
+                                    <p class="skill-panel__section-title">Technical</p>
+                                    <div id="jd-technical" class="chip-row"></div>
                                 </div>
-                                <div>
-                                    <p class="text-xs font-semibold text-orange-400 mb-1.5">Soft Skills</p>
-                                    <div id="jd-soft" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
+                                <div class="skill-panel__section">
+                                    <p class="skill-panel__section-title">Soft Skills</p>
+                                    <div id="jd-soft" class="chip-row"></div>
                                 </div>
-                                <div>
-                                    <p class="text-xs font-semibold text-teal-400 mb-1.5">Languages</p>
-                                    <div id="jd-languages" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
+                                <div class="skill-panel__section">
+                                    <p class="skill-panel__section-title">Languages</p>
+                                    <div id="jd-languages" class="chip-row"></div>
                                 </div>
                             </div>
 
                             <!-- How to Improve Match -->
-                            <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50">
-                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">How to
-                                    Improve
-                                    Match</h3>
-                                <ul id="suggestions-list" class="space-y-2"></ul>
+                            <div class="skill-panel">
+                                <h3 class="skill-panel__title">How to Improve Match</h3>
+                                <ul id="suggestions-list" class="skill-panel__suggestion-list"></ul>
                             </div>
 
                             <!-- Optimize button -->
-                            <button id="start-rewrite-btn" class="primary-button w-full">
+                            <button id="start-rewrite-btn" class="primary-button">
                                 Optimize Resume for Job Description
                             </button>
 
@@ -472,170 +415,143 @@
                 </div>
             </section>
 
+            <!-- ─────────────────────────────────────────────────────────────
+                 BUILDER SECTION
+                 ───────────────────────────────────────────────────────────── -->
             <section id="builder-section" class="hidden builder-surface">
+
                 <div class="builder-header">
-                    <div class="builder-header__lead">
-                        <h2 class="builder-header__title">Live Resume Editor</h2>
-                        <p class="builder-header__subtitle">Pick a template, toggle sections, and download a clean ATS-friendly PDF.</p>
+                    <div class="builder-header__title-group">
+                        <h2 style="margin:0;font-size:1.5rem;font-weight:700;">Live Resume Editor</h2>
+                        <select id="templateSelect" class="field-input">
+                            <option value="ats_classic">Classic ATS (Best for portals)</option>
+                            <option value="executive">Executive (Sleek &amp; Professional)</option>
+                            <option value="tech_modern">Tech Modern (Clean &amp; Grid-based)</option>
+                            <option value="sidebar_pro">Sidebar Pro (Two-Column Creative)</option>
+                        </select>
                     </div>
-                    <div class="builder-header__actions">
-                        <label class="builder-template">
-                            <span class="builder-template__label">Template</span>
-                            <select id="templateSelect" class="builder-template__select">
-                                <option value="ats_classic">Classic ATS — Best for portals</option>
-                                <option value="executive">Executive — Sleek & Professional</option>
-                                <option value="tech_modern">Tech Modern — Clean & Grid-based</option>
-                                <option value="sidebar_pro">Sidebar Pro — Two-Column Creative</option>
-                            </select>
-                        </label>
-                        <button id="download-pdf-btn" class="builder-download-btn">
-                            <span aria-hidden="true">📥</span>
-                            Download ATS PDF
-                        </button>
-                    </div>
+
+                    <button id="download-pdf-btn">📥 Download ATS PDF</button>
                 </div>
 
                 <!-- Entry Forms Grid -->
-                <div class="grid grid-cols-2 gap-3 mb-3 items-start">
+                <div class="entry-forms-grid">
 
-                    <!-- Add Experience Block -->
-                    <div class="border border-slate-700 rounded-xl overflow-hidden">
-                        <button id="toggle-exp-form"
-                            class="w-full flex items-center justify-between px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 transition-colors text-sm font-medium text-slate-300">
-                            <span class="flex items-center gap-2">
-                                <span class="text-indigo-400 font-bold text-base leading-none"
-                                    id="toggle-exp-icon">+</span>
+                    <!-- Add Experience -->
+                    <div class="collapse-card">
+                        <button id="toggle-exp-form" class="collapse-toggle">
+                            <span class="collapse-toggle__label">
+                                <span class="collapse-toggle__icon" id="toggle-exp-icon">+</span>
                                 Add Experience Entry
                             </span>
-                            <span class="text-xs text-slate-500">Role · Company · Duration · Bullets</span>
+                            <span class="collapse-toggle__hint">Role · Company · Duration · Bullets</span>
                         </button>
-                        <div id="exp-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
-                            <div class="grid grid-cols-3 gap-3">
+                        <div id="exp-form" class="hidden collapse-body">
+                            <div class="collapse-body__row collapse-body__row--3">
                                 <input id="exp-role" type="text" placeholder="Role / Job Title"
-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                    class="field-input field-input--sm">
                                 <input id="exp-company" type="text" placeholder="Company / Organization"
-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                    class="field-input field-input--sm">
                                 <input id="exp-duration" type="text" placeholder="Duration (e.g. Jan 2023 – Present)"
-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                    class="field-input field-input--sm">
                             </div>
                             <textarea id="exp-desc" rows="3"
                                 placeholder="2 Bullet points, one per line (e.g. Led backend migration, reducing API latency by 40%)"
-                                class="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none"></textarea>
-                            <button id="add-exp-btn"
-                                class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-500 transition-colors">
-                                Add to Resume
-                            </button>
+                                class="field-input field-input--block field-input--sm"></textarea>
+                            <button id="add-exp-btn" class="entry-add-btn">Add to Resume</button>
                         </div>
                     </div>
 
-                    <!-- Add Project Block -->
-                    <div class="border border-slate-700 rounded-xl overflow-hidden">
-                        <button id="toggle-proj-form"
-                            class="w-full flex items-center justify-between px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 transition-colors text-sm font-medium text-slate-300">
-                            <span class="flex items-center gap-2">
-                                <span class="text-indigo-400 font-bold text-base leading-none"
-                                    id="toggle-proj-icon">+</span>
+                    <!-- Add Project -->
+                    <div class="collapse-card">
+                        <button id="toggle-proj-form" class="collapse-toggle">
+                            <span class="collapse-toggle__label">
+                                <span class="collapse-toggle__icon" id="toggle-proj-icon">+</span>
                                 Add Project Entry
                             </span>
-                            <span class="text-xs text-slate-500">Title · Stack · Bullets</span>
+                            <span class="collapse-toggle__hint">Title · Stack · Bullets</span>
                         </button>
-                        <div id="proj-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
-                            <div class="grid grid-cols-2 gap-3">
+                        <div id="proj-form" class="hidden collapse-body">
+                            <div class="collapse-body__row collapse-body__row--2">
                                 <input id="proj-title" type="text" placeholder="Project Title"
-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                    class="field-input field-input--sm">
                                 <input id="proj-stack" type="text" placeholder="Tech Stack (comma-separated)"
-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                    class="field-input field-input--sm">
                             </div>
                             <textarea id="proj-desc" rows="3"
                                 placeholder="3 Bullet points, one per line (e.g. Built REST API serving 10k daily requests)"
-                                class="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none"></textarea>
-                            <button id="add-proj-btn"
-                                class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-500 transition-colors">
-                                Add to Resume
-                            </button>
+                                class="field-input field-input--block field-input--sm"></textarea>
+                            <button id="add-proj-btn" class="entry-add-btn">Add to Resume</button>
                         </div>
                     </div>
 
-                    <!-- Add Education Block -->
-                    <div class="border border-slate-700 rounded-xl overflow-hidden">
-                        <button id="toggle-edu-form"
-                            class="w-full flex items-center justify-between px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 transition-colors text-sm font-medium text-slate-300">
-                            <span class="flex items-center gap-2">
-                                <span class="text-indigo-400 font-bold text-base leading-none"
-                                    id="toggle-edu-icon">+</span>
+                    <!-- Add Education -->
+                    <div class="collapse-card">
+                        <button id="toggle-edu-form" class="collapse-toggle">
+                            <span class="collapse-toggle__label">
+                                <span class="collapse-toggle__icon" id="toggle-edu-icon">+</span>
                                 Add Education Entry
                             </span>
-                            <span class="text-xs text-slate-500">Degree · Institution · Year · GPA</span>
+                            <span class="collapse-toggle__hint">Degree · Institution · Year · GPA</span>
                         </button>
-                        <div id="edu-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
-                            <div class="grid grid-cols-2 gap-3">
+                        <div id="edu-form" class="hidden collapse-body">
+                            <div class="collapse-body__row collapse-body__row--2">
                                 <input id="edu-degree" type="text" placeholder="Degree (e.g. B.Tech Computer Science)"
-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                    class="field-input field-input--sm">
                                 <input id="edu-institution" type="text" placeholder="Institution"
-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                    class="field-input field-input--sm">
                             </div>
-                            <div class="grid grid-cols-2 gap-3">
+                            <div class="collapse-body__row collapse-body__row--2">
                                 <input id="edu-year" type="text" placeholder="Year / Duration (e.g. 2019–2023)"
-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                    class="field-input field-input--sm">
                                 <input id="edu-gpa" type="text" placeholder="GPA / Score (optional)"
-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                    class="field-input field-input--sm">
                             </div>
-                            <button id="add-edu-btn"
-                                class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-500 transition-colors">
-                                Add to Resume
-                            </button>
+                            <button id="add-edu-btn" class="entry-add-btn">Add to Resume</button>
                         </div>
                     </div>
 
-                    <!-- Add Certification Block -->
-                    <div class="border border-slate-700 rounded-xl overflow-hidden">
-                        <button id="toggle-cert-form"
-                            class="w-full flex items-center justify-between px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 transition-colors text-sm font-medium text-slate-300">
-                            <span class="flex items-center gap-2">
-                                <span class="text-indigo-400 font-bold text-base leading-none"
-                                    id="toggle-cert-icon">+</span>
+                    <!-- Add Certification -->
+                    <div class="collapse-card">
+                        <button id="toggle-cert-form" class="collapse-toggle">
+                            <span class="collapse-toggle__label">
+                                <span class="collapse-toggle__icon" id="toggle-cert-icon">+</span>
                                 Add Certification
                             </span>
-                            <span class="text-xs text-slate-500">Name · Issuer · Date</span>
+                            <span class="collapse-toggle__hint">Name · Issuer · Date</span>
                         </button>
-                        <div id="cert-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
-                            <div class="grid grid-cols-3 gap-3">
+                        <div id="cert-form" class="hidden collapse-body">
+                            <div class="collapse-body__row collapse-body__row--3">
                                 <input id="cert-name" type="text" placeholder="Certification Name"
-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                    class="field-input field-input--sm">
                                 <input id="cert-org" type="text" placeholder="Issuing Organization"
-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                    class="field-input field-input--sm">
                                 <input id="cert-date" type="text" placeholder="Date / Validity (e.g. Jan 2024)"
-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
+                                    class="field-input field-input--sm">
                             </div>
-                            <button id="add-cert-btn"
-                                class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-500 transition-colors">
-                                Add to Resume
-                            </button>
+                            <button id="add-cert-btn" class="entry-add-btn">Add to Resume</button>
                         </div>
                     </div>
 
                 </div><!-- /entry-forms-grid -->
 
                 <!-- Optimize for Job Description (works in both upload + manual modes) -->
-                <div class="mb-3 border border-emerald-800/40 rounded-xl overflow-hidden">
-                    <button id="toggle-builder-jd"
-                        class="w-full flex items-center justify-between px-4 py-2.5 bg-emerald-900/20 hover:bg-emerald-900/30 transition-colors text-sm font-medium text-emerald-400">
-                        <span class="flex items-center gap-2">
-                            <span id="builder-jd-icon" class="font-bold text-base leading-none">+</span>
+                <div class="collapse-card collapse-card--accent" style="margin-bottom:12px;">
+                    <button id="toggle-builder-jd" class="collapse-toggle">
+                        <span class="collapse-toggle__label">
+                            <span class="collapse-toggle__icon" id="builder-jd-icon">+</span>
                             Optimize for a Job Description
                         </span>
-                        <span class="text-xs text-slate-500">Paste JD → AI rewrites resume for ATS match</span>
+                        <span class="collapse-toggle__hint">Paste JD → AI rewrites resume for ATS match</span>
                     </button>
-                    <div id="builder-jd-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
+                    <div id="builder-jd-form" class="hidden collapse-body">
                         <textarea id="builder-jd-text" rows="4" placeholder="Paste the job description here..."
-                            class="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-emerald-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
-                        <button id="builder-optimize-btn"
-                            class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition-colors flex items-center gap-2">
+                            class="field-input field-input--block field-input--sm custom-scrollbar"></textarea>
+                        <button id="builder-optimize-btn" class="entry-add-btn">
                             <span id="builder-opt-text">Optimize Resume</span>
-                            <svg id="builder-opt-spinner" class="animate-spin h-4 w-4 text-white hidden"
+                            <svg id="builder-opt-spinner" class="icon-spinner icon-spinner--sm hidden"
                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                    stroke-width="4">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
                                 </circle>
                                 <path class="opacity-75" fill="currentColor"
                                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
@@ -646,9 +562,9 @@
                 </div>
 
                 <!-- Section Toggle Manager -->
-                <div class="section-toggle">
-                    <p class="section-toggle__label">Toggle Sections</p>
-                    <div id="section-pills" class="section-toggle__pills">
+                <div class="section-toggle-strip">
+                    <p class="section-toggle-strip__label">Toggle Sections</p>
+                    <div id="section-pills" class="section-toggle-strip__pills">
                         <button class="sec-pill" data-section="experience">Experience</button>
                         <button class="sec-pill" data-section="projects">Projects</button>
                         <button class="sec-pill" data-section="certifications">Certifications</button>
@@ -659,7 +575,7 @@
                     </div>
                 </div>
 
-                <div class="resume-stage">
+                <div class="resume-frame">
                     <div id="resume-document"></div>
                 </div>
             </section>
