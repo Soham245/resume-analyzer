@@ -65,6 +65,35 @@ from backend.rewriter import generate_structured_resume, optimize_resume_for_jd,
 from backend import scorer
 from backend.pdf_generator import generate_pdf_from_html
 
+
+def _flatten_skills(skills_dict):
+    if not isinstance(skills_dict, dict):
+        return []
+    return list(skills_dict.get("technical") or []) + \
+           list(skills_dict.get("soft") or []) + \
+           list(skills_dict.get("languages") or [])
+
+
+def _canonicalize_skill_struct(skills_dict):
+    """Canonicalize each category of a {technical,soft,languages} dict."""
+    if not isinstance(skills_dict, dict):
+        return {"technical": [], "soft": [], "languages": []}
+    return {
+        "technical": scorer.canonicalize_skill_list(skills_dict.get("technical") or []),
+        "soft": scorer.canonicalize_skill_list(skills_dict.get("soft") or []),
+        "languages": scorer.canonicalize_skill_list(skills_dict.get("languages") or []),
+    }
+
+
+def _canonicalize_resume_skills(resume_json):
+    """Canonicalize skill fields in a structured resume dict in-place."""
+    if not isinstance(resume_json, dict):
+        return resume_json
+    resume_json["technical_skills"] = scorer.canonicalize_skill_list(resume_json.get("technical_skills") or [])
+    resume_json["soft_skills"] = scorer.canonicalize_skill_list(resume_json.get("soft_skills") or [])
+    resume_json["languages"] = scorer.canonicalize_skill_list(resume_json.get("languages") or [])
+    return resume_json
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 env_path = BASE_DIR / ".env"
 load_dotenv(dotenv_path=env_path)
@@ -132,11 +161,21 @@ def analyze_resume():
 
         logger.info(f"[{request_id}] Successfully completed AI analysis. Building response...")
 
-        # 7. KEEP API STRUCTURE SAME
+        resume_skills = _canonicalize_skill_struct(analysis_result["resume_skills"])
+        jd_skills = _canonicalize_skill_struct(analysis_result["jd_skills"])
+
+        # Missing skills against the FULL raw resume text (all sections, not just skills list).
+        jd_flat = _flatten_skills(jd_skills)
+        matched_skills = scorer.detect_matched_skills(resume_text, jd_flat)
+        missing_skills = scorer.detect_missing_skills(resume_text, jd_flat, jd_text)
+
         logger.info(f"[{request_id}] --- [SUCCESS /analyze] ---")
         return jsonify({
-            "resume_skills": analysis_result["resume_skills"],
-            "jd_skills": analysis_result["jd_skills"],
+            "resume_skills": resume_skills,
+            "jd_skills": jd_skills,
+            "jd_skills_flat": jd_flat,
+            "matched_skills": matched_skills,
+            "missing_skills": missing_skills,
             "suggestions": analysis_result["suggestions"],
             "raw_text": resume_text
         }), 200
@@ -172,34 +211,35 @@ def optimize_resume():
         return jsonify({"error": "Gemini API key is missing from .env"}), 500
 
     try:
-        initial_score_data = scorer.cached_ats_score(raw_text, jd_text)
+        # Extract JD skills first so both scoring calls use the same canonical set.
+        with ai_semaphore:
+            jd_skill_struct = extract_and_categorize_skills(jd_text, api_key)
+        jd_skill_struct = _canonicalize_skill_struct(jd_skill_struct)
+        jd_flat = _flatten_skills(jd_skill_struct)
 
+        # 1) Original score from the raw uploaded resume text.
+        initial_score_data = scorer.compute_ats_score(raw_text, jd_text, jd_skills=jd_flat)
+
+        # 2) AI optimization.
         with ai_semaphore:
             structured_json = optimize_resume_for_jd(raw_text, jd_text, skills, api_key)
+        _canonicalize_resume_skills(structured_json)
         structured_json['skill_groups'] = filter_and_group_skills(structured_json.get('technical_skills') or [])
-        
-        improved_score_data = scorer.cached_ats_score(structured_json, jd_text)
-        
-        # We need to copy the dictionaries since cached results shouldn't be mutated
-        initial_score_data = dict(initial_score_data)
-        improved_score_data = dict(improved_score_data)
 
-        max_boost = min(25, int(initial_score_data.get("score", 0) * 0.4))
-        improvement = improved_score_data.get("score", 0) - initial_score_data.get("score", 0)
-        improvement = min(improvement, max_boost)
-        improvement = max(0, improvement)
-        
-        improved_score_data["score"] = initial_score_data.get("score", 0) + improvement
+        # 3) Optimized score from the structured AI-rewritten resume.
+        improved_score_data = scorer.compute_ats_score(structured_json, jd_text, jd_skills=jd_flat)
 
-        exp_count = len(structured_json.get("experience", []))
-        proj_count = len(structured_json.get("projects", []))
-        
+        improvement = max(0, improved_score_data["score"] - initial_score_data["score"])
+
         logger.info({
-            "experience_count": exp_count,
-            "project_limit": proj_count,
+            "experience_count": len(structured_json.get("experience", [])),
+            "project_count": len(structured_json.get("projects", [])),
             "initial_score": initial_score_data["score"],
+            "initial_breakdown": initial_score_data["breakdown"],
             "final_score": improved_score_data["score"],
-            "improvement": improvement
+            "final_breakdown": improved_score_data["breakdown"],
+            "improvement": improvement,
+            "missing_skills": improved_score_data["missing_skills"][:5],
         })
 
         response_payload = {
@@ -208,9 +248,13 @@ def optimize_resume():
             "improvement": improvement,
             "original_label": scorer.score_label(initial_score_data["score"]),
             "optimized_label": scorer.score_label(improved_score_data["score"]),
-            "confidence": improved_score_data.get("confidence", 75),
-            "insights": improved_score_data.get("insights", []),
-            "resume": structured_json
+            "confidence": improved_score_data["confidence"],
+            "insights": improved_score_data["insights"],
+            "matched_skills": improved_score_data["matched_skills"],
+            "missing_skills": improved_score_data["missing_skills"],
+            "jd_skills": jd_skill_struct,
+            "jd_skills_flat": jd_flat,
+            "resume": structured_json,
         }
 
         return jsonify(response_payload), 200
@@ -221,6 +265,62 @@ def optimize_resume():
         data = None
         raw_text = None
         jd_text = None
+
+
+@app.route('/rescore', methods=['POST'])
+def rescore_resume():
+    """
+    Recompute the ATS score against the CURRENT edited resume state.
+    Stateless — the caller supplies the latest resume JSON, the JD text,
+    and (optionally) the JD skills list extracted earlier.
+    """
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Invalid request body"}), 400
+
+    resume_json = data.get('resume')
+    jd_text = _trim_ai_text(data.get('jd_text', ''))
+    jd_skills_flat = data.get('jd_skills_flat') or []
+    original_score = data.get('original_score')
+
+    if not isinstance(resume_json, dict) and not isinstance(resume_json, str):
+        return jsonify({"error": "Resume payload is required."}), 400
+    if not jd_text:
+        return jsonify({"error": "Job description text is required."}), 400
+
+    try:
+        if isinstance(resume_json, dict):
+            _canonicalize_resume_skills(resume_json)
+            resume_json['skill_groups'] = filter_and_group_skills(resume_json.get('technical_skills') or [])
+
+        canonical_jd_skills = scorer.canonicalize_skill_list(jd_skills_flat) if jd_skills_flat else None
+        score_data = scorer.compute_ats_score(resume_json, jd_text, jd_skills=canonical_jd_skills)
+
+        baseline = int(original_score) if isinstance(original_score, (int, float)) else None
+        improvement = max(0, score_data["score"] - baseline) if baseline is not None else 0
+
+        logger.info({
+            "event": "rescore",
+            "score": score_data["score"],
+            "breakdown": score_data["breakdown"],
+            "baseline": baseline,
+            "improvement": improvement,
+            "missing_skills": score_data["missing_skills"][:5],
+        })
+
+        return jsonify({
+            "optimized_score": score_data,
+            "improvement": improvement,
+            "optimized_label": scorer.score_label(score_data["score"]),
+            "confidence": score_data["confidence"],
+            "insights": score_data["insights"],
+            "matched_skills": score_data["matched_skills"],
+            "missing_skills": score_data["missing_skills"],
+            "resume": resume_json if isinstance(resume_json, dict) else None,
+        }), 200
+    except Exception as e:
+        logger.error("[/rescore] Error: %s", e, exc_info=True)
+        return jsonify({"error": "An internal server error occurred during rescoring."}), 500
 
 
 @app.route('/generate-from-inputs', methods=['POST'])
@@ -240,6 +340,7 @@ def generate_from_inputs():
     try:
         with ai_semaphore:
             structured = generate_resume_from_inputs(inputs, api_key)
+        _canonicalize_resume_skills(structured)
         structured['skill_groups'] = filter_and_group_skills(structured.get('technical_skills') or [])
         return jsonify(structured), 200
     except Exception as e:
@@ -269,10 +370,22 @@ def analyze_manual():
     try:
         with ai_semaphore:
             jd_skills = extract_and_categorize_skills(jd_text, api_key)
-            jd_flat = jd_skills["technical"] + jd_skills["soft"] + jd_skills["languages"]
-        suggestions = _local_gap_suggestions(user_skills_flat, jd_flat)
+        jd_skills = _canonicalize_skill_struct(jd_skills)
+        jd_flat = _flatten_skills(jd_skills)
 
-        return jsonify({"jd_skills": jd_skills, "suggestions": suggestions}), 200
+        canonical_user_skills = scorer.canonicalize_skill_list(user_skills_flat)
+        matched_skills = scorer.detect_matched_skills(" ".join(canonical_user_skills), jd_flat)
+        missing_skills = scorer.detect_missing_skills(" ".join(canonical_user_skills), jd_flat, jd_text)
+
+        suggestions = _local_gap_suggestions(canonical_user_skills, jd_flat)
+
+        return jsonify({
+            "jd_skills": jd_skills,
+            "jd_skills_flat": jd_flat,
+            "matched_skills": matched_skills,
+            "missing_skills": missing_skills,
+            "suggestions": suggestions,
+        }), 200
     except RequestTimeoutException:
         logger.error("[/analyze-manual] Request timed out.")
         return jsonify({
@@ -302,6 +415,7 @@ def rewrite_resume():
         if not structured_json:
             return jsonify({"error": "Failed to rewrite resume"}), 500
 
+        _canonicalize_resume_skills(structured_json)
         return jsonify(structured_json), 200
     except Exception as e:
         logger.error("[/rewrite] Error: %s", e, exc_info=True)
