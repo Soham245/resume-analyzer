@@ -1,3 +1,94 @@
+// ── Canonical skill registry (mirrors backend scorer.CANONICAL_SKILLS) ──
+// Used for display capitalization so skills look professional everywhere
+// (Your Skills, JD Requirements, missing skills, resume preview).
+const CANONICAL_SKILL_ALIASES = {
+    'javascript':'JavaScript','js':'JavaScript','ecmascript':'JavaScript',
+    'typescript':'TypeScript','ts':'TypeScript',
+    'python':'Python','py':'Python','python3':'Python',
+    'java':'Java','c++':'C++','cpp':'C++','c#':'C#','csharp':'C#','c':'C',
+    'go':'Go','golang':'Go','rust':'Rust','ruby':'Ruby','php':'PHP',
+    'swift':'Swift','kotlin':'Kotlin','scala':'Scala','matlab':'MATLAB','perl':'Perl',
+    'bash':'Bash','shell':'Shell','html':'HTML','html5':'HTML','css':'CSS','css3':'CSS','sql':'SQL',
+    'react':'React','reactjs':'React','react.js':'React',
+    'react native':'React Native','react-native':'React Native',
+    'vue':'Vue.js','vuejs':'Vue.js','vue.js':'Vue.js',
+    'angular':'Angular','angularjs':'Angular','angular.js':'Angular',
+    'node':'Node.js','nodejs':'Node.js','node.js':'Node.js','node js':'Node.js',
+    'express':'Express.js','expressjs':'Express.js','express.js':'Express.js',
+    'next':'Next.js','nextjs':'Next.js','next.js':'Next.js',
+    'nuxt':'Nuxt.js','nuxtjs':'Nuxt.js','nuxt.js':'Nuxt.js',
+    'django':'Django','flask':'Flask','fastapi':'FastAPI','fast api':'FastAPI',
+    'spring':'Spring','spring boot':'Spring Boot','springboot':'Spring Boot',
+    'rails':'Rails','ruby on rails':'Rails','laravel':'Laravel',
+    'tensorflow':'TensorFlow','pytorch':'PyTorch','torch':'PyTorch','keras':'Keras',
+    'sklearn':'scikit-learn','scikit-learn':'scikit-learn','scikit learn':'scikit-learn',
+    'pandas':'Pandas','numpy':'NumPy','scipy':'SciPy',
+    'bootstrap':'Bootstrap','tailwind':'Tailwind CSS','tailwindcss':'Tailwind CSS','tailwind css':'Tailwind CSS',
+    'jquery':'jQuery','redux':'Redux','svelte':'Svelte',
+    'mysql':'MySQL','postgresql':'PostgreSQL','postgres':'PostgreSQL','psql':'PostgreSQL',
+    'sqlite':'SQLite','mongodb':'MongoDB','mongo':'MongoDB','redis':'Redis',
+    'cassandra':'Cassandra','dynamodb':'DynamoDB','oracle':'Oracle',
+    'sql server':'SQL Server','mssql':'SQL Server','elasticsearch':'Elasticsearch',
+    'firebase':'Firebase','supabase':'Supabase','neo4j':'Neo4j','mariadb':'MariaDB',
+    'docker':'Docker','kubernetes':'Kubernetes','k8s':'Kubernetes',
+    'git':'Git','github':'GitHub','github actions':'GitHub Actions','gitlab ci':'GitLab CI',
+    'linux':'Linux','unix':'Linux',
+    'aws':'AWS','amazon web services':'AWS',
+    'gcp':'GCP','google cloud':'GCP','google cloud platform':'GCP',
+    'azure':'Azure','microsoft azure':'Azure',
+    'rest':'REST APIs','rest api':'REST APIs','rest apis':'REST APIs','restful':'REST APIs',
+    'restful api':'REST APIs','restful apis':'REST APIs',
+    'graphql':'GraphQL','nginx':'Nginx','apache':'Apache','jenkins':'Jenkins',
+    'ci/cd':'CI/CD','cicd':'CI/CD','ci cd':'CI/CD',
+    'webpack':'Webpack','vite':'Vite','jest':'Jest','pytest':'Pytest',
+    'postman':'Postman','swagger':'Swagger','openapi':'Swagger',
+    'terraform':'Terraform','ansible':'Ansible','helm':'Helm',
+    'prometheus':'Prometheus','grafana':'Grafana',
+    'kafka':'Kafka','apache kafka':'Kafka','rabbitmq':'RabbitMQ','celery':'Celery',
+    'machine learning':'Machine Learning','ml':'Machine Learning',
+    'deep learning':'Deep Learning','dl':'Deep Learning',
+    'nlp':'NLP','natural language processing':'NLP','computer vision':'Computer Vision',
+    'data analysis':'Data Analysis','data analytics':'Data Analysis',
+    'data engineering':'Data Engineering','etl':'ETL',
+    'tableau':'Tableau','power bi':'Power BI','powerbi':'Power BI',
+    'excel':'Excel','microsoft excel':'Excel','figma':'Figma','jira':'Jira',
+    'agile':'Agile','scrum':'Scrum','kanban':'Kanban',
+};
+const PRESERVE_UPPER = new Set(['aws','gcp','sql','html','css','nlp','etl','api','ai','ml']);
+
+function canonicalizeSkill(skill) {
+    if (!skill || typeof skill !== 'string') return '';
+    const cleaned = skill.replace(/\s+/g, ' ').trim().replace(/^[,;:.|/]+|[,;:.|/]+$/g, '');
+    if (!cleaned) return '';
+    const direct = CANONICAL_SKILL_ALIASES[cleaned.toLowerCase()];
+    if (direct) return direct;
+    // Fallback: smart title-case preserving acronyms / dotted suffixes.
+    return cleaned.split(/([\s/\-])/).map(part => {
+        if (!part || /^[\s/\-]+$/.test(part)) return part;
+        const lower = part.toLowerCase();
+        if (PRESERVE_UPPER.has(lower)) return lower.toUpperCase();
+        if (part.includes('.')) {
+            const [h, ...rest] = part.split('.');
+            return (h.charAt(0).toUpperCase() + h.slice(1).toLowerCase()) + '.' + rest.join('.').toLowerCase();
+        }
+        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    }).join('');
+}
+
+function canonicalizeSkillList(list) {
+    const seen = new Set();
+    const out = [];
+    for (const raw of list || []) {
+        const c = canonicalizeSkill(raw);
+        if (!c) continue;
+        const k = c.toLowerCase();
+        if (seen.has(k)) continue;
+        seen.add(k);
+        out.push(c);
+    }
+    return out;
+}
+
 // ── Client-side skill filtering + grouping (mirrors backend filter_and_group_skills) ──
 // Runs immediately on every data set so skill_groups is always populated,
 // even when the Flask server hasn't been restarted with the new backend code.
@@ -117,6 +208,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // GLOBAL STATE
     let savedRawText  = "";
     let savedJdText   = "";
+    let savedJdSkillsFlat = [];
+    let originalScoreSnapshot = null;   // baseline for "Original Score" — set once after first /optimize
     let currentSkills = { technical: [], soft: [], languages: [] };
     let currentStructuredData = null;
     let activeSections = {
@@ -124,9 +217,229 @@ document.addEventListener('DOMContentLoaded', () => {
         technical: true,  soft: true,     languages: true,
     };
 
+    // ── Stage state machine: idle → processing → analyzed ──────────────────
+    const idleStage       = document.getElementById('input-section');
+    const processingStage = document.getElementById('processing-stage');
+    const analyzedStage   = document.getElementById('main-results-wrapper');
+    const processingSteps = Array.from(document.querySelectorAll('#processing-steps .processing-step'));
+    const processingTitle = document.getElementById('processing-title');
+    const processingSubtitle = document.getElementById('processing-subtitle');
+    const processingBarFill  = document.getElementById('processing-bar-fill');
+
+    let appStage = 'idle';
+
+    function setStage(stage) {
+        if (stage === appStage) return;
+        appStage = stage;
+        document.body.classList.toggle('stage-analyzed', stage === 'analyzed');
+        document.body.classList.toggle('stage-processing', stage === 'processing');
+        // idle visibility — animate-out via is-leaving for a smooth slide.
+        if (stage === 'idle') {
+            idleStage.classList.remove('is-leaving', 'is-hidden');
+            analyzedStage.classList.add('is-hidden');
+            hideProcessingStage();
+            errorMessage.classList.add('hidden');
+        } else if (stage === 'processing') {
+            // Trigger leave animation on idle, but keep it in the DOM during overlay.
+            idleStage.classList.add('is-leaving');
+            analyzedStage.classList.add('is-hidden');
+            showProcessingStage();
+        } else if (stage === 'analyzed') {
+            idleStage.classList.add('is-hidden');
+            idleStage.classList.remove('is-leaving');
+            analyzedStage.classList.remove('is-hidden');
+            hideProcessingStage();
+            // Scroll to top of workspace so user lands on the score card.
+            window.requestAnimationFrame(() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+    }
+
+    function showProcessingStage() {
+        processingStage.classList.remove('is-hidden');
+        processingStage.setAttribute('aria-hidden', 'false');
+        // Next frame so the transition can play.
+        window.requestAnimationFrame(() => processingStage.classList.add('is-active'));
+        resetProcessingSteps();
+    }
+
+    function hideProcessingStage() {
+        processingStage.classList.remove('is-active');
+        processingStage.setAttribute('aria-hidden', 'true');
+        // Wait for the transition to finish before fully hiding.
+        setTimeout(() => {
+            if (!processingStage.classList.contains('is-active')) {
+                processingStage.classList.add('is-hidden');
+            }
+        }, 340);
+    }
+
+    function resetProcessingSteps() {
+        processingSteps.forEach(el => el.classList.remove('is-active', 'is-done'));
+        if (processingBarFill) processingBarFill.style.width = '0%';
+        if (processingSubtitle) processingSubtitle.textContent = 'Sit tight — this only takes a moment.';
+    }
+
+    function setProcessingStep(stepIndex) {
+        const total = processingSteps.length;
+        processingSteps.forEach((el, i) => {
+            el.classList.remove('is-active', 'is-done');
+            if (i < stepIndex)       el.classList.add('is-done');
+            else if (i === stepIndex) el.classList.add('is-active');
+        });
+        const current = processingSteps[Math.min(stepIndex, total - 1)];
+        if (current && processingSubtitle) {
+            processingSubtitle.textContent = current.querySelector('.processing-step__label').textContent + '…';
+        }
+        if (processingBarFill) {
+            const pct = Math.min(100, Math.round((stepIndex / total) * 100));
+            processingBarFill.style.width = pct + '%';
+        }
+    }
+
+    function markProcessingComplete() {
+        processingSteps.forEach(el => {
+            el.classList.remove('is-active');
+            el.classList.add('is-done');
+        });
+        if (processingBarFill) processingBarFill.style.width = '100%';
+        if (processingSubtitle) processingSubtitle.textContent = 'All set — opening your workspace.';
+    }
+
+    /**
+     * Drive the processing stage. Runs `taskPromise` (the real backend work)
+     * alongside a stepped animation, then enforces a minimum stage duration
+     * so the transition feels intentional even when the backend is fast.
+     */
+    async function runProcessingStage(taskPromise, { minDurationMs = 1800, stepCadenceMs = 360 } = {}) {
+        setStage('processing');
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const startedAt = Date.now();
+        let stepIndex = 0;
+        setProcessingStep(stepIndex);
+
+        const stepTimer = setInterval(() => {
+            if (stepIndex < processingSteps.length - 1) {
+                stepIndex++;
+                setProcessingStep(stepIndex);
+            }
+        }, reduceMotion ? 80 : stepCadenceMs);
+
+        let result, error;
+        try {
+            result = await taskPromise;
+        } catch (err) {
+            error = err;
+        } finally {
+            clearInterval(stepTimer);
+        }
+
+        const elapsed = Date.now() - startedAt;
+        const remaining = Math.max(0, minDurationMs - elapsed);
+        if (remaining && !reduceMotion) {
+            await new Promise(r => setTimeout(r, remaining));
+        }
+
+        markProcessingComplete();
+        if (!reduceMotion) {
+            await new Promise(r => setTimeout(r, 280));
+        }
+
+        if (error) {
+            setStage('idle');
+            throw error;
+        }
+        return result;
+    }
+
+    // Back button — returns user to the idle stage with their state preserved.
+    const backToUploadBtn = document.getElementById('back-to-upload-btn');
+    if (backToUploadBtn) {
+        backToUploadBtn.addEventListener('click', () => {
+            // Restore JD text if the textarea was cleared (it shouldn't have been,
+            // but defensive — covers the case where user switched modes).
+            const jdInput = document.getElementById('jd-text');
+            if (jdInput && !jdInput.value && savedJdText) {
+                jdInput.value = savedJdText;
+            }
+            const mJdInput = document.getElementById('m-jd-text');
+            if (mJdInput && !mJdInput.value && savedJdText) {
+                mJdInput.value = savedJdText;
+            }
+            setStage('idle');
+            window.requestAnimationFrame(() => {
+                idleStage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+    }
+
+    // Debounced rescore — fires whenever the user edits or adds resume entries.
+    let rescoreTimer = null;
+    let rescoreController = null;
+    function scheduleRescore(delayMs = 600) {
+        if (!currentStructuredData || !savedJdText) return;
+        if (rescoreTimer) clearTimeout(rescoreTimer);
+        rescoreTimer = setTimeout(runRescore, delayMs);
+    }
+
+    async function runRescore() {
+        if (!currentStructuredData || !savedJdText) return;
+        if (rescoreController) rescoreController.abort();
+        rescoreController = new AbortController();
+        const signal = rescoreController.signal;
+        try {
+            const res = await fetchWithTimeout(apiUrl('/rescore'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    resume: currentStructuredData,
+                    jd_text: savedJdText,
+                    jd_skills_flat: savedJdSkillsFlat,
+                    original_score: originalScoreSnapshot,
+                }),
+                signal,
+            }, 15000);
+            if (!res.ok) return;
+            const payload = await res.json();
+            console.log('[rescore] score=', payload.optimized_score?.score,
+                        'breakdown=', payload.optimized_score?.breakdown,
+                        'missing=', (payload.missing_skills || []).slice(0, 5));
+            // Re-shape payload to match updateScoreCard's expected fields.
+            updateScoreCard({
+                original_score: { score: originalScoreSnapshot ?? payload.optimized_score.score },
+                optimized_score: payload.optimized_score,
+                improvement: payload.improvement,
+                optimized_label: payload.optimized_label,
+                confidence: payload.confidence,
+                insights: payload.insights,
+            });
+            renderMissingSkills(payload.missing_skills, payload.matched_skills);
+        } catch (err) {
+            if (err.name === 'AbortError') return;
+            console.warn('[rescore] failed:', err);
+        }
+    }
+
+    function renderMissingSkills(missing, matched) {
+        // Manual mode panel
+        if (manualSkillsMissing && manualSkillsMatched) {
+            const matchedStyle = { bg:'rgba(16,185,129,0.12)', color:'#6ee7b7', border:'rgba(16,185,129,0.25)' };
+            const missingStyle = { bg:'rgba(239,68,68,0.10)',  color:'#fca5a5', border:'rgba(239,68,68,0.20)' };
+            manualSkillsMatched.innerHTML = '';
+            manualSkillsMissing.innerHTML = '';
+            (matched || []).forEach(s => manualSkillsMatched.appendChild(makeBadge(canonicalizeSkill(s), matchedStyle, null)));
+            (missing || []).forEach(s => manualSkillsMissing.appendChild(makeBadge(canonicalizeSkill(s), missingStyle, null)));
+        }
+    }
+
     // ── Single setter: always computes skill_groups so templates always show grouped skills ──
     function setCurrentData(data) {
         currentStructuredData = data;
+        // Canonicalize skill arrays so display capitalization is consistent everywhere.
+        currentStructuredData.technical_skills = canonicalizeSkillList(currentStructuredData.technical_skills || []);
+        currentStructuredData.soft_skills      = canonicalizeSkillList(currentStructuredData.soft_skills || []);
+        currentStructuredData.languages        = canonicalizeSkillList(currentStructuredData.languages || []);
         // Always compute groups client-side; backend value takes precedence if present
         if (!currentStructuredData.skill_groups || !Object.keys(currentStructuredData.skill_groups).length) {
             currentStructuredData.skill_groups = filterAndGroupSkills(currentStructuredData.technical_skills || []);
@@ -172,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const container = skillContainers[cat];
             container.innerHTML = '';
             currentSkills[cat].forEach((skill, idx) => {
-                container.appendChild(makeBadge(skill, userBadgeStyle[cat], () => {
+                container.appendChild(makeBadge(canonicalizeSkill(skill), userBadgeStyle[cat], () => {
                     currentSkills[cat].splice(idx, 1);
                     renderUserSkills();
                 }));
@@ -185,7 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const container = jdContainers[cat];
             container.innerHTML = '';
             (jdSkills[cat] || []).forEach(skill => {
-                container.appendChild(makeBadge(skill, jdBadgeStyle[cat], null));
+                container.appendChild(makeBadge(canonicalizeSkill(skill), jdBadgeStyle[cat], null));
             });
         });
     }
@@ -205,36 +518,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ── Manual analysis render helpers ──────────────────────────────────────
-    function renderManualAnalysis(userSkills, jdSkills) {
+    function renderManualAnalysis(userSkills, jdSkills, matchedSkills, missingSkills) {
         ['technical', 'soft', 'languages'].forEach(cat => {
             manualSkillContainers[cat].innerHTML = '';
             (userSkills[cat] || []).forEach(skill => {
-                manualSkillContainers[cat].appendChild(makeBadge(skill, userBadgeStyle[cat], null));
+                manualSkillContainers[cat].appendChild(makeBadge(canonicalizeSkill(skill), userBadgeStyle[cat], null));
             });
             manualJdContainers[cat].innerHTML = '';
             (jdSkills[cat] || []).forEach(skill => {
-                manualJdContainers[cat].appendChild(makeBadge(skill, jdBadgeStyle[cat], null));
+                manualJdContainers[cat].appendChild(makeBadge(canonicalizeSkill(skill), jdBadgeStyle[cat], null));
             });
         });
-
-        const userFlat = new Set(
-            [...(userSkills.technical||[]), ...(userSkills.soft||[]), ...(userSkills.languages||[])]
-            .map(s => s.toLowerCase())
-        );
-        const jdFlat = [
-            ...(jdSkills.technical||[]), ...(jdSkills.soft||[]), ...(jdSkills.languages||[])
-        ];
 
         const matchedStyle = { bg:'rgba(16,185,129,0.12)',  color:'#6ee7b7', border:'rgba(16,185,129,0.25)' };
         const missingStyle = { bg:'rgba(239,68,68,0.10)',   color:'#fca5a5', border:'rgba(239,68,68,0.20)' };
 
         manualSkillsMatched.innerHTML = '';
         manualSkillsMissing.innerHTML = '';
-        jdFlat.forEach(skill => {
-            const target = userFlat.has(skill.toLowerCase()) ? manualSkillsMatched : manualSkillsMissing;
-            const style  = userFlat.has(skill.toLowerCase()) ? matchedStyle : missingStyle;
-            target.appendChild(makeBadge(skill, style, null));
-        });
+        // Trust backend matched/missing — those are computed against ALL resume content,
+        // not just the flat "Your Skills" list (which misses skills mentioned only in
+        // experience or projects).
+        canonicalizeSkillList(matchedSkills || []).forEach(s =>
+            manualSkillsMatched.appendChild(makeBadge(s, matchedStyle, null)));
+        canonicalizeSkillList(missingSkills || []).forEach(s =>
+            manualSkillsMissing.appendChild(makeBadge(s, missingStyle, null)));
     }
 
     function renderManualSuggestions(suggestions) {
@@ -373,11 +680,24 @@ document.addEventListener('DOMContentLoaded', () => {
     addSkillBtn.addEventListener('click', () => {
         const val = newSkillInput.value.trim();
         const cat = newSkillCategory.value;
-        if (val && !currentSkills[cat].map(s => s.toLowerCase()).includes(val.toLowerCase())) {
-            currentSkills[cat].push(val);
-            newSkillInput.value = '';
-            renderUserSkills();
+        if (!val) return;
+        const canon = canonicalizeSkill(val);
+        if (currentSkills[cat].map(s => s.toLowerCase()).includes(canon.toLowerCase())) return;
+        currentSkills[cat].push(canon);
+        // Mirror into structured resume so rescore sees the new skill in the right section.
+        if (currentStructuredData) {
+            const key = cat === 'technical' ? 'technical_skills'
+                      : cat === 'soft'      ? 'soft_skills'
+                      :                       'languages';
+            currentStructuredData[key] = currentStructuredData[key] || [];
+            if (!currentStructuredData[key].map(s => s.toLowerCase()).includes(canon.toLowerCase())) {
+                currentStructuredData[key].push(canon);
+            }
+            currentStructuredData.skill_groups = filterAndGroupSkills(currentStructuredData.technical_skills || []);
         }
+        newSkillInput.value = '';
+        renderUserSkills();
+        scheduleRescore();
     });
 
     newSkillInput.addEventListener('keydown', (e) => {
@@ -413,21 +733,25 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('jd', savedJdText);
 
         try {
-            const response = await fetchWithTimeout(apiUrl('/analyze'), {
-                method: 'POST',
-                body: formData,
-                signal
-            });
-            if (!response.ok) throw new Error("Analysis Failed");
-
-            const data = await response.json();
+            const data = await runProcessingStage(
+                fetchWithTimeout(apiUrl('/analyze'), { method: 'POST', body: formData, signal })
+                    .then(async (response) => {
+                        if (!response.ok) {
+                            let msg = 'Analysis Failed';
+                            try { msg = (await response.json()).error || msg; } catch (_) {}
+                            throw new Error(msg);
+                        }
+                        return response.json();
+                    })
+            );
             if (requestId !== latestRequestIds.analyze) return;
 
             savedRawText  = data.raw_text;
+            savedJdSkillsFlat = canonicalizeSkillList(data.jd_skills_flat || []);
             currentSkills = {
-                technical: data.resume_skills?.technical || [],
-                soft:      data.resume_skills?.soft      || [],
-                languages: data.resume_skills?.languages || [],
+                technical: canonicalizeSkillList(data.resume_skills?.technical || []),
+                soft:      canonicalizeSkillList(data.resume_skills?.soft      || []),
+                languages: canonicalizeSkillList(data.resume_skills?.languages || []),
             };
 
             renderUserSkills();
@@ -435,12 +759,13 @@ document.addEventListener('DOMContentLoaded', () => {
             renderSuggestions(data.suggestions || []);
 
             resultsSection.classList.remove('hidden');
-            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setStage('analyzed');
 
         } catch (error) {
             if (error.name === 'AbortError') return;
             errorMessage.textContent = `Backend Error: ${error.message}`;
             errorMessage.classList.remove('hidden');
+            setStage('idle');
         } finally {
             if (requestId === latestRequestIds.analyze) {
                 submitBtn.disabled = false;
@@ -498,10 +823,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(payload.error || `Server error ${res.status}`);
             }
 
-            console.log('ATS Score Improved:', payload.original_score, '->', payload.optimized_score, '(+', payload.improvement, ')');
+            console.log('[optimize] original=', payload.original_score?.score,
+                        'optimized=', payload.optimized_score?.score,
+                        '(+', payload.improvement, ')',
+                        'breakdown=', payload.optimized_score?.breakdown,
+                        'missing=', (payload.missing_skills || []).slice(0, 5));
             if (payload.original_score) {
+                originalScoreSnapshot = payload.original_score.score;
                 setTimeout(() => updateScoreCard(payload), 120);
             }
+            if (payload.jd_skills_flat) {
+                savedJdSkillsFlat = canonicalizeSkillList(payload.jd_skills_flat);
+            }
+            renderMissingSkills(payload.missing_skills, payload.matched_skills);
             setCurrentData(payload.resume || payload);
             builderSection.classList.remove('hidden');
             renderResume();
@@ -564,6 +898,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentStructuredData.experience = currentStructuredData.experience || [];
         currentStructuredData.experience.push({ role, company, duration, points });
         renderResume(true);
+        scheduleRescore(200);
 
         // Clear and collapse form
         document.getElementById('exp-role').value     = '';
@@ -639,10 +974,8 @@ document.addEventListener('DOMContentLoaded', () => {
         genSpinner.classList.remove('hidden');
         generateManualBtn.disabled = true;
 
-        try {
+        const manualPipeline = (async () => {
             if (jdText) {
-                // ── JD path: analyze → show skill panel → optimize ────────────
-                genBtnText.textContent = 'Analyzing skills...';
                 const analysisRes = await fetchWithTimeout(apiUrl('/analyze-manual'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -653,18 +986,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     signal
                 });
                 const analysisData = await analysisRes.json();
-                if (requestId !== latestRequestIds.manual) return;
                 if (!analysisRes.ok) throw new Error(analysisData.error || `Analysis error ${analysisRes.status}`);
 
-                renderManualAnalysis(currentSkills, analysisData.jd_skills || {});
-                renderManualSuggestions(analysisData.suggestions || []);
-                manualAnalysisSection.classList.remove('hidden');
-                manualAnalysisSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-                // Optimize resume for JD (same pipeline as upload mode)
-                genBtnText.textContent = 'Analyzing resume...';
-                const mainResults = document.getElementById('main-results-wrapper');
-                if (mainResults) mainResults.classList.add('loading-state');
                 const optimizeRes = await fetchWithTimeout(apiUrl('/optimize'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -676,27 +999,52 @@ document.addEventListener('DOMContentLoaded', () => {
                     signal
                 });
                 const optimizePayload = await optimizeRes.json();
-                if (requestId !== latestRequestIds.manual) return;
                 if (!optimizeRes.ok) throw new Error(optimizePayload.error || `Optimize error ${optimizeRes.status}`);
+                return { mode: 'jd', analysisData, optimizePayload };
+            }
 
-                console.log('ATS Score Improved:', optimizePayload.original_score, '->', optimizePayload.optimized_score, '(+', optimizePayload.improvement, ')');
+            const res = await fetchWithTimeout(apiUrl('/generate-from-inputs'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ inputs }),
+                signal
+            });
+            const payload = await res.json();
+            if (!res.ok) throw new Error(payload.error || `Server error ${res.status}`);
+            return { mode: 'plain', payload };
+        })();
+
+        try {
+            const outcome = await runProcessingStage(manualPipeline);
+            if (requestId !== latestRequestIds.manual) return;
+
+            if (outcome.mode === 'jd') {
+                const { analysisData, optimizePayload } = outcome;
+                renderManualAnalysis(
+                    currentSkills,
+                    analysisData.jd_skills || {},
+                    analysisData.matched_skills || [],
+                    analysisData.missing_skills || []
+                );
+                savedJdSkillsFlat = canonicalizeSkillList(analysisData.jd_skills_flat || []);
+                renderManualSuggestions(analysisData.suggestions || []);
+                manualAnalysisSection.classList.remove('hidden');
+
+                console.log('[optimize-manual] original=', optimizePayload.original_score?.score,
+                            'optimized=', optimizePayload.optimized_score?.score,
+                            '(+', optimizePayload.improvement, ')',
+                            'breakdown=', optimizePayload.optimized_score?.breakdown);
                 if (optimizePayload.original_score) {
+                    originalScoreSnapshot = optimizePayload.original_score.score;
                     setTimeout(() => updateScoreCard(optimizePayload), 120);
                 }
+                if (optimizePayload.jd_skills_flat) {
+                    savedJdSkillsFlat = canonicalizeSkillList(optimizePayload.jd_skills_flat);
+                }
+                renderMissingSkills(optimizePayload.missing_skills, optimizePayload.matched_skills);
                 setCurrentData(optimizePayload.resume || optimizePayload);
-
             } else {
-                // ── No JD: generate plain resume from inputs ──────────────────
-                const res = await fetchWithTimeout(apiUrl('/generate-from-inputs'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ inputs }),
-                    signal
-                });
-                const payload = await res.json();
-                if (requestId !== latestRequestIds.manual) return;
-                if (!res.ok) throw new Error(payload.error || `Server error ${res.status}`);
-
+                const { payload } = outcome;
                 setCurrentData(payload);
                 currentSkills = {
                     technical: payload.technical_skills || [],
@@ -707,21 +1055,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             builderSection.classList.remove('hidden');
             renderResume();
-            requestAnimationFrame(() => autoFitPage()); // section now visible → zoom can measure
-            builderSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            requestAnimationFrame(() => autoFitPage());
+            setStage('analyzed');
 
         } catch (error) {
             if (error.name === 'AbortError') return;
             errorMessage.textContent = `Generation failed: ${error.message}`;
             errorMessage.classList.remove('hidden');
             console.error('[generate-from-inputs]', error);
+            setStage('idle');
         } finally {
             if (requestId === latestRequestIds.manual) {
                 genBtnText.textContent = '✨ Generate Resume from Inputs';
                 genSpinner.classList.add('hidden');
                 generateManualBtn.disabled = false;
-                const mainResults = document.getElementById('main-results-wrapper');
-                if (mainResults) mainResults.classList.remove('loading-state');
             }
         }
     });
@@ -788,10 +1135,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (requestId !== latestRequestIds.builder) return;
             if (!res.ok) throw new Error(payload.error || `Server error ${res.status}`);
 
-            console.log('ATS Score Improved:', payload.original_score, '->', payload.optimized_score, '(+', payload.improvement, ')');
+            console.log('[builder-optimize] original=', payload.original_score?.score,
+                        'optimized=', payload.optimized_score?.score,
+                        '(+', payload.improvement, ')',
+                        'breakdown=', payload.optimized_score?.breakdown);
             if (payload.original_score) {
+                originalScoreSnapshot = payload.original_score.score;
                 setTimeout(() => updateScoreCard(payload), 120);
             }
+            if (payload.jd_skills_flat) {
+                savedJdSkillsFlat = canonicalizeSkillList(payload.jd_skills_flat);
+            }
+            renderMissingSkills(payload.missing_skills, payload.matched_skills);
             setCurrentData(payload.resume || payload);
             renderResume();
 
@@ -847,6 +1202,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentStructuredData[dataKey] = currentStructuredData[dataKey] || [];
             currentStructuredData[dataKey].push(buildEntry(vals));
             renderResume(true);
+            scheduleRescore(200);
 
             fieldIds.forEach(id => { document.getElementById(id).value = ''; });
             form.classList.add('hidden');
@@ -918,6 +1274,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ? el.innerText.split(sep).map(s => s.trim()).filter(Boolean)
             : el.innerText.trim();
         setPath(currentStructuredData, path, value);
+        scheduleRescore();   // live recompute as the user types
     });
 
     // ── 7. BLOCK CONTROLS (per-entry delete + contact remove) ────────────────
@@ -940,6 +1297,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         renderResume(true);
+        scheduleRescore(200);
     });
 
     // ── 6. SECTION TOGGLE PILLS ──────────────────────────────────────────────
@@ -1096,17 +1454,22 @@ function animateNumber(el, start, end, baseDuration = 800) {
 
 // ── Scorecard: metric icons (inline SVG, PDF-safe) ──────────────────────
 const SCORE_METRIC_ICONS = {
-    keywords: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9 7v12M15 7v12"/></svg>`,
-    skills:   `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.5 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 9.2l7.1-.7z"/></svg>`,
-    experience: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"/></svg>`,
-    projects: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg>`,
+    skills:         `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.5 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 9.2l7.1-.7z"/></svg>`,
+    experience:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"/></svg>`,
+    projects:       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg>`,
+    education:      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9l10-5 10 5-10 5L2 9z"/><path d="M6 11v5c3 2 9 2 12 0v-5"/></svg>`,
+    certifications: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M9 14l-1 7 4-3 4 3-1-7"/></svg>`,
+    structure:      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>`,
 };
 
+// ── Scorecard: metric definitions (mirrors backend CATEGORY_WEIGHTS) ──
 const SCORE_METRICS = [
-    { key: 'keywords',   label: 'Keywords',   max: 40 },
-    { key: 'skills',     label: 'Skills',     max: 30 },
-    { key: 'experience', label: 'Experience', max: 20 },
-    { key: 'projects',   label: 'Projects',   max: 10 },
+    { key: 'skills',         label: 'Skills Match',          max: 35 },
+    { key: 'experience',     label: 'Experience Relevance',  max: 25 },
+    { key: 'projects',       label: 'Projects',              max: 15 },
+    { key: 'education',      label: 'Education',             max: 10 },
+    { key: 'certifications', label: 'Certifications',        max: 10 },
+    { key: 'structure',      label: 'ATS Readability',       max: 5  },
 ];
 
 function setScoreDonut(progressEl, score) {

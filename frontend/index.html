@@ -26,9 +26,9 @@
     <main class="app-shell">
 
         <!-- ─────────────────────────────────────────────────────────────────
-             INPUT SECTION
+             INPUT SECTION (Stage 1 — Idle)
              ───────────────────────────────────────────────────────────────── -->
-        <section id="input-section" class="app-stage">
+        <section id="input-section" class="app-stage app-stage--idle">
 
             <section class="control-surface">
 
@@ -266,18 +266,64 @@
         </section><!-- /input-section -->
 
         <!-- ─────────────────────────────────────────────────────────────────
-             RESULTS SECTION
+             PROCESSING STAGE (Stage 2 — full-screen AI loader)
              ───────────────────────────────────────────────────────────────── -->
-        <section id="main-results-wrapper" class="results-shell">
+        <section id="processing-stage" class="processing-stage is-hidden" aria-hidden="true">
+            <div class="processing-stage__backdrop" aria-hidden="true"></div>
+            <div class="processing-stage__card">
+                <div class="processing-stage__orb" aria-hidden="true">
+                    <span class="processing-stage__orb-core"></span>
+                    <span class="processing-stage__orb-ring"></span>
+                    <span class="processing-stage__orb-ring processing-stage__orb-ring--slow"></span>
+                </div>
+                <p class="processing-stage__eyebrow">AI in progress</p>
+                <h2 id="processing-title" class="processing-stage__title">Curating your resume</h2>
+                <p id="processing-subtitle" class="processing-stage__subtitle">Sit tight — this only takes a moment.</p>
 
-            <!-- Empty State -->
-            <div id="empty-state" class="empty-state">
-                <svg class="upload-dropzone__filename-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                    style="width:48px;height:48px;color:var(--color-text-faint);margin-bottom:16px;">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <p>Upload your resume and click optimize to see your ATS score</p>
+                <ol id="processing-steps" class="processing-steps">
+                    <li class="processing-step" data-step="0">
+                        <span class="processing-step__indicator"></span>
+                        <span class="processing-step__label">Reading resume</span>
+                    </li>
+                    <li class="processing-step" data-step="1">
+                        <span class="processing-step__indicator"></span>
+                        <span class="processing-step__label">Extracting skills</span>
+                    </li>
+                    <li class="processing-step" data-step="2">
+                        <span class="processing-step__indicator"></span>
+                        <span class="processing-step__label">Comparing against job description</span>
+                    </li>
+                    <li class="processing-step" data-step="3">
+                        <span class="processing-step__indicator"></span>
+                        <span class="processing-step__label">Calculating ATS compatibility</span>
+                    </li>
+                    <li class="processing-step" data-step="4">
+                        <span class="processing-step__indicator"></span>
+                        <span class="processing-step__label">Generating optimization suggestions</span>
+                    </li>
+                </ol>
+
+                <div class="processing-stage__bar" aria-hidden="true">
+                    <div id="processing-bar-fill" class="processing-stage__bar-fill"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ─────────────────────────────────────────────────────────────────
+             RESULTS / WORKSPACE (Stage 3 — Analyzed)
+             ───────────────────────────────────────────────────────────────── -->
+        <section id="main-results-wrapper" class="results-shell app-stage app-stage--analyzed is-hidden">
+
+            <div class="workspace-toolbar">
+                <button id="back-to-upload-btn" class="workspace-toolbar__back" type="button" aria-label="Back to upload">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M15 18l-6-6 6-6"/>
+                    </svg>
+                </button>
+                <div class="workspace-toolbar__title">
+                    <span class="workspace-toolbar__eyebrow">Workspace</span>
+                    <span class="workspace-toolbar__heading">Resume optimization</span>
+                </div>
             </div>
 
             <!-- Score Card -->
