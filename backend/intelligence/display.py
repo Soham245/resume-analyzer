@@ -48,7 +48,9 @@ BRAND_EXCEPTIONS = {
     "mariadb":       "MariaDB",
     "dynamodb":      "DynamoDB",
     "graphql":       "GraphQL",
-    "scikit-learn":  "scikit-learn",
+    # Note: the lookup key is the *normalized* form; normalize() collapses
+    # "scikit-learn" -> "scikit learn" (dash between word chars -> space).
+    "scikit learn":  "scikit-learn",
     "pytorch":       "PyTorch",
     "tensorflow":    "TensorFlow",
     "numpy":         "NumPy",

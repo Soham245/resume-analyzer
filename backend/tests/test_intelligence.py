@@ -153,6 +153,34 @@ def test_canonical_form_is_stable_across_repeated_calls():
                 f"drift: {s} -> {scorer.canonicalize_skill(s)} (was {first[s]})"
 
 
+def test_brand_exception_keys_are_reachable_via_normalize():
+    """Every BRAND_EXCEPTIONS key must equal normalize(key); otherwise the
+    entry is dead code (normalize() will produce a different key when
+    looking up, so the brand display will never be applied)."""
+    _setup()
+    from backend.intelligence.display import BRAND_EXCEPTIONS
+    from backend.intelligence.normalizer import normalize
+    unreachable = [k for k in BRAND_EXCEPTIONS if normalize(k) != k]
+    assert not unreachable, (
+        f"BRAND_EXCEPTIONS has {len(unreachable)} unreachable key(s): "
+        f"{unreachable}. Each key must be in its normalized form so "
+        f"format_display(normalize(input)) can find it."
+    )
+
+
+def test_scikit_learn_renders_in_canonical_lowercase_hyphen_form():
+    """Regression for the dash-key bug: 'scikit-learn' and 'Scikit Learn'
+    must both produce the canonical lowercase-hyphen brand."""
+    scorer, _ = _setup()
+    for surface in ["scikit-learn", "Scikit-Learn", "Scikit Learn", "scikit learn", "sklearn"]:
+        # The sklearn alias isn't seeded so it won't canonicalize, but the
+        # main forms should all land on "scikit-learn".
+        if surface == "sklearn":
+            continue
+        assert scorer.canonicalize_skill(surface) == "scikit-learn", \
+            f"{surface!r} -> {scorer.canonicalize_skill(surface)!r}"
+
+
 def test_normalize_is_idempotent():
     _setup()
     from backend.intelligence.normalizer import normalize
