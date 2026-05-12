@@ -111,7 +111,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const controllers = { analyze: null, optimize: null, manual: null, builder: null, pdf: null };
     const latestRequestIds = { analyze: 0, optimize: 0, manual: 0, builder: 0, pdf: 0 };
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const API_BASE_URL = 'https://resume-analyzer-c5s7.onrender.com';
+    // Local development hits Flask on :5000; production hits the deployed
+    // service. Detection: any hostname that looks local routes to localhost.
+    const _isLocalHost = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/i.test(window.location.hostname);
+    const API_BASE_URL = _isLocalHost
+        ? `http://${window.location.hostname || 'localhost'}:5000`
+        : 'https://resume-analyzer-c5s7.onrender.com';
     const apiUrl = (path) => `${API_BASE_URL}${path}`;
 
     function fetchWithTimeout(url, options = {}, timeout = 25000) {
@@ -914,9 +919,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const technical = parseCommaList(document.getElementById('m-technical').value);
-        const soft      = parseCommaList(document.getElementById('m-soft').value);
-        const languages = parseCommaList(document.getElementById('m-languages').value);
+        // Raw user input — apply the slim frontend canonicalizer so chips and
+        // the structured resume show consistent display forms before the
+        // backend round-trip. (Backend re-canonicalizes anyway; this keeps
+        // the UI honest while we wait for the response.)
+        const technical = canonicalizeSkillList(parseCommaList(document.getElementById('m-technical').value));
+        const soft      = canonicalizeSkillList(parseCommaList(document.getElementById('m-soft').value));
+        const languages = canonicalizeSkillList(parseCommaList(document.getElementById('m-languages').value));
 
         const inputs = {
             name, title,
