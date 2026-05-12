@@ -75,7 +75,11 @@ class SkillRecord:
 
 
 # ── Module state ────────────────────────────────────────────────────────────
-_initialized = False
+# Track which DB path the in-process state was initialized against so that a
+# runtime reconfigure (e.g. test fixtures pointing at a fresh sqlite file)
+# re-runs schema + seed on the new database. Bare True/False would silently
+# leave the new DB un-bootstrapped.
+_initialized_for_db: Optional[object] = None  # holds Path | None
 _init_lock = threading.Lock()
 _write_lock = threading.Lock()
 
@@ -91,16 +95,23 @@ def init() -> None:
 
 
 def _ensure_initialized() -> None:
-    global _initialized
-    if _initialized:
+    """Bootstrap schema + seeds for the currently configured DB. Idempotent
+    per DB path — a reconfigure to a new DB re-runs init for that file."""
+    global _initialized_for_db
+    # Touch get_connection() to make sure the factory is configured.
+    connection.get_connection()
+    target = connection.current_db_path()
+    if _initialized_for_db == target:
         return
     with _init_lock:
-        if _initialized:
+        if _initialized_for_db == target:
             return
         conn = connection.get_connection()
         schema.initialize(conn)
         registry_seeds.seed_defaults(conn)
-        _initialized = True
+        # Reset caches so any rows from a prior DB don't bleed through.
+        _cache_invalidate(None)
+        _initialized_for_db = target
 
 
 # ── Cache ───────────────────────────────────────────────────────────────────

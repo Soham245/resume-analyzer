@@ -93,3 +93,8 @@ def close_current() -> None:
     global _factory
     if _factory is not None:
         _factory.close_current()
+
+
+def current_db_path() -> Optional[Path]:
+    """Return the currently configured DB path, or None if not yet configured."""
+    return _factory.db_path if _factory is not None else None
