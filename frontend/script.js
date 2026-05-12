@@ -1,78 +1,65 @@
-// ── Canonical skill registry (mirrors backend scorer.CANONICAL_SKILLS) ──
-// Used for display capitalization so skills look professional everywhere
-// (Your Skills, JD Requirements, missing skills, resume preview).
-const CANONICAL_SKILL_ALIASES = {
-    'javascript':'JavaScript','js':'JavaScript','ecmascript':'JavaScript',
-    'typescript':'TypeScript','ts':'TypeScript',
-    'python':'Python','py':'Python','python3':'Python',
-    'java':'Java','c++':'C++','cpp':'C++','c#':'C#','csharp':'C#','c':'C',
-    'go':'Go','golang':'Go','rust':'Rust','ruby':'Ruby','php':'PHP',
-    'swift':'Swift','kotlin':'Kotlin','scala':'Scala','matlab':'MATLAB','perl':'Perl',
-    'bash':'Bash','shell':'Shell','html':'HTML','html5':'HTML','css':'CSS','css3':'CSS','sql':'SQL',
-    'react':'React','reactjs':'React','react.js':'React',
-    'react native':'React Native','react-native':'React Native',
-    'vue':'Vue.js','vuejs':'Vue.js','vue.js':'Vue.js',
-    'angular':'Angular','angularjs':'Angular','angular.js':'Angular',
-    'node':'Node.js','nodejs':'Node.js','node.js':'Node.js','node js':'Node.js',
-    'express':'Express.js','expressjs':'Express.js','express.js':'Express.js',
-    'next':'Next.js','nextjs':'Next.js','next.js':'Next.js',
-    'nuxt':'Nuxt.js','nuxtjs':'Nuxt.js','nuxt.js':'Nuxt.js',
-    'django':'Django','flask':'Flask','fastapi':'FastAPI','fast api':'FastAPI',
-    'spring':'Spring','spring boot':'Spring Boot','springboot':'Spring Boot',
-    'rails':'Rails','ruby on rails':'Rails','laravel':'Laravel',
-    'tensorflow':'TensorFlow','pytorch':'PyTorch','torch':'PyTorch','keras':'Keras',
-    'sklearn':'scikit-learn','scikit-learn':'scikit-learn','scikit learn':'scikit-learn',
-    'pandas':'Pandas','numpy':'NumPy','scipy':'SciPy',
-    'bootstrap':'Bootstrap','tailwind':'Tailwind CSS','tailwindcss':'Tailwind CSS','tailwind css':'Tailwind CSS',
-    'jquery':'jQuery','redux':'Redux','svelte':'Svelte',
-    'mysql':'MySQL','postgresql':'PostgreSQL','postgres':'PostgreSQL','psql':'PostgreSQL',
-    'sqlite':'SQLite','mongodb':'MongoDB','mongo':'MongoDB','redis':'Redis',
-    'cassandra':'Cassandra','dynamodb':'DynamoDB','oracle':'Oracle',
-    'sql server':'SQL Server','mssql':'SQL Server','elasticsearch':'Elasticsearch',
-    'firebase':'Firebase','supabase':'Supabase','neo4j':'Neo4j','mariadb':'MariaDB',
-    'docker':'Docker','kubernetes':'Kubernetes','k8s':'Kubernetes',
-    'git':'Git','github':'GitHub','github actions':'GitHub Actions','gitlab ci':'GitLab CI',
-    'linux':'Linux','unix':'Linux',
-    'aws':'AWS','amazon web services':'AWS',
-    'gcp':'GCP','google cloud':'GCP','google cloud platform':'GCP',
-    'azure':'Azure','microsoft azure':'Azure',
-    'rest':'REST APIs','rest api':'REST APIs','rest apis':'REST APIs','restful':'REST APIs',
-    'restful api':'REST APIs','restful apis':'REST APIs',
-    'graphql':'GraphQL','nginx':'Nginx','apache':'Apache','jenkins':'Jenkins',
-    'ci/cd':'CI/CD','cicd':'CI/CD','ci cd':'CI/CD',
-    'webpack':'Webpack','vite':'Vite','jest':'Jest','pytest':'Pytest',
-    'postman':'Postman','swagger':'Swagger','openapi':'Swagger',
-    'terraform':'Terraform','ansible':'Ansible','helm':'Helm',
-    'prometheus':'Prometheus','grafana':'Grafana',
-    'kafka':'Kafka','apache kafka':'Kafka','rabbitmq':'RabbitMQ','celery':'Celery',
-    'machine learning':'Machine Learning','ml':'Machine Learning',
-    'deep learning':'Deep Learning','dl':'Deep Learning',
-    'nlp':'NLP','natural language processing':'NLP','computer vision':'Computer Vision',
-    'data analysis':'Data Analysis','data analytics':'Data Analysis',
-    'data engineering':'Data Engineering','etl':'ETL',
-    'tableau':'Tableau','power bi':'Power BI','powerbi':'Power BI',
-    'excel':'Excel','microsoft excel':'Excel','figma':'Figma','jira':'Jira',
-    'agile':'Agile','scrum':'Scrum','kanban':'Kanban',
+// ── Display fallback (slim) ─────────────────────────────────────────────
+// Backend is the source of truth for canonical names. This formatter only
+// runs against (a) raw user input from "add skill", and (b) any string the
+// backend hasn't already canonicalized. It mirrors the rules in
+// backend/intelligence/normalizer.py + display.py at a high level only —
+// no giant alias maps.
+const BRAND_EXCEPTIONS = {
+    javascript:'JavaScript', typescript:'TypeScript',
+    node:'Node.js', express:'Express.js', next:'Next.js', nuxt:'Nuxt.js',
+    vue:'Vue.js', nest:'Nest.js', fastapi:'FastAPI',
+    github:'GitHub', gitlab:'GitLab', bitbucket:'Bitbucket',
+    mongodb:'MongoDB', postgresql:'PostgreSQL', mysql:'MySQL', sqlite:'SQLite',
+    mariadb:'MariaDB', dynamodb:'DynamoDB', graphql:'GraphQL',
+    'scikit-learn':'scikit-learn', pytorch:'PyTorch', tensorflow:'TensorFlow',
+    numpy:'NumPy', scipy:'SciPy', jquery:'jQuery',
+    macos:'macOS', ios:'iOS', openai:'OpenAI', huggingface:'Hugging Face',
 };
-const PRESERVE_UPPER = new Set(['aws','gcp','sql','html','css','nlp','etl','api','ai','ml']);
+const UPPERCASE_TOKENS = new Set([
+    'aws','gcp','sql','html','css','nlp','etl','api','apis','ai','ml','ui','ux',
+    'cdn','cors','jwt','rpc','tcp','udp','ssh','ssl','tls','json','xml','yaml',
+    'csv','pdf','url','uri','http','https','rest','graphql','orm','ide','sdk',
+    'cli','gui','saas','paas','iaas','k8s','ci','cd','qa','dns','vpc','ec2',
+    's3','rds','iam','gpu','cpu','ram','os','io','db',
+]);
+
+function _normalizeKey(skill) {
+    if (!skill || typeof skill !== 'string') return '';
+    let s = skill.trim().toLowerCase();
+    if (!s) return '';
+    s = s.replace(/^[\s\-_/,.;:|()\[\]{}]+|[\s\-_/,.;:|()\[\]{}]+$/g, '');
+    s = s.replace(/(?<=[a-z0-9])-(?=[a-z0-9])/g, ' ');
+    s = s.replace(/[\s/_]+/g, ' ').trim();
+    s = s.replace(/\.{2,}/g, '.');
+    const jsStripped = s.replace(/(?:\s*\.|\s+|(?<=[a-z]))js$/i, '');
+    if (jsStripped.length >= 2) s = jsStripped;
+    s = s.replace(/\bapis\b/g, 'api');
+    const verStripped = s.replace(/(?<=[a-z+#])\s*\d{1,4}(?:\.\d+)*$/i, '');
+    if (verStripped.length >= 2) s = verStripped;
+    return s.trim();
+}
+
+function _formatToken(token) {
+    if (!token) return token;
+    const lower = token.toLowerCase();
+    if (UPPERCASE_TOKENS.has(lower)) return lower.toUpperCase();
+    if (token.includes('.')) {
+        const [head, ...rest] = token.split('.');
+        return _formatToken(head) + '.' + rest.join('.').toLowerCase();
+    }
+    const trailing = (token.match(/[.+#]+$/) || [''])[0];
+    if (trailing) {
+        const head = token.slice(0, -trailing.length);
+        return head ? _formatToken(head) + trailing : token;
+    }
+    return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
+}
 
 function canonicalizeSkill(skill) {
-    if (!skill || typeof skill !== 'string') return '';
-    const cleaned = skill.replace(/\s+/g, ' ').trim().replace(/^[,;:.|/]+|[,;:.|/]+$/g, '');
-    if (!cleaned) return '';
-    const direct = CANONICAL_SKILL_ALIASES[cleaned.toLowerCase()];
-    if (direct) return direct;
-    // Fallback: smart title-case preserving acronyms / dotted suffixes.
-    return cleaned.split(/([\s/\-])/).map(part => {
-        if (!part || /^[\s/\-]+$/.test(part)) return part;
-        const lower = part.toLowerCase();
-        if (PRESERVE_UPPER.has(lower)) return lower.toUpperCase();
-        if (part.includes('.')) {
-            const [h, ...rest] = part.split('.');
-            return (h.charAt(0).toUpperCase() + h.slice(1).toLowerCase()) + '.' + rest.join('.').toLowerCase();
-        }
-        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-    }).join('');
+    const key = _normalizeKey(skill);
+    if (!key) return '';
+    if (BRAND_EXCEPTIONS[key]) return BRAND_EXCEPTIONS[key];
+    return key.split(' ').filter(Boolean).map(_formatToken).join(' ');
 }
 
 function canonicalizeSkillList(list) {
@@ -89,51 +76,35 @@ function canonicalizeSkillList(list) {
     return out;
 }
 
-// ── Client-side skill filtering + grouping (mirrors backend filter_and_group_skills) ──
-// Runs immediately on every data set so skill_groups is always populated,
-// even when the Flask server hasn't been restarted with the new backend code.
-function filterAndGroupSkills(technicalList) {
-    const NORM = {
-        'nodejs':'Node.js','node':'Node.js','reactjs':'React','react.js':'React',
-        'vuejs':'Vue.js','vue':'Vue.js','angularjs':'Angular','angular.js':'Angular',
-        'expressjs':'Express.js','express':'Express.js','nextjs':'Next.js','next.js':'Next.js',
-        'github':'Git','git/github':'Git','git & github':'Git',
-        'tailwindcss':'Tailwind CSS','tailwind':'Tailwind CSS','html5':'HTML','css3':'CSS',
-        'restful':'REST APIs','rest api':'REST APIs','rest apis':'REST APIs',
-        'ml':'Machine Learning','dl':'Deep Learning','sklearn':'scikit-learn',
-        'postgres':'PostgreSQL','tensorflow':'TensorFlow','pytorch':'PyTorch',
-    };
-    const EXCL = new Set([
-        'vs code','vscode','visual studio code','visual studio','intellij','intellij idea',
-        'pycharm','webstorm','eclipse','netbeans','xcode','android studio','sublime text','atom','vim','emacs',
-        'data structures','algorithms','operating systems','dbms','database management',
-        'computer networks','object oriented programming','oop','oops',
-        'software engineering','computer science','web development','software development',
-        'full stack','frontend','backend','front-end','back-end',
-        'artificial intelligence','ai','computer vision','big data','cloud computing',
-        'internet of things','iot','blockchain','programming','coding','development','debugging',
-        'windows','macos','ubuntu',
-    ]);
-    const PROG = new Set(['python','javascript','typescript','java','c','c++','c#','go','rust','ruby','php','swift','kotlin','r','scala','matlab','perl','bash','shell','html','css','sql']);
-    const FWRK = new Set(['react','vue.js','angular','node.js','express.js','next.js','nuxt.js','django','flask','fastapi','spring','spring boot','rails','laravel','tensorflow','pytorch','keras','scikit-learn','pandas','numpy','scipy','bootstrap','tailwind css','jquery','redux','svelte','fastify','nest.js']);
-    const DBS  = new Set(['mysql','postgresql','sqlite','mongodb','redis','cassandra','dynamodb','oracle','sql server','elasticsearch','firebase','supabase','neo4j','couchdb','mariadb','influxdb']);
-    const TOOL = new Set(['docker','kubernetes','git','linux','aws','gcp','azure','rest apis','graphql','nginx','apache','jenkins','ci/cd','github actions','gitlab ci','webpack','vite','jest','pytest','postman','swagger','terraform','ansible','helm','prometheus','grafana','kafka','rabbitmq','celery','machine learning','deep learning','nlp']);
+// ── Slim local skill grouper ────────────────────────────────────────────
+// Backend's filter_and_group_skills is the source of truth (uses the full
+// heuristic categorizer + registry). This function only runs as a fallback
+// when the backend response is missing skill_groups, so it uses a small
+// pattern-based bucket assignment rather than maintaining giant lists.
+const _BUCKET_RULES = [
+    { bucket: 'programming', test: k => /^(python|javascript|typescript|java|c\+\+|c#|c|go|rust|ruby|php|swift|kotlin|scala|perl|r|matlab|bash|shell|html|css|sql|dart)$/.test(k) },
+    { bucket: 'databases',   test: k => /sql|^postgres|^mongo|(?<=[a-z])db$|\borm\b|redis|cassandra|elasticsearch|firebase|supabase|neo4j/.test(k) },
+    { bucket: 'frameworks',  test: k => /^(react|vue|angular|svelte|astro|remix|next|nuxt|nest|fastify|node|express|django|flask|spring|rails|laravel|fastapi|bootstrap|tailwind)$/.test(k) || /\.js$/.test(k) },
+];
 
+function filterAndGroupSkills(technicalList) {
     const seen = new Set();
-    const g = { programming:[], frameworks:[], databases:[], tools:[] };
+    const groups = { programming: [], frameworks: [], databases: [], tools: [] };
 
     for (const raw of (technicalList || [])) {
-        if (!raw?.trim()) continue;
-        const key  = raw.trim().toLowerCase();
-        const norm = NORM[key] || raw.trim();
-        const nk   = norm.toLowerCase();
-        if (EXCL.has(nk) || EXCL.has(key)) continue;
-        if (seen.has(nk)) continue;
-        seen.add(nk);
-        const bucket = PROG.has(nk) ? 'programming' : FWRK.has(nk) ? 'frameworks' : DBS.has(nk) ? 'databases' : 'tools';
-        if (g[bucket].length < 4) g[bucket].push(norm);
+        if (!raw || !raw.trim()) continue;
+        const display = canonicalizeSkill(raw);
+        if (!display) continue;
+        const lower = display.toLowerCase();
+        if (seen.has(lower)) continue;
+        seen.add(lower);
+
+        const key = _normalizeKey(raw);
+        const rule = _BUCKET_RULES.find(r => r.test(key));
+        const bucket = rule ? rule.bucket : 'tools';
+        if (groups[bucket].length < 4) groups[bucket].push(display);
     }
-    return Object.fromEntries(Object.entries(g).filter(([,v]) => v.length));
+    return Object.fromEntries(Object.entries(groups).filter(([, v]) => v.length));
 }
 
 document.addEventListener('DOMContentLoaded', () => {

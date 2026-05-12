@@ -37,8 +37,9 @@ from dataclasses import dataclass
 from typing import Iterable, List, Optional
 
 from backend.database import connection, schema
-from backend.services.skill_categorizer import categorize, DEFAULT_CATEGORY
-from backend.services.skill_normalizer import normalize
+from backend.intelligence.categorizer import categorize, DEFAULT_CATEGORY
+from backend.intelligence.display import format_display
+from backend.intelligence.normalizer import normalize
 
 logger = logging.getLogger(__name__)
 
@@ -129,26 +130,9 @@ def _cache_invalidate(canonical_name: Optional[str] = None) -> None:
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
-_DISPLAY_UPPERCASE = frozenset({
-    "aws", "gcp", "sql", "html", "css", "nlp", "etl", "api",
-    "ai", "ml", "ui", "ux", "cdn", "k8s", "ci/cd",
-})
-
-
-def _smart_display(normalized: str) -> str:
-    """
-    Pick a reasonable default display form for a freshly-observed skill.
-    Examples:
-        "react"        -> "React"
-        "machine learning" -> "Machine Learning"
-        "aws"          -> "AWS"
-    """
-    if not normalized:
-        return ""
-    if normalized in _DISPLAY_UPPERCASE:
-        return normalized.upper()
-    parts = normalized.split(" ")
-    return " ".join(p[:1].upper() + p[1:] for p in parts if p)
+# Display formatting now lives in `intelligence.display`. Re-export for any
+# legacy callers that import from this module.
+_smart_display = format_display
 
 
 def _row_to_record(row) -> Optional[SkillRecord]:
@@ -216,8 +200,10 @@ def lookup(skill: str) -> Optional[SkillRecord]:
 
 # ── Public write path (auto-learning) ───────────────────────────────────────
 def _insert_new(conn, canonical: str, raw_input: str, source: str) -> None:
-    display = _smart_display(canonical)
+    display = format_display(canonical)
     category = categorize(canonical) or DEFAULT_CATEGORY
+    logger.debug("[skill_registry] new skill: key=%r display=%r category=%r source=%r",
+                 canonical, display, category, source)
     initial_aliases = []
     raw_clean = (raw_input or "").strip()
     if raw_clean and raw_clean.lower() != canonical:
@@ -341,7 +327,7 @@ def get_canonical(skill: str) -> str:
 
 def get_display(skill: str) -> str:
     rec = lookup(skill)
-    return rec.display_name if rec else _smart_display(normalize(skill))
+    return rec.display_name if rec else format_display(normalize(skill))
 
 
 # ── Diagnostics ─────────────────────────────────────────────────────────────

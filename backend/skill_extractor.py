@@ -1,8 +1,38 @@
-from google import genai
-from google.genai import types
+"""
+LLM-driven skill extraction.
+
+Responsibilities:
+  * Call the Gemini API to pull candidate skills from a resume and/or JD.
+  * Validate the LLM output against the original text (no hallucinations).
+  * Hand off to the intelligence pipeline for normalization + categorization.
+  * Generate gap-closing suggestions.
+
+What this module deliberately does NOT do anymore:
+  * No hardcoded technology lists (programming / frameworks / databases / tools).
+  * No alias maps.
+  * No stopword filtering — extractor + matcher handle that.
+  * No client-side display capitalization — pipeline owns that.
+
+The eight `_FORBIDDEN_SKILL_PHRASES` are kept because the LLM occasionally
+returns marketing fluff like "best practices" as a skill. Each is a *phrase*
+match, not a token blacklist, so it's safe to leave inline.
+"""
+
 import json
 import logging
 import re
+
+from google import genai
+from google.genai import types
+
+from backend.intelligence import pipeline
+from backend.intelligence.categorizer import (
+    categorize_with_confidence,
+    CATEGORY_LANGUAGES,
+    CATEGORY_SOFT,
+)
+from backend.intelligence.extractor import extract_weighted_terms, top_terms
+from backend.intelligence.normalizer import normalize
 
 logger = logging.getLogger(__name__)
 
@@ -15,77 +45,17 @@ def get_client(api_key):
     return _client_cache[api_key]
 
 
-# Skill normalization and grouping used by the resume builder/output layer.
-_NORMALIZATIONS = {
-    "nodejs": "Node.js", "node": "Node.js",
-    "reactjs": "React", "react.js": "React",
-    "vuejs": "Vue.js", "vue": "Vue.js",
-    "angularjs": "Angular", "angular.js": "Angular",
-    "expressjs": "Express.js", "express": "Express.js",
-    "nextjs": "Next.js", "next.js": "Next.js",
-    "github": "Git", "git/github": "Git", "git & github": "Git",
-    "tailwindcss": "Tailwind CSS", "tailwind": "Tailwind CSS",
-    "html5": "HTML", "css3": "CSS",
-    "restful": "REST APIs", "rest api": "REST APIs", "rest apis": "REST APIs",
-    "ml": "Machine Learning", "dl": "Deep Learning",
-    "sklearn": "scikit-learn", "scikit learn": "scikit-learn",
-    "postgres": "PostgreSQL", "postgressql": "PostgreSQL",
-    "tensorflow": "TensorFlow", "pytorch": "PyTorch",
-}
-
-_EXCLUDED = frozenset({
-    "vs code", "vscode", "visual studio code", "visual studio", "intellij",
-    "intellij idea", "pycharm", "webstorm", "eclipse", "netbeans", "xcode",
-    "android studio", "sublime text", "atom", "vim", "emacs",
-    "data structures", "algorithms", "operating systems", "dbms",
-    "database management", "computer networks", "object oriented programming",
-    "oop", "oops", "software engineering", "computer science",
-    "web development", "software development",
-    "full stack", "frontend", "backend", "front-end", "back-end",
-    "artificial intelligence", "ai", "computer vision", "big data",
-    "cloud computing", "internet of things", "iot", "blockchain",
-    "programming", "coding", "development", "debugging",
-    "windows", "macos", "ubuntu",
-})
-
-_PROGRAMMING = frozenset({
-    "python", "javascript", "typescript", "java", "c", "c++", "c#", "go",
-    "rust", "ruby", "php", "swift", "kotlin", "r", "scala", "matlab",
-    "perl", "bash", "shell", "html", "css", "sql",
-})
-
-_FRAMEWORKS = frozenset({
-    "react", "vue.js", "angular", "node.js", "express.js", "next.js",
-    "nuxt.js", "django", "flask", "fastapi", "spring", "spring boot",
-    "rails", "laravel", "tensorflow", "pytorch", "keras", "scikit-learn",
-    "pandas", "numpy", "scipy", "bootstrap", "tailwind css", "jquery",
-    "redux", "svelte", "fastify", "nest.js",
-})
-
-_DATABASES = frozenset({
-    "mysql", "postgresql", "sqlite", "mongodb", "redis", "cassandra",
-    "dynamodb", "oracle", "sql server", "elasticsearch", "firebase",
-    "supabase", "neo4j", "couchdb", "mariadb", "influxdb",
-})
-
-_TOOLS = frozenset({
-    "docker", "kubernetes", "git", "linux", "aws", "gcp", "azure",
-    "rest apis", "graphql", "nginx", "apache", "jenkins", "ci/cd",
-    "github actions", "gitlab ci", "webpack", "vite", "jest", "pytest",
-    "postman", "swagger", "terraform", "ansible", "helm", "prometheus",
-    "grafana", "kafka", "rabbitmq", "celery", "machine learning",
-    "deep learning", "nlp",
-})
-
+# ── LLM config ───────────────────────────────────────────────────────────────
 _SKILL_KEYS = ("technical", "soft", "languages")
 _SKILL_MODELS = (
     "gemini-2.5-flash-lite",
     "gemini-2.5-flash",
     "gemini-3.1-flash-lite-preview",
 )
-
 _EMPTY_SKILL_STRUCTURE = {key: [] for key in _SKILL_KEYS}
 
+# Tiny phrase blacklist for LLM output sanitation. Not a stopword list —
+# each entry is something the LLM tends to mis-label as a skill.
 _FORBIDDEN_SKILL_PHRASES = (
     "best practices",
     "high quality",
@@ -97,105 +67,65 @@ _FORBIDDEN_SKILL_PHRASES = (
     "structured",
 )
 
-_EXTRACTION_NORMALIZATIONS = {
-    "react.js": "react",
-    "reactjs": "react",
-    "python3": "python",
-    "node": "node.js",
-    "nodejs": "node.js",
-    "express": "express.js",
-    "expressjs": "express.js",
-    "nextjs": "next.js",
-    "vue": "vue.js",
-    "vuejs": "vue.js",
-    "angularjs": "angular",
-    "angular.js": "angular",
-    "tailwindcss": "tailwind css",
-    "restful": "rest apis",
-    "rest api": "rest apis",
-    "sklearn": "scikit-learn",
-    "scikit learn": "scikit-learn",
-    "postgres": "postgresql",
-    "postgressql": "postgresql",
-    "ml": "machine learning",
-    "dl": "deep learning",
-}
-
-_CANONICAL_ALIASES = {}
-for alias, canonical in _EXTRACTION_NORMALIZATIONS.items():
-    _CANONICAL_ALIASES.setdefault(canonical, set()).update({alias, canonical})
-
-_KNOWN_TECHNICAL_SKILLS = frozenset(
-    set(_PROGRAMMING) | set(_FRAMEWORKS) | set(_DATABASES) | set(_TOOLS)
-)
-
-_KNOWN_HUMAN_LANGUAGES = frozenset({
-    "english", "hindi", "spanish", "french", "german", "arabic", "mandarin",
-    "chinese", "japanese", "korean", "portuguese", "italian", "russian",
-    "bengali", "tamil", "telugu", "marathi", "urdu", "gujarati", "punjabi",
-    "dutch", "polish", "turkish",
-})
-
 
 def _empty_skill_structure():
     return {key: [] for key in _SKILL_KEYS}
 
 
+# ── Display-side grouping (preserves frontend API contract) ──────────────────
+# Frontend expects {programming, frameworks, databases, tools} buckets. Map
+# the categorizer's richer labels onto those four legacy buckets.
+_LEGACY_BUCKET = {
+    "Programming Languages": "programming",
+    "Frameworks/Libraries":  "frameworks",
+    "Databases":             "databases",
+    "Cloud/DevOps":          "tools",
+    "AI/ML":                 "tools",
+    "Tools":                 "tools",
+    "Technical Skills":      "tools",
+}
+
+
 def filter_and_group_skills(technical_list):
     """
-    Filter and group a flat technical skills list into categories.
-    Returns dict with keys 'programming', 'frameworks', 'databases', 'tools'.
-    Empty categories are omitted. Each category is capped at 4 items.
+    Group a flat technical-skill list into the legacy frontend buckets:
+    {programming, frameworks, databases, tools}. Each bucket capped at 4.
+    Skills are canonicalized via the pipeline before grouping.
     """
-    seen = set()
     groups = {"programming": [], "frameworks": [], "databases": [], "tools": []}
+    seen = set()
 
-    for raw in (technical_list or []):
-        if not raw or not raw.strip():
+    for raw in technical_list or []:
+        if not isinstance(raw, str) or not raw.strip():
             continue
-
-        key = raw.strip().lower()
-        normalized = _NORMALIZATIONS.get(key, raw.strip())
-        norm_key = normalized.lower()
-
-        if norm_key in _EXCLUDED or key in _EXCLUDED:
+        display = pipeline.canonicalize_skill(raw)
+        if not display:
             continue
-        if norm_key in seen:
+        low = display.lower()
+        if low in seen:
             continue
-        seen.add(norm_key)
+        seen.add(low)
 
-        if norm_key in _PROGRAMMING:
-            bucket = "programming"
-        elif norm_key in _FRAMEWORKS:
-            bucket = "frameworks"
-        elif norm_key in _DATABASES:
-            bucket = "databases"
-        elif norm_key in _TOOLS:
-            bucket = "tools"
-        else:
-            bucket = "tools"
-
+        category, _conf = categorize_with_confidence(normalize(raw))
+        bucket = _LEGACY_BUCKET.get(category, "tools")
         if len(groups[bucket]) < 4:
-            groups[bucket].append(normalized)
+            groups[bucket].append(display)
 
-    return {key: value for key, value in groups.items() if value}
+    return {k: v for k, v in groups.items() if v}
 
 
+# ── LLM response handling ────────────────────────────────────────────────────
 def _extract_json(raw_output):
-    """Extract JSON from a model response that may contain markdown or extra text."""
     if not raw_output:
         return None
-
     raw_output = raw_output.strip()
     match = re.search(r"`{3}(?:json)?\s*([\s\S]*?)\s*`{3}", raw_output)
     if match:
         return match.group(1).strip()
-
     start = raw_output.find("{")
     end = raw_output.rfind("}")
     if start != -1 and end != -1 and end > start:
         return raw_output[start:end + 1]
-
     return None
 
 
@@ -203,35 +133,13 @@ def _clean_whitespace(value):
     return re.sub(r"\s+", " ", value or "").strip()
 
 
-def _normalize_skill(skill):
-    cleaned = _clean_whitespace(skill).lower().strip(" ,;:.|/-")
-    if not cleaned:
-        return ""
-    return _EXTRACTION_NORMALIZATIONS.get(cleaned, cleaned)
-
-
 def _tokenize_for_match(text):
     return re.findall(r"[a-z0-9][a-z0-9.+#/-]*", (text or "").lower())
-
-
-def _candidate_variants(raw_skill, normalized_skill):
-    variants = {
-        _clean_whitespace(raw_skill).lower(),
-        normalized_skill,
-    }
-    variants.update(_CANONICAL_ALIASES.get(normalized_skill, set()))
-    for variant in list(variants):
-        canonical = _EXTRACTION_NORMALIZATIONS.get(variant)
-        if canonical:
-            variants.add(canonical)
-            variants.update(_CANONICAL_ALIASES.get(canonical, set()))
-    return {variant for variant in variants if variant}
 
 
 def _tokens_contain_phrase(source_tokens, candidate_tokens):
     if not candidate_tokens or len(candidate_tokens) > len(source_tokens):
         return False
-
     limit = len(source_tokens) - len(candidate_tokens) + 1
     for index in range(limit):
         if source_tokens[index:index + len(candidate_tokens)] == candidate_tokens:
@@ -239,129 +147,120 @@ def _tokens_contain_phrase(source_tokens, candidate_tokens):
     return False
 
 
-def _skill_exists_in_source(raw_skill, normalized_skill, source_tokens):
-    for candidate in _candidate_variants(raw_skill, normalized_skill):
-        candidate_tokens = _tokenize_for_match(candidate)
-        if _tokens_contain_phrase(source_tokens, candidate_tokens):
+def _skill_exists_in_source(raw_skill, source_tokens):
+    """Was the raw skill (or its normalized form) actually in the source text?"""
+    raw_lc = _clean_whitespace(raw_skill).lower()
+    candidates = {raw_lc, normalize(raw_skill)}
+    candidates.discard("")
+    for cand in candidates:
+        if _tokens_contain_phrase(source_tokens, _tokenize_for_match(cand)):
             return True
     return False
 
 
-def _has_forbidden_phrase(skill):
-    return any(phrase in skill for phrase in _FORBIDDEN_SKILL_PHRASES)
+def _has_forbidden_phrase(skill_lc):
+    return any(phrase in skill_lc for phrase in _FORBIDDEN_SKILL_PHRASES)
 
 
-def _resolve_skill_category(skill, original_category):
-    if skill in _KNOWN_TECHNICAL_SKILLS:
+def _resolve_category(raw_skill, default_category):
+    """
+    Use the categorizer to override the LLM's claimed category when our
+    heuristics have high confidence. Otherwise keep the LLM's bucket.
+    """
+    key = normalize(raw_skill)
+    if not key:
+        return default_category if default_category in _SKILL_KEYS else "soft"
+
+    cat, conf = categorize_with_confidence(key)
+    if conf >= 0.85:
+        if cat == CATEGORY_LANGUAGES:
+            return "languages"
+        if cat == CATEGORY_SOFT:
+            return "soft"
         return "technical"
-    if skill in _KNOWN_HUMAN_LANGUAGES:
-        return "languages"
-    return original_category if original_category in _SKILL_KEYS else "soft"
+
+    return default_category if default_category in _SKILL_KEYS else "technical"
 
 
 def _validate_skill_candidate(raw_skill, category, source_tokens, seen_skills):
     if not isinstance(raw_skill, str):
         return None, "not_a_string"
 
-    normalized_skill = _normalize_skill(raw_skill)
-    if not normalized_skill:
+    cleaned = _clean_whitespace(raw_skill)
+    if not cleaned:
         return None, "empty"
 
-    if _has_forbidden_phrase(normalized_skill):
+    cleaned_lc = cleaned.lower()
+    if _has_forbidden_phrase(cleaned_lc):
         return None, "forbidden_phrase"
 
-    if len(normalized_skill.split()) > 3:
+    if len(cleaned.split()) > 3:
         return None, "too_many_words"
 
-    if normalized_skill in seen_skills:
+    normalized = normalize(cleaned)
+    if not normalized:
+        return None, "empty_after_normalize"
+
+    if normalized in seen_skills:
         return None, "duplicate"
 
-    if not _skill_exists_in_source(raw_skill, normalized_skill, source_tokens):
+    if not _skill_exists_in_source(raw_skill, source_tokens):
         return None, "missing_from_source"
 
-    return (normalized_skill, _resolve_skill_category(normalized_skill, category)), None
+    resolved_category = _resolve_category(raw_skill, category)
+    return (cleaned, normalized, resolved_category), None
 
 
 def _validate_skill_structure(skill_payload, source_text, source_label):
     if not isinstance(skill_payload, dict):
         logger.warning("[%s] Invalid skill payload type: %s", source_label, type(skill_payload).__name__)
-        logger.info("[%s] Filtered output: %s", source_label, _EMPTY_SKILL_STRUCTURE)
-        logger.info("[%s] Removed skills: %s", source_label, [{"skill": None, "reason": "invalid_payload"}])
         return _empty_skill_structure()
 
     source_tokens = _tokenize_for_match(source_text)
     cleaned = _empty_skill_structure()
     seen_skills = set()
-    removed_skills = []
+    removed = []
 
     for category in _SKILL_KEYS:
         raw_values = skill_payload.get(category, [])
         if not isinstance(raw_values, list):
-            removed_skills.append({
-                "category": category,
-                "skill": raw_values,
-                "reason": "category_not_list",
-            })
+            removed.append({"category": category, "value": raw_values, "reason": "category_not_list"})
             continue
 
         for raw_skill in raw_values:
-            validated_result, reason = _validate_skill_candidate(
-                raw_skill,
-                category,
-                source_tokens,
-                seen_skills,
-            )
-
-            if not validated_result:
-                removed_skills.append({
-                    "category": category,
-                    "skill": raw_skill,
-                    "reason": reason,
-                })
+            result, reason = _validate_skill_candidate(raw_skill, category, source_tokens, seen_skills)
+            if not result:
+                removed.append({"category": category, "skill": raw_skill, "reason": reason})
                 continue
+            cleaned_form, normalized, resolved_category = result
+            seen_skills.add(normalized)
+            cleaned[resolved_category].append(cleaned_form)
 
-            normalized_skill, resolved_category = validated_result
-            seen_skills.add(normalized_skill)
-            cleaned[resolved_category].append(normalized_skill)
-
-    # Rebalance after normalization so known languages/technologies land in stable buckets.
-    rebalanced = _empty_skill_structure()
-    for category in _SKILL_KEYS:
-        for skill in cleaned[category]:
-            resolved_category = _resolve_skill_category(skill, category)
-            if skill not in rebalanced[resolved_category]:
-                rebalanced[resolved_category].append(skill)
-
-    logger.info("[%s] Filtered output: %s", source_label, rebalanced)
-    logger.info("[%s] Removed skills: %s", source_label, removed_skills)
-    return rebalanced
+    logger.info("[%s] Validated skills: %s", source_label,
+                {k: len(v) for k, v in cleaned.items()})
+    if removed:
+        logger.debug("[%s] Dropped %d candidates: %s", source_label, len(removed), removed[:5])
+    return cleaned
 
 
 def _parse_skill_payload(raw_output, source_text, source_label):
-    logger.info("[%s] Raw AI output: %s", source_label, raw_output)
-
     extracted = _extract_json(raw_output)
     if not extracted:
         logger.warning("[%s] No JSON found in AI output.", source_label)
         return _empty_skill_structure()
-
     try:
         parsed = json.loads(extracted)
     except json.JSONDecodeError as exc:
         logger.warning("[%s] Failed to parse skill JSON: %s", source_label, exc)
         return _empty_skill_structure()
-
-    required_keys = set(_SKILL_KEYS)
-    if not isinstance(parsed, dict) or not required_keys.issubset(parsed.keys()):
+    if not isinstance(parsed, dict) or not set(_SKILL_KEYS).issubset(parsed.keys()):
         logger.warning("[%s] Skill JSON missing required keys.", source_label)
         return _empty_skill_structure()
-
     return _validate_skill_structure(parsed, source_text, source_label)
 
 
 def _generate_json_response(prompt, api_key, source_label):
     client = get_client(api_key)
-
     for model_name in _SKILL_MODELS:
         try:
             response = client.models.generate_content(
@@ -373,7 +272,6 @@ def _generate_json_response(prompt, api_key, source_label):
             return (response.text or "").strip()
         except Exception as exc:
             logger.warning("[%s] Skill extraction failed with model %s: %s", source_label, model_name, exc)
-
     raise RuntimeError(f"All skill extraction models failed for {source_label}.")
 
 
@@ -439,36 +337,33 @@ JOB DESCRIPTION:
 """
 
 
-import collections
-from string import punctuation
+def _heuristic_jd_keywords(jd_text, limit=12):
+    """
+    Pipeline-driven fallback for when the LLM returns zero technical skills.
+    Uses the intelligence extractor (section/cue weighted, deterministic) —
+    no hardcoded stopword list, no naive frequency counter.
+    """
+    terms = extract_weighted_terms(jd_text or "")
+    if not terms:
+        return []
+    candidates = top_terms(terms, limit=limit * 2, floor=1.0)
+    out = []
+    for term in candidates:
+        if _has_forbidden_phrase(term.normalized):
+            continue
+        out.append(term.display_phrase)
+        if len(out) >= limit:
+            break
+    logger.info("[heuristic_jd_keywords] returning %d terms: %s", len(out), out)
+    return out
 
-def _fallback_keyword_extraction(text):
-    """Fallback to simple frequency analysis for keywords if LLM returns empty."""
-    stop_words = frozenset({"the", "and", "to", "of", "a", "in", "for", "is", "with", "on", 
-                            "that", "by", "this", "or", "as", "be", "are", "from", "at", 
-                            "your", "have", "will", "what", "where", "when", "about", "which",
-                            "an", "can", "our", "you", "we", "not", "it", "all", "work", "team",
-                            "experience", "years", "skills", "knowledge", "ability", "working",
-                            "development", "design", "new", "strong", "understanding", "using",
-                            "business", "data", "requirements", "support", "management", "required",
-                            "including", "other", "their", "such", "ensure", "provide", "within"})
-    
-    words = [w.strip(punctuation).lower() for w in text.split() if len(w.strip(punctuation)) > 2]
-    filtered = [w for w in words if w not in stop_words and not w.isdigit()]
-    
-    counts = collections.Counter(filtered)
-    # Return top 8 frequent words as potential technical keywords
-    return [word for word, count in counts.most_common(8)]
 
 def extract_and_categorize_skills(text, api_key):
     """Return a stable {technical, soft, languages} structure for a single text blob."""
     if not text or text.isspace():
         return _empty_skill_structure()
-
-    prompt = _build_single_text_skill_prompt(text)
-
     try:
-        raw_output = _generate_json_response(prompt, api_key, "single_text")
+        raw_output = _generate_json_response(_build_single_text_skill_prompt(text), api_key, "single_text")
         return _parse_skill_payload(raw_output, text, "single_text")
     except Exception as exc:
         logger.error("Categorize skills error: %s", exc)
@@ -476,14 +371,12 @@ def extract_and_categorize_skills(text, api_key):
 
 
 def generate_gap_suggestions(resume_flat, jd_flat, api_key):
-    """Returns a list of 2-4 short actionable suggestion strings."""
+    """Return 2-4 short actionable suggestion strings."""
     missing = list(set(skill.lower() for skill in jd_flat) - set(skill.lower() for skill in resume_flat))
-
     if not missing:
         return ["Your skills closely match the job requirements."]
 
     client = get_client(api_key)
-
     prompt = f"""
     A candidate is missing these skills for a job: {", ".join(missing[:20])}
 
@@ -503,16 +396,13 @@ def generate_gap_suggestions(resume_flat, jd_flat, api_key):
             config=types.GenerateContentConfig(temperature=0.3),
         )
         raw = (response.text or "").strip()
-
         match = re.search(r"`{3}(?:json)?\s*([\s\S]*?)\s*`{3}", raw)
         if match:
             raw = match.group(1).strip()
         else:
-            start = raw.find("[")
-            end = raw.rfind("]")
+            start, end = raw.find("["), raw.rfind("]")
             if start != -1 and end != -1 and end > start:
                 raw = raw[start:end + 1]
-
         parsed = json.loads(raw)
         if isinstance(parsed, list):
             return [item.strip() for item in parsed if isinstance(item, str) and item.strip()]
@@ -538,7 +428,6 @@ def analyze_resume_and_jd(resume_text, jd_text, api_key):
 
     resume_text = _clean_whitespace(resume_text)[:4000]
     jd_text = _clean_whitespace(jd_text)[:4000]
-
     if not resume_text or not jd_text:
         return {
             "error": True,
@@ -550,54 +439,32 @@ def analyze_resume_and_jd(resume_text, jd_text, api_key):
 
     try:
         raw_output = _generate_json_response(
-            _build_combined_skill_prompt(resume_text, jd_text),
-            api_key,
-            "resume_jd_combined",
-        )
+            _build_combined_skill_prompt(resume_text, jd_text), api_key, "resume_jd_combined")
 
-        logger.info("[resume_jd_combined] Raw AI output: %s", raw_output)
         extracted = _extract_json(raw_output)
         if not extracted:
-            logger.warning("[resume_jd_combined] No JSON found in combined response.")
             parsed = {}
         else:
             try:
                 parsed = json.loads(extracted)
             except json.JSONDecodeError as exc:
-                logger.warning("[resume_jd_combined] Failed to parse combined JSON: %s", exc)
+                logger.warning("[resume_jd_combined] Failed to parse: %s", exc)
                 parsed = {}
             if not isinstance(parsed, dict):
-                logger.warning("[resume_jd_combined] Combined response was not a JSON object.")
                 parsed = {}
 
-        resume_payload = parsed.get("resume_skills", {})
-        jd_payload = parsed.get("jd_skills", {})
-
-        if not isinstance(resume_payload, dict):
-            logger.warning("[resume_jd_combined] Missing or invalid resume_skills payload.")
-            resume_payload = {}
-        if not isinstance(jd_payload, dict):
-            logger.warning("[resume_jd_combined] Missing or invalid jd_skills payload.")
-            jd_payload = {}
+        resume_payload = parsed.get("resume_skills", {}) if isinstance(parsed.get("resume_skills"), dict) else {}
+        jd_payload = parsed.get("jd_skills", {}) if isinstance(parsed.get("jd_skills"), dict) else {}
 
         resume_skills = _validate_skill_structure(resume_payload, resume_text, "resume")
         jd_skills = _validate_skill_structure(jd_payload, jd_text, "job_description")
 
         if not jd_skills["technical"]:
-            logger.info("[resume_jd_combined] No technical skills found in JD, using fallback extraction.")
-            fallback_keywords = _fallback_keyword_extraction(jd_text)
-            jd_skills["technical"] = fallback_keywords
+            logger.info("[resume_jd_combined] LLM returned no technical JD skills, using heuristic extractor.")
+            jd_skills["technical"] = _heuristic_jd_keywords(jd_text)
 
-        resume_flat = (
-            resume_skills["technical"] +
-            resume_skills["soft"] +
-            resume_skills["languages"]
-        )
-        jd_flat = (
-            jd_skills["technical"] +
-            jd_skills["soft"] +
-            jd_skills["languages"]
-        )
+        resume_flat = resume_skills["technical"] + resume_skills["soft"] + resume_skills["languages"]
+        jd_flat = jd_skills["technical"] + jd_skills["soft"] + jd_skills["languages"]
 
         suggestions = generate_gap_suggestions(resume_flat, jd_flat, api_key)
 
