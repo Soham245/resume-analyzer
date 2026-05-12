@@ -393,27 +393,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderMissingSkills(missing, matched) {
-        // Manual mode panel
+        // Manual mode panel. Backend already returns canonical display forms
+        // (registry-resolved), so we render the strings as-is — re-formatting
+        // them here would downgrade "REST APIs" -> "REST API", "GitHub Actions"
+        // -> "Github Actions", etc.
         if (manualSkillsMissing && manualSkillsMatched) {
             const matchedStyle = { bg:'rgba(16,185,129,0.12)', color:'#6ee7b7', border:'rgba(16,185,129,0.25)' };
             const missingStyle = { bg:'rgba(239,68,68,0.10)',  color:'#fca5a5', border:'rgba(239,68,68,0.20)' };
             manualSkillsMatched.innerHTML = '';
             manualSkillsMissing.innerHTML = '';
-            (matched || []).forEach(s => manualSkillsMatched.appendChild(makeBadge(canonicalizeSkill(s), matchedStyle, null)));
-            (missing || []).forEach(s => manualSkillsMissing.appendChild(makeBadge(canonicalizeSkill(s), missingStyle, null)));
+            (matched || []).forEach(s => manualSkillsMatched.appendChild(makeBadge(s, matchedStyle, null)));
+            (missing || []).forEach(s => manualSkillsMissing.appendChild(makeBadge(s, missingStyle, null)));
         }
     }
 
     // ── Single setter: always computes skill_groups so templates always show grouped skills ──
     function setCurrentData(data) {
         currentStructuredData = data;
-        // Canonicalize skill arrays so display capitalization is consistent everywhere.
-        currentStructuredData.technical_skills = canonicalizeSkillList(currentStructuredData.technical_skills || []);
-        currentStructuredData.soft_skills      = canonicalizeSkillList(currentStructuredData.soft_skills || []);
-        currentStructuredData.languages        = canonicalizeSkillList(currentStructuredData.languages || []);
-        // Always compute groups client-side; backend value takes precedence if present
+        // Backend response is the canonical source for display forms; do not
+        // re-canonicalize here (the slim frontend formatter doesn't know
+        // about registry-seeded multi-token brands).
+        currentStructuredData.technical_skills = currentStructuredData.technical_skills || [];
+        currentStructuredData.soft_skills      = currentStructuredData.soft_skills      || [];
+        currentStructuredData.languages        = currentStructuredData.languages        || [];
+        // Always compute groups client-side as a fallback; backend value takes precedence if present.
         if (!currentStructuredData.skill_groups || !Object.keys(currentStructuredData.skill_groups).length) {
-            currentStructuredData.skill_groups = filterAndGroupSkills(currentStructuredData.technical_skills || []);
+            currentStructuredData.skill_groups = filterAndGroupSkills(currentStructuredData.technical_skills);
         }
         console.log('[setCurrentData] skill_groups:', JSON.stringify(currentStructuredData.skill_groups));
     }
@@ -452,11 +457,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderUserSkills() {
+        // currentSkills holds canonical display forms from the backend (or
+        // the "add skill" path, which canonicalizes on entry). Render as-is.
         ['technical', 'soft', 'languages'].forEach(cat => {
             const container = skillContainers[cat];
             container.innerHTML = '';
             currentSkills[cat].forEach((skill, idx) => {
-                container.appendChild(makeBadge(canonicalizeSkill(skill), userBadgeStyle[cat], () => {
+                container.appendChild(makeBadge(skill, userBadgeStyle[cat], () => {
                     currentSkills[cat].splice(idx, 1);
                     renderUserSkills();
                 }));
@@ -465,11 +472,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderJdSkills(jdSkills) {
+        // Backend already canonicalized these via the intelligence pipeline.
         ['technical', 'soft', 'languages'].forEach(cat => {
             const container = jdContainers[cat];
             container.innerHTML = '';
             (jdSkills[cat] || []).forEach(skill => {
-                container.appendChild(makeBadge(canonicalizeSkill(skill), jdBadgeStyle[cat], null));
+                container.appendChild(makeBadge(skill, jdBadgeStyle[cat], null));
             });
         });
     }
@@ -490,14 +498,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Manual analysis render helpers ──────────────────────────────────────
     function renderManualAnalysis(userSkills, jdSkills, matchedSkills, missingSkills) {
+        // All inputs here are backend-supplied display forms; render as-is.
         ['technical', 'soft', 'languages'].forEach(cat => {
             manualSkillContainers[cat].innerHTML = '';
             (userSkills[cat] || []).forEach(skill => {
-                manualSkillContainers[cat].appendChild(makeBadge(canonicalizeSkill(skill), userBadgeStyle[cat], null));
+                manualSkillContainers[cat].appendChild(makeBadge(skill, userBadgeStyle[cat], null));
             });
             manualJdContainers[cat].innerHTML = '';
             (jdSkills[cat] || []).forEach(skill => {
-                manualJdContainers[cat].appendChild(makeBadge(canonicalizeSkill(skill), jdBadgeStyle[cat], null));
+                manualJdContainers[cat].appendChild(makeBadge(skill, jdBadgeStyle[cat], null));
             });
         });
 
@@ -506,12 +515,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         manualSkillsMatched.innerHTML = '';
         manualSkillsMissing.innerHTML = '';
-        // Trust backend matched/missing — those are computed against ALL resume content,
-        // not just the flat "Your Skills" list (which misses skills mentioned only in
-        // experience or projects).
-        canonicalizeSkillList(matchedSkills || []).forEach(s =>
+        // Backend matched/missing are computed against the full resume content
+        // (not just the flat "Your Skills" list) and are already canonical.
+        (matchedSkills || []).forEach(s =>
             manualSkillsMatched.appendChild(makeBadge(s, matchedStyle, null)));
-        canonicalizeSkillList(missingSkills || []).forEach(s =>
+        (missingSkills || []).forEach(s =>
             manualSkillsMissing.appendChild(makeBadge(s, missingStyle, null)));
     }
 
@@ -718,11 +726,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (requestId !== latestRequestIds.analyze) return;
 
             savedRawText  = data.raw_text;
-            savedJdSkillsFlat = canonicalizeSkillList(data.jd_skills_flat || []);
+            // Backend's intelligence pipeline returns canonical display forms;
+            // store them verbatim.
+            savedJdSkillsFlat = data.jd_skills_flat || [];
             currentSkills = {
-                technical: canonicalizeSkillList(data.resume_skills?.technical || []),
-                soft:      canonicalizeSkillList(data.resume_skills?.soft      || []),
-                languages: canonicalizeSkillList(data.resume_skills?.languages || []),
+                technical: data.resume_skills?.technical || [],
+                soft:      data.resume_skills?.soft      || [],
+                languages: data.resume_skills?.languages || [],
             };
 
             renderUserSkills();
@@ -804,7 +814,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => updateScoreCard(payload), 120);
             }
             if (payload.jd_skills_flat) {
-                savedJdSkillsFlat = canonicalizeSkillList(payload.jd_skills_flat);
+                savedJdSkillsFlat = payload.jd_skills_flat;
             }
             renderMissingSkills(payload.missing_skills, payload.matched_skills);
             setCurrentData(payload.resume || payload);
@@ -997,7 +1007,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     analysisData.matched_skills || [],
                     analysisData.missing_skills || []
                 );
-                savedJdSkillsFlat = canonicalizeSkillList(analysisData.jd_skills_flat || []);
+                savedJdSkillsFlat = analysisData.jd_skills_flat || [];
                 renderManualSuggestions(analysisData.suggestions || []);
                 manualAnalysisSection.classList.remove('hidden');
 
@@ -1010,7 +1020,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     setTimeout(() => updateScoreCard(optimizePayload), 120);
                 }
                 if (optimizePayload.jd_skills_flat) {
-                    savedJdSkillsFlat = canonicalizeSkillList(optimizePayload.jd_skills_flat);
+                    savedJdSkillsFlat = optimizePayload.jd_skills_flat;
                 }
                 renderMissingSkills(optimizePayload.missing_skills, optimizePayload.matched_skills);
                 setCurrentData(optimizePayload.resume || optimizePayload);
@@ -1115,7 +1125,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => updateScoreCard(payload), 120);
             }
             if (payload.jd_skills_flat) {
-                savedJdSkillsFlat = canonicalizeSkillList(payload.jd_skills_flat);
+                savedJdSkillsFlat = payload.jd_skills_flat;
             }
             renderMissingSkills(payload.missing_skills, payload.matched_skills);
             setCurrentData(payload.resume || payload);
