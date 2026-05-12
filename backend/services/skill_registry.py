@@ -40,6 +40,7 @@ from backend.database import connection, schema
 from backend.intelligence.categorizer import categorize, DEFAULT_CATEGORY
 from backend.intelligence.display import format_display
 from backend.intelligence.normalizer import normalize
+from backend.services import registry_seeds
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,7 @@ def _ensure_initialized() -> None:
             return
         conn = connection.get_connection()
         schema.initialize(conn)
+        registry_seeds.seed_defaults(conn)
         _initialized = True
 
 
