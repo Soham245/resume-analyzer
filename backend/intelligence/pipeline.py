@@ -189,6 +189,18 @@ def compute_ats_score(resume: Union[dict, str], jd_text: str,
     # Convert keys back to display form before returning.
     raw["matched_skills"] = [_display_for_key(k) for k in raw.get("matched_skills", [])]
     raw["missing_skills"] = [_display_for_key(k) for k in raw.get("missing_skills", [])]
+
+    # scoring._insights builds the "Missing key skills" line from the
+    # normalized key list (lowercase). Re-render it now that we have the
+    # display forms, so the UI shows "Docker" rather than "docker" and
+    # "GitHub Actions" rather than "github actions".
+    insights = list(raw.get("insights") or [])
+    if insights and raw["missing_skills"]:
+        for i, line in enumerate(insights):
+            if isinstance(line, str) and line.startswith("Missing key skills:"):
+                insights[i] = f"Missing key skills: {', '.join(raw['missing_skills'][:3])}"
+                break
+        raw["insights"] = insights
     return raw
 
 

@@ -1010,6 +1010,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (outcome.mode === 'jd') {
                 const { analysisData, optimizePayload } = outcome;
+                // Backend's /optimize re-runs the user skills through the
+                // intelligence pipeline (which knows the registry aliases),
+                // so its resume.* fields are authoritative for display.
+                // Adopt them before rendering so chips show "TypeScript"
+                // instead of "Ts", "PostgreSQL" instead of "Postgres", etc.
+                const optResume = optimizePayload.resume || {};
+                if (Array.isArray(optResume.technical_skills)) currentSkills.technical = optResume.technical_skills;
+                if (Array.isArray(optResume.soft_skills))      currentSkills.soft      = optResume.soft_skills;
+                if (Array.isArray(optResume.languages))        currentSkills.languages = optResume.languages;
+
                 renderManualAnalysis(
                     currentSkills,
                     analysisData.jd_skills || {},
