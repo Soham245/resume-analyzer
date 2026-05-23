@@ -1477,6 +1477,29 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     const templateGallery = document.getElementById('template-gallery');
+
+    // Sample data for template preview thumbnails
+    const _sampleData = {
+        name: 'John Doe', title: 'Software Engineer',
+        email: 'john@example.com', phone: '555-0123',
+        linkedin: 'linkedin.com/in/johndoe', github: 'github.com/johndoe',
+        _contact: { email: true, phone: true, linkedin: true, github: true },
+        summary: 'Experienced software engineer with expertise in full-stack development, cloud architecture, and agile methodologies. Passionate about building scalable systems.',
+        experience: [
+            { role: 'Senior Developer', company: 'Tech Corp', duration: '2021–Present',
+              points: ['Led migration to microservices architecture', 'Improved API response time by 40%'] },
+        ],
+        projects: [
+            { title: 'Cloud Dashboard', tech_stack: ['React','AWS'], points: ['Built real-time monitoring system'] },
+        ],
+        technical_skills: ['JavaScript','Python','React','Node.js','AWS'],
+        soft_skills: ['Leadership','Communication'],
+        languages: ['English','Spanish'],
+        skill_groups: { programming: ['JavaScript','Python'], frameworks: ['React','Node.js'], tools: ['AWS'] },
+        education: [{ degree: 'B.S. Computer Science', institution: 'MIT', year: '2020' }],
+        certifications: ['AWS Solutions Architect'],
+    };
+
     if (templateGallery) {
         TEMPLATE_META.forEach(tpl => {
             const card = document.createElement('button');
@@ -1485,9 +1508,21 @@ document.addEventListener('DOMContentLoaded', () => {
             card.dataset.templateId = tpl.id;
             card.setAttribute('role', 'radio');
             card.setAttribute('aria-checked', templateSelect.value === tpl.id ? 'true' : 'false');
+
+            // Render actual template at thumbnail scale
+            let previewHtml = '';
+            try {
+                const tmplFn = ResumeTemplates[tpl.id];
+                if (tmplFn) {
+                    previewHtml = tmplFn(_sampleData, {});
+                }
+            } catch (e) { /* fallback to mini schematic */ }
+
             card.innerHTML = `
                 <div class="template-card__preview">
-                    <div class="template-card__preview-mini">${tpl.mini}</div>
+                    ${previewHtml
+                        ? `<div class="template-card__preview-actual">${previewHtml}</div>`
+                        : `<div class="template-card__preview-mini">${tpl.mini}</div>`}
                 </div>
                 <div class="template-card__info">
                     <span class="template-card__name">${tpl.name}</span>

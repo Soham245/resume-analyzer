@@ -2508,10 +2508,25 @@ body.stage-analyzed .app-header {
     height: 90px;
     background: #f0ebe5;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    padding: 8px;
+    padding: 0;
     position: relative;
+    overflow: hidden;
+}
+
+.template-card__preview-actual {
+    transform: scale(0.14);
+    transform-origin: top left;
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+/* Hide block-ctrl (delete) buttons inside preview thumbnails */
+.template-card__preview-actual .block-ctrl {
+    display: none !important;
 }
 
 .template-card__preview-mini {
