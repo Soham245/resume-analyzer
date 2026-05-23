@@ -2363,10 +2363,13 @@ body.stage-analyzed .app-header {
 }
 
 .editor-skill-add-row .editor-field-input {
-    flex: 1;
+    flex: 3;
+    min-width: 0;
 }
 
 .editor-skill-add-row button {
+    flex: 1;
+    max-width: 25%;
     padding: 0 14px;
     border-radius: var(--radius-sm);
     border: 0;
@@ -2376,7 +2379,6 @@ body.stage-analyzed .app-header {
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
-    flex-shrink: 0;
 }
 
 .editor-skill-add-row button:hover {

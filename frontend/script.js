@@ -1058,7 +1058,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const addBtn = document.createElement('button');
             addBtn.type = 'button';
             addBtn.className = 'editor-add-btn';
-            addBtn.style.cssText = 'white-space:nowrap;padding:6px 12px;';
+            addBtn.style.cssText = 'padding:6px 12px;';
             addBtn.textContent = '+ Add';
 
             function doAdd() {
