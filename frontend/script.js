@@ -537,37 +537,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return str ? str.split(',').map(s => s.trim()).filter(Boolean) : [];
     }
 
-    // ── State sync helpers ───────────────────────────────────────────────────
-    // Set a nested value on obj using a path like "experience[0].role"
-    function setPath(obj, path, value) {
-        const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.');
-        let cur = obj;
-        for (let i = 0; i < parts.length - 1; i++) {
-            if (cur == null) return;
-            cur = cur[parts[i]];
-        }
-        if (cur != null) cur[parts[parts.length - 1]] = value;
-    }
-
-    // Read all data-bind elements in the live DOM and flush their values
-    // back into currentStructuredData before a re-render.
-    function harvestEdits() {
-        if (!currentStructuredData) return;
-        resumeDocument.querySelectorAll('[data-bind]').forEach(el => {
-            const path  = el.dataset.bind;
-            const type  = el.dataset.bindType;
-            const sep   = el.dataset.bindSep || '\n';
-            const value = type === 'array'
-                ? el.innerText.split(sep).map(s => s.trim()).filter(Boolean)
-                : el.innerText.trim();
-            setPath(currentStructuredData, path, value);
-        });
-    }
-
     // ── Render helper ────────────────────────────────────────────────────────
-    function renderResume(skipHarvest = false) {
+    function renderResume() {
         if (!currentStructuredData) return;
-        if (!skipHarvest) harvestEdits(); // persist any inline edits before replacing innerHTML
         const tpl = templateSelect.value || 'ats_classic';
         resumeDocument.style.cssText = 'display:flex;flex-direction:column;align-items:center;width:100%;padding:0;background:transparent;';
         resumeDocument.innerHTML = ResumeTemplates[tpl](currentStructuredData, activeSections);
@@ -658,8 +630,7 @@ document.addEventListener('DOMContentLoaded', () => {
         drawerBackdrop.setAttribute('aria-hidden', 'true');
     }
 
-    // Delegate hover-icon clicks. Block bubbling so we don't trip the
-    // .block-ctrl handler or contenteditable focus.
+    // Delegate hover-icon clicks.
     resumeDocument.addEventListener('click', (e) => {
         const btn = e.target.closest('.section-edit-btn');
         if (!btn) return;
@@ -676,7 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Phase 2: Section panel renderers ────────────────────────────────────
     // Each panel renderer receives the drawer body element and populates it.
-    // Mutations go through currentStructuredData → renderResume(true) → scheduleRescore().
+    // Mutations go through currentStructuredData → renderResume() → scheduleRescore().
 
     // Shared: render an entry list with edit/delete/reorder + add form.
     function renderEntryList(container, {
@@ -730,7 +701,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (act === 'down' && idx < arr.length - 1) {
                 [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
             }
-            renderResume(true);
+            renderResume();
             scheduleRescore(200);
             renderEntryList(container, { dataKey, titleFn, subtitleFn, formFields, requiredFields, buildEntry, populateForm });
         });
@@ -786,7 +757,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             currentStructuredData[dataKey] = currentStructuredData[dataKey] || [];
             currentStructuredData[dataKey].push(buildEntry(vals));
-            renderResume(true);
+            renderResume();
             scheduleRescore(200);
 
             form.classList.remove('is-active');
@@ -844,7 +815,7 @@ document.addEventListener('DOMContentLoaded', () => {
             el.addEventListener('input', () => {
                 const key = el.dataset.profile;
                 currentStructuredData[key] = el.value.trim();
-                renderResume(true);
+                renderResume();
                 scheduleRescore();
             });
         });
@@ -976,7 +947,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentStructuredData[stateKey] = [...currentSkills[key]];
             });
             currentStructuredData.skill_groups = filterAndGroupSkills(currentStructuredData.technical_skills || []);
-            renderResume(true);
+            renderResume();
             scheduleRescore(200);
         }
 
@@ -1740,23 +1711,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── 6. ENTRY FORMS — moved to drawer-based editors (Phase 2) ──────────
 
-    // ── 7a. LIVE INLINE EDIT SYNC ────────────────────────────────────────────
-    // Update currentStructuredData on every keystroke so template switches
-    // don't lose in-progress edits.
-    resumeDocument.addEventListener('input', (e) => {
-        if (!currentStructuredData) return;
-        const el = e.target.closest('[data-bind]');
-        if (!el) return;
-        const path  = el.dataset.bind;
-        const type  = el.dataset.bindType;
-        const sep   = el.dataset.bindSep || '\n';
-        const value = type === 'array'
-            ? el.innerText.split(sep).map(s => s.trim()).filter(Boolean)
-            : el.innerText.trim();
-        setPath(currentStructuredData, path, value);
-        scheduleRescore();   // live recompute as the user types
-    });
-
     // ── 7. BLOCK CONTROLS (per-entry delete + contact remove) ────────────────
     resumeDocument.addEventListener('click', (e) => {
         const btn = e.target.closest('.block-ctrl');
@@ -1776,7 +1730,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentStructuredData._contact[field] = false;
         }
 
-        renderResume(true);
+        renderResume();
         scheduleRescore(200);
     });
 
@@ -1806,7 +1760,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const clone = resumeWrapper.cloneNode(true);
 
         // ── Strip interactive elements ────────────────────────────────────────
-        clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
         clone.querySelectorAll('.block-ctrl').forEach(el => el.remove());
         clone.querySelectorAll('.section-edit-btn').forEach(el => el.remove());
 

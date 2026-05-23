@@ -21,7 +21,7 @@ function contactBlock(data, style) {
         return fields.map(f => `
             <div style="display:flex;align-items:flex-start;gap:5px;margin-bottom:4px;">
                 <span style="opacity:0.65;flex-shrink:0;margin-top:1px;">${f.icon}</span>
-                <span contenteditable="true" style="flex:1;overflow-wrap:break-word;font-size:9pt;">${f.val}</span>
+                <span style="flex:1;overflow-wrap:break-word;font-size:9pt;">${f.val}</span>
                 <button class="block-ctrl" data-action="remove-contact" data-field="${f.key}"
                     style="flex-shrink:0;background:none;border:none;cursor:pointer;color:#475569;font-size:10px;line-height:1;padding:0;" title="Remove">×</button>
             </div>`).join('');
@@ -33,7 +33,7 @@ function contactBlock(data, style) {
     return `<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:${justify};gap:8px;font-size:${fSize};${color}margin-top:3px;">
         ${fields.map(f => `<span style="display:inline-flex;align-items:center;gap:3px;">
             <span style="opacity:0.6;display:flex;align-items:center;">${f.icon}</span>
-            <span contenteditable="true">${f.val}</span>
+            <span>${f.val}</span>
             <button class="block-ctrl" data-action="remove-contact" data-field="${f.key}"
                 style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:10px;line-height:1;padding:0 1px;" title="Remove">×</button>
         </span>`).join('')}
@@ -65,24 +65,24 @@ function skillSections(data, style, S) {
         const h4 = 'text-transform:uppercase;font-size:10pt;border-bottom:1px solid #334155;margin:0 0 7px;padding:10px 0 2px;color:#cbd5e1;';
         return `
             ${technical.length ? `
-            <h4 contenteditable="true" style="${h4}">Technical Skills</h4>
+            <h4 style="${h4}">Technical Skills</h4>
             ${hasGroups ? `
             <div style="margin:0 0 18px;">
                 ${Object.entries(groups).map(([k,items]) =>
                     `<p style="font-size:9pt;margin:0 0 3px;line-height:1.4;"><span style="color:#94a3b8;text-transform:uppercase;font-size:8pt;letter-spacing:0.3px;">${grpLabels[k]||k}: </span>${items.join(', ')}</p>`
                 ).join('')}
             </div>` : `
-            <ul contenteditable="true" style="list-style:none;padding:0;margin:0 0 18px;font-size:9.5pt;">
+            <ul style="list-style:none;padding:0;margin:0 0 18px;font-size:9.5pt;">
                 ${technical.map(s => `<li style="margin-bottom:3px;">${s}</li>`).join('')}
             </ul>`}` : ''}
             ${soft.length ? `
-            <h4 contenteditable="true" style="${h4}">Soft Skills</h4>
-            <ul contenteditable="true" style="list-style:none;padding:0;margin:0 0 18px;font-size:9.5pt;">
+            <h4 style="${h4}">Soft Skills</h4>
+            <ul style="list-style:none;padding:0;margin:0 0 18px;font-size:9.5pt;">
                 ${soft.map(s => `<li style="margin-bottom:3px;">${s}</li>`).join('')}
             </ul>` : ''}
             ${languages.length ? `
-            <h4 contenteditable="true" style="${h4}">Languages</h4>
-            <ul contenteditable="true" style="list-style:none;padding:0;margin:0 0 18px;font-size:9.5pt;">
+            <h4 style="${h4}">Languages</h4>
+            <ul style="list-style:none;padding:0;margin:0 0 18px;font-size:9.5pt;">
                 ${languages.map(s => `<li style="margin-bottom:3px;">${s}</li>`).join('')}
             </ul>` : ''}`;
     }
@@ -99,16 +99,16 @@ function skillSections(data, style, S) {
     return `
         ${technical.length ? `
         <div style="${w}">
-            <h4 contenteditable="true" style="${hStyle}">Technical Skills</h4>
+            <h4 style="${hStyle}">Technical Skills</h4>
             ${hasGroups
                 ? Object.entries(groups).map(([k,items]) =>
                     `<p style="${pStyle}margin-bottom:1px;"><strong>${grpLabels[k]||k}:</strong> ${items.join(sep)}</p>`
                   ).join('')
-                : `<p contenteditable="true" style="${pStyle}">${technical.join(sep)}</p>`
+                : `<p style="${pStyle}">${technical.join(sep)}</p>`
             }
         </div>` : ''}
-        ${soft.length      ? `<div style="${w}"><h4 contenteditable="true" style="${hStyle}">Soft Skills</h4><p contenteditable="true" style="${pStyle}">${soft.join(sep)}</p></div>` : ''}
-        ${languages.length ? `<div style="${w}"><h4 contenteditable="true" style="${hStyle}">Languages</h4><p contenteditable="true" style="${pStyle}">${languages.join(sep)}</p></div>` : ''}`;
+        ${soft.length      ? `<div style="${w}"><h4 style="${hStyle}">Soft Skills</h4><p style="${pStyle}">${soft.join(sep)}</p></div>` : ''}
+        ${languages.length ? `<div style="${w}"><h4 style="${hStyle}">Languages</h4><p style="${pStyle}">${languages.join(sep)}</p></div>` : ''}`;
 }
 
 
@@ -118,17 +118,17 @@ function projectsBlock(projects, style) {
 
     if (style === 'ats') return `
         <section data-role="projects" style="margin-bottom:8px;">
-            <h4 contenteditable="true" style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 5px;">Projects</h4>
+            <h4 style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 5px;">Projects</h4>
             ${projects.map((p,i) => `
                 <div style="margin-bottom:8px;break-inside:avoid;">
                     <div style="display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:10pt;">
-                        <span contenteditable="true" data-bind="projects[${i}].title">${p.title}</span>
+                        <span>${p.title}</span>
                         <span style="display:flex;align-items:center;">
-                            <span contenteditable="true" style="font-weight:normal;font-style:italic;font-size:9pt;">${(p.tech_stack||[]).join(', ')}</span>
+                            <span style="font-weight:normal;font-style:italic;font-size:9pt;">${(p.tech_stack||[]).join(', ')}</span>
                             ${delBtn('remove-proj',i)}
                         </span>
                     </div>
-                    <ul contenteditable="true" style="margin:0;padding-left:15px;font-size:9pt;" data-bind="projects[${i}].points" data-bind-type="array">
+                    <ul style="margin:0;padding-left:15px;font-size:9pt;">
                         ${(p.points||[]).slice(0,3).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
                     </ul>
                 </div>`).join('')}
@@ -136,17 +136,17 @@ function projectsBlock(projects, style) {
 
     if (style === 'exec') return `
         <section data-role="projects" style="margin-bottom:8px;">
-            <h4 contenteditable="true" style="font-size:11pt;color:#1e293b;border-bottom:2px solid #e2e8f0;margin:0 0 5px;padding-bottom:2px;text-transform:uppercase;">Projects</h4>
+            <h4 style="font-size:11pt;color:#1e293b;border-bottom:2px solid #e2e8f0;margin:0 0 5px;padding-bottom:2px;text-transform:uppercase;">Projects</h4>
             ${projects.map((p,i) => `
                 <div style="margin-bottom:8px;break-inside:avoid;">
                     <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <span contenteditable="true" style="font-weight:bold;font-size:10.5pt;" data-bind="projects[${i}].title">${p.title}</span>
+                        <span style="font-weight:bold;font-size:10.5pt;">${p.title}</span>
                         <span style="display:flex;align-items:center;">
-                            <span contenteditable="true" style="color:#2563eb;font-size:9pt;">${(p.tech_stack||[]).join(', ')}</span>
+                            <span style="color:#2563eb;font-size:9pt;">${(p.tech_stack||[]).join(', ')}</span>
                             ${delBtn('remove-proj',i)}
                         </span>
                     </div>
-                    <ul contenteditable="true" style="margin:0;padding-left:15px;font-size:9.5pt;color:#334155;" data-bind="projects[${i}].points" data-bind-type="array">
+                    <ul style="margin:0;padding-left:15px;font-size:9.5pt;color:#334155;">
                         ${(p.points||[]).slice(0,3).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
                     </ul>
                 </div>`).join('')}
@@ -154,17 +154,17 @@ function projectsBlock(projects, style) {
 
     if (style === 'tech') return `
         <div data-role="projects" style="margin-bottom:8px;">
-            <h4 contenteditable="true" style="color:#10b981;text-transform:uppercase;font-size:10pt;border-bottom:1px solid #e2e8f0;padding-bottom:2px;margin:0 0 5px;">Projects</h4>
+            <h4 style="color:#10b981;text-transform:uppercase;font-size:10pt;border-bottom:1px solid #e2e8f0;padding-bottom:2px;margin:0 0 5px;">Projects</h4>
             ${projects.map((p,i) => `
                 <div style="margin-bottom:8px;break-inside:avoid;">
                     <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <strong contenteditable="true" style="font-size:10.5pt;" data-bind="projects[${i}].title">${p.title}</strong>
+                        <strong style="font-size:10.5pt;">${p.title}</strong>
                         <span style="display:flex;align-items:center;">
-                            <span contenteditable="true" style="color:#64748b;font-size:9pt;">${(p.tech_stack||[]).join(' · ')}</span>
+                            <span style="color:#64748b;font-size:9pt;">${(p.tech_stack||[]).join(' · ')}</span>
                             ${delBtn('remove-proj',i)}
                         </span>
                     </div>
-                    <ul contenteditable="true" style="margin:0;padding-left:15px;font-size:9.5pt;" data-bind="projects[${i}].points" data-bind-type="array">
+                    <ul style="margin:0;padding-left:15px;font-size:9.5pt;">
                         ${(p.points||[]).slice(0,3).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
                     </ul>
                 </div>`).join('')}
@@ -172,17 +172,17 @@ function projectsBlock(projects, style) {
 
     if (style === 'sidebar') return `
         <div data-role="projects" style="margin-bottom:13px;">
-            <h4 contenteditable="true" style="text-transform:uppercase;font-size:10pt;color:#0f172a;border-bottom:2px solid #e2e8f0;margin:0 0 7px;padding-bottom:3px;">Projects</h4>
+            <h4 style="text-transform:uppercase;font-size:10pt;color:#0f172a;border-bottom:2px solid #e2e8f0;margin:0 0 7px;padding-bottom:3px;">Projects</h4>
             ${projects.map((p,i) => `
                 <div style="margin-bottom:11px;break-inside:avoid;">
                     <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <strong contenteditable="true" style="font-size:10pt;" data-bind="projects[${i}].title">${p.title}</strong>
+                        <strong style="font-size:10pt;">${p.title}</strong>
                         <span style="display:flex;align-items:center;">
-                            <span contenteditable="true" style="color:#64748b;font-size:9pt;">${(p.tech_stack||[]).join(' · ')}</span>
+                            <span style="color:#64748b;font-size:9pt;">${(p.tech_stack||[]).join(' · ')}</span>
                             ${delBtn('remove-proj',i)}
                         </span>
                     </div>
-                    <ul contenteditable="true" style="margin:0;padding-left:15px;font-size:9.5pt;" data-bind="projects[${i}].points" data-bind-type="array">
+                    <ul style="margin:0;padding-left:15px;font-size:9.5pt;">
                         ${(p.points||[]).slice(0,3).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
                     </ul>
                 </div>`).join('')}
@@ -206,31 +206,31 @@ const ResumeTemplates = {
             <div class="resume-scale-target" style="width:794px;padding:40px;box-sizing:border-box;font-family:'Times New Roman',serif;color:#111;line-height:1.25;transform-origin:top left;">
 
                 <header data-section="profile" style="text-align:center;border-bottom:1.5px solid #111;padding-bottom:6px;margin-bottom:8px;flex-shrink:0;">
-                    <h1 contenteditable="true" style="margin:0;font-size:23pt;text-transform:uppercase;line-height:1.1;" data-bind="name">${data.name}</h1>
-                    <h3 contenteditable="true" style="margin:2px 0 0;font-size:12pt;font-weight:normal;line-height:1.2;" data-bind="title">${data.title}</h3>
+                    <h1 style="margin:0;font-size:23pt;text-transform:uppercase;line-height:1.1;">${data.name}</h1>
+                    <h3 style="margin:2px 0 0;font-size:12pt;font-weight:normal;line-height:1.2;">${data.title}</h3>
                     ${contactBlock(data, 'ats')}
                 </header>
 
                 <section data-role="summary" data-section="profile" style="margin-bottom:6px;">
-                    <p contenteditable="true" style="margin:0;text-align:justify;font-size:9.5pt;" data-bind="summary">${data.summary}</p>
+                    <p style="margin:0;text-align:justify;font-size:9.5pt;">${data.summary}</p>
                 </section>
 
                 <div data-section="skills">${skillSections(data, 'ats', S)}</div>
 
                 ${S.experience !== false ? `
                 <section data-role="experience" style="margin-bottom:8px;">
-                    <h4 contenteditable="true" style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 5px;">Professional Experience</h4>
+                    <h4 style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 5px;">Professional Experience</h4>
                     ${(data.experience||[]).map((exp,i) => `
                         <div style="margin-bottom:8px;break-inside:avoid;">
                             <div style="display:flex;justify-content:space-between;align-items:baseline;font-weight:bold;font-size:10pt;">
-                                <span contenteditable="true" data-bind="experience[${i}].role">${exp.role}</span>
+                                <span>${exp.role}</span>
                                 <span style="display:flex;align-items:center;">
-                                    <span contenteditable="true" style="font-weight:normal;font-size:9pt;" data-bind="experience[${i}].duration">${exp.duration}</span>
+                                    <span style="font-weight:normal;font-size:9pt;">${exp.duration}</span>
                                     ${delBtn('remove-exp',i)}
                                 </span>
                             </div>
-                            <div contenteditable="true" style="font-style:italic;font-size:9pt;margin-bottom:1px;" data-bind="experience[${i}].company">${exp.company}</div>
-                            <ul contenteditable="true" style="margin:0;padding-left:14px;font-size:9pt;" data-bind="experience[${i}].points" data-bind-type="array">
+                            <div style="font-style:italic;font-size:9pt;margin-bottom:1px;">${exp.company}</div>
+                            <ul style="margin:0;padding-left:14px;font-size:9pt;">
                                 ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
                             </ul>
                         </div>`).join('')}
@@ -240,12 +240,12 @@ const ResumeTemplates = {
 
                 ${S.education !== false ? `
                 <section data-section="education-cert" style="margin-bottom:8px;break-inside:avoid;">
-                    <h4 contenteditable="true" style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 5px;">Education</h4>
+                    <h4 style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 5px;">Education</h4>
                     ${(data.education||[]).map((ed,i) => `
                         <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:9.5pt;margin-bottom:1px;">
-                            <strong contenteditable="true" data-bind="education[${i}].degree">${ed.degree}</strong>
+                            <strong>${ed.degree}</strong>
                             <span style="display:flex;align-items:center;">
-                                <span contenteditable="true">${ed.institution} | ${ed.year}</span>
+                                <span>${ed.institution} | ${ed.year}</span>
                                 ${delBtn('remove-edu',i)}
                             </span>
                         </div>`).join('')}
@@ -253,10 +253,10 @@ const ResumeTemplates = {
 
                 ${S.certifications !== false && (data.certifications||[]).length ? `
                 <section data-section="education-cert" style="break-inside:avoid;">
-                    <h4 contenteditable="true" style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 5px;">Certifications & Achievements</h4>
+                    <h4 style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 5px;">Certifications & Achievements</h4>
                     ${(data.certifications||[]).map((c,i) => `
                         <div style="display:flex;align-items:center;font-size:9pt;margin-bottom:1px;gap:3px;">
-                            <span style="flex:1;display:flex;align-items:baseline;gap:3px;"><span style="flex-shrink:0;">•</span><span contenteditable="true" data-bind="certifications[${i}]">${c}</span></span>
+                            <span style="flex:1;display:flex;align-items:baseline;gap:3px;"><span style="flex-shrink:0;">•</span><span>${c}</span></span>
                             ${delBtn('remove-cert',i)}
                         </div>`).join('')}
                 </section>` : ''}
@@ -273,27 +273,27 @@ const ResumeTemplates = {
             <div class="resume-scale-target" style="width:794px;padding:40px;box-sizing:border-box;font-family:Arial,sans-serif;color:#222;line-height:1.25;transform-origin:top left;">
 
                 <header data-section="profile" style="margin-bottom:10px;border-left:5px solid #2563eb;padding-left:12px;flex-shrink:0;">
-                    <h1 contenteditable="true" style="margin:0;font-size:23pt;color:#1e293b;line-height:1.1;" data-bind="name">${data.name}</h1>
-                    <h3 contenteditable="true" style="margin:1px 0 0;font-size:13pt;color:#2563eb;line-height:1.2;" data-bind="title">${data.title}</h3>
+                    <h1 style="margin:0;font-size:23pt;color:#1e293b;line-height:1.1;">${data.name}</h1>
+                    <h3 style="margin:1px 0 0;font-size:13pt;color:#2563eb;line-height:1.2;">${data.title}</h3>
                     ${contactBlock(data, 'exec')}
                 </header>
 
-                <p contenteditable="true" data-role="summary" data-section="profile" style="margin:0 0 8px;text-align:justify;font-size:9.5pt;color:#334155;" data-bind="summary">${data.summary}</p>
+                <p data-role="summary" data-section="profile" style="margin:0 0 8px;text-align:justify;font-size:9.5pt;color:#334155;">${data.summary}</p>
 
                 ${S.experience !== false ? `
                 <section data-role="experience" style="margin-bottom:8px;">
-                    <h4 contenteditable="true" style="font-size:11pt;color:#1e293b;border-bottom:2px solid #e2e8f0;margin:0 0 5px;padding-bottom:2px;text-transform:uppercase;">Experience</h4>
+                    <h4 style="font-size:11pt;color:#1e293b;border-bottom:2px solid #e2e8f0;margin:0 0 5px;padding-bottom:2px;text-transform:uppercase;">Experience</h4>
                     ${(data.experience||[]).map((exp,i) => `
                         <div style="margin-bottom:8px;break-inside:avoid;">
                             <div style="display:flex;justify-content:space-between;align-items:baseline;font-weight:bold;font-size:10pt;">
-                                <span contenteditable="true" data-bind="experience[${i}].role">${exp.role}</span>
+                                <span>${exp.role}</span>
                                 <span style="display:flex;align-items:center;">
-                                    <span contenteditable="true" style="color:#64748b;font-weight:normal;font-size:9pt;" data-bind="experience[${i}].duration">${exp.duration}</span>
+                                    <span style="color:#64748b;font-weight:normal;font-size:9pt;">${exp.duration}</span>
                                     ${delBtn('remove-exp',i)}
                                 </span>
                             </div>
-                            <div contenteditable="true" style="color:#2563eb;font-size:9pt;font-weight:bold;margin-bottom:1px;" data-bind="experience[${i}].company">${exp.company}</div>
-                            <ul contenteditable="true" style="margin:0;padding-left:14px;font-size:9pt;color:#334155;" data-bind="experience[${i}].points" data-bind-type="array">
+                            <div style="color:#2563eb;font-size:9pt;font-weight:bold;margin-bottom:1px;">${exp.company}</div>
+                            <ul style="margin:0;padding-left:14px;font-size:9pt;color:#334155;">
                                 ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
                             </ul>
                         </div>`).join('')}
@@ -305,20 +305,20 @@ const ResumeTemplates = {
 
                 ${S.education !== false ? `
                 <section data-section="education-cert" style="margin-bottom:7px;break-inside:avoid;">
-                    <h4 contenteditable="true" style="font-size:11pt;color:#1e293b;border-bottom:2px solid #e2e8f0;margin:0 0 5px;padding-bottom:2px;text-transform:uppercase;">Education</h4>
+                    <h4 style="font-size:11pt;color:#1e293b;border-bottom:2px solid #e2e8f0;margin:0 0 5px;padding-bottom:2px;text-transform:uppercase;">Education</h4>
                     ${(data.education||[]).map((ed,i) => `
                         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1px;font-size:9.5pt;color:#334155;">
-                            <span><strong contenteditable="true" data-bind="education[${i}].degree">${ed.degree}</strong> &bull; <span contenteditable="true">${ed.institution}, ${ed.year}</span></span>
+                            <span><strong>${ed.degree}</strong> &bull; <span>${ed.institution}, ${ed.year}</span></span>
                             ${delBtn('remove-edu',i)}
                         </div>`).join('')}
                 </section>` : ''}
 
                 ${S.certifications !== false && (data.certifications||[]).length ? `
                 <section data-section="education-cert" style="break-inside:avoid;">
-                    <h4 contenteditable="true" style="font-size:11pt;color:#1e293b;border-bottom:2px solid #e2e8f0;margin:0 0 5px;padding-bottom:2px;text-transform:uppercase;">Certifications & Achievements</h4>
+                    <h4 style="font-size:11pt;color:#1e293b;border-bottom:2px solid #e2e8f0;margin:0 0 5px;padding-bottom:2px;text-transform:uppercase;">Certifications & Achievements</h4>
                     ${(data.certifications||[]).map((c,i) => `
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;font-size:9pt;color:#334155;">
-                            <span contenteditable="true" data-bind="certifications[${i}]">${c}</span>
+                            <span>${c}</span>
                             ${delBtn('remove-cert',i)}
                         </div>`).join('')}
                 </section>` : ''}
@@ -335,26 +335,26 @@ const ResumeTemplates = {
             <div class="resume-scale-target" style="width:794px;padding:40px;box-sizing:border-box;font-family:sans-serif;color:#1e293b;line-height:1.25;transform-origin:top left;">
 
                 <div data-section="profile" style="border-left:4px solid #10b981;padding-left:12px;margin-bottom:10px;flex-shrink:0;">
-                    <h1 contenteditable="true" style="margin:0;font-size:23pt;font-weight:800;line-height:1.1;" data-bind="name">${data.name}</h1>
-                    <h3 contenteditable="true" style="margin:1px 0 0;font-size:12pt;color:#10b981;text-transform:uppercase;letter-spacing:1px;line-height:1.2;" data-bind="title">${data.title}</h3>
+                    <h1 style="margin:0;font-size:23pt;font-weight:800;line-height:1.1;">${data.name}</h1>
+                    <h3 style="margin:1px 0 0;font-size:12pt;color:#10b981;text-transform:uppercase;letter-spacing:1px;line-height:1.2;">${data.title}</h3>
                     ${contactBlock(data, 'tech')}
                 </div>
 
-                <p contenteditable="true" data-role="summary" data-section="profile" style="margin:0 0 8px;font-size:9.5pt;text-align:justify;" data-bind="summary">${data.summary}</p>
+                <p data-role="summary" data-section="profile" style="margin:0 0 8px;font-size:9.5pt;text-align:justify;">${data.summary}</p>
 
                 ${S.experience !== false ? `
                 <div data-role="experience" style="margin-bottom:8px;">
-                    <h4 contenteditable="true" style="color:#10b981;text-transform:uppercase;font-size:10pt;border-bottom:1px solid #e2e8f0;padding-bottom:2px;margin:0 0 5px;">Experience</h4>
+                    <h4 style="color:#10b981;text-transform:uppercase;font-size:10pt;border-bottom:1px solid #e2e8f0;padding-bottom:2px;margin:0 0 5px;">Experience</h4>
                     ${(data.experience||[]).map((exp,i) => `
                         <div style="margin-bottom:8px;break-inside:avoid;">
                             <div style="display:flex;justify-content:space-between;align-items:baseline;">
-                                <strong contenteditable="true" style="font-size:10.5pt;" data-bind="experience[${i}].role">${exp.role}</strong>
+                                <strong style="font-size:10.5pt;">${exp.role}</strong>
                                 <span style="display:flex;align-items:center;">
-                                    <span contenteditable="true" style="color:#64748b;font-size:9pt;">${exp.company} | ${exp.duration}</span>
+                                    <span style="color:#64748b;font-size:9pt;">${exp.company} | ${exp.duration}</span>
                                     ${delBtn('remove-exp',i)}
                                 </span>
                             </div>
-                            <ul contenteditable="true" style="margin:0;padding-left:14px;font-size:9pt;" data-bind="experience[${i}].points" data-bind-type="array">
+                            <ul style="margin:0;padding-left:14px;font-size:9pt;">
                                 ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
                             </ul>
                         </div>`).join('')}
@@ -366,20 +366,20 @@ const ResumeTemplates = {
 
                 ${S.education !== false ? `
                 <div data-section="education-cert" style="margin-bottom:7px;">
-                    <h4 contenteditable="true" style="color:#10b981;text-transform:uppercase;font-size:10pt;border-bottom:1px solid #e2e8f0;padding-bottom:2px;margin:0 0 5px;">Education</h4>
+                    <h4 style="color:#10b981;text-transform:uppercase;font-size:10pt;border-bottom:1px solid #e2e8f0;padding-bottom:2px;margin:0 0 5px;">Education</h4>
                     ${(data.education||[]).map((ed,i) => `
                         <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:9.5pt;margin-bottom:1px;">
-                            <span contenteditable="true"><strong>${ed.degree}</strong> &mdash; ${ed.institution} (${ed.year})</span>
+                            <span><strong>${ed.degree}</strong> &mdash; ${ed.institution} (${ed.year})</span>
                             ${delBtn('remove-edu',i)}
                         </div>`).join('')}
                 </div>` : ''}
 
                 ${S.certifications !== false && (data.certifications||[]).length ? `
                 <section data-section="education-cert" style="break-inside:avoid;">
-                    <h4 contenteditable="true" style="color:#10b981;text-transform:uppercase;font-size:10pt;border-bottom:1px solid #e2e8f0;padding-bottom:2px;margin:0 0 5px;">Certifications & Achievements</h4>
+                    <h4 style="color:#10b981;text-transform:uppercase;font-size:10pt;border-bottom:1px solid #e2e8f0;padding-bottom:2px;margin:0 0 5px;">Certifications & Achievements</h4>
                     ${(data.certifications||[]).map((c,i) => `
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;font-size:9pt;">
-                            <span contenteditable="true" data-bind="certifications[${i}]">${c}</span>
+                            <span>${c}</span>
                             ${delBtn('remove-cert',i)}
                         </div>`).join('')}
                 </section>` : ''}
@@ -398,8 +398,8 @@ const ResumeTemplates = {
                 <!-- Sidebar (28%) -->
                 <div class="t4-sidebar">
                     <div data-section="profile">
-                        <h1 contenteditable="true" data-bind="name" style="font-size:25pt;font-weight:700;line-height:1.15;margin:0 0 4px;color:#f8fafc;">${data.name}</h1>
-                        <p contenteditable="true" data-bind="title" style="font-size:10.5pt;color:#94a3b8;font-weight:400;margin:0 0 14px;line-height:1.3;">${data.title}</p>
+                        <h1 style="font-size:25pt;font-weight:700;line-height:1.15;margin:0 0 4px;color:#f8fafc;">${data.name}</h1>
+                        <p style="font-size:10.5pt;color:#94a3b8;font-weight:400;margin:0 0 14px;line-height:1.3;">${data.title}</p>
 
                         <div class="t4-sb-section">
                             <h4 style="text-transform:uppercase;font-size:9pt;letter-spacing:0.5px;color:#cbd5e1;border-bottom:1px solid #334155;margin:0 0 6px;padding-bottom:3px;">Contact</h4>
@@ -417,7 +417,7 @@ const ResumeTemplates = {
 
                     <div data-role="summary" data-section="profile" class="t4-section">
                         <h4 class="t4-section-head">Profile</h4>
-                        <p contenteditable="true" data-bind="summary" style="margin:0;font-size:10.5pt;line-height:1.45;text-align:justify;">${data.summary}</p>
+                        <p style="margin:0;font-size:10.5pt;line-height:1.45;text-align:justify;">${data.summary}</p>
                     </div>
 
                     ${S.experience !== false ? `
@@ -426,15 +426,15 @@ const ResumeTemplates = {
                         ${(data.experience||[]).map((exp,i) => `
                         <div style="margin-bottom:8px;">
                             <div style="display:flex;justify-content:space-between;align-items:baseline;">
-                                <strong contenteditable="true" data-bind="experience[${i}].role" style="font-size:11pt;">${exp.role}</strong>
+                                <strong style="font-size:11pt;">${exp.role}</strong>
                                 ${delBtn('remove-exp',i)}
                             </div>
                             <div style="font-size:10pt;color:#64748b;margin-bottom:3px;">
-                                <span contenteditable="true" data-bind="experience[${i}].company">${exp.company}</span>
+                                <span>${exp.company}</span>
                                 <span> · </span>
-                                <span contenteditable="true" data-bind="experience[${i}].duration">${exp.duration}</span>
+                                <span>${exp.duration}</span>
                             </div>
-                            <ul contenteditable="true" data-bind="experience[${i}].points" data-bind-type="array" style="margin:0;padding-left:14px;font-size:10pt;">
+                            <ul style="margin:0;padding-left:14px;font-size:10pt;">
                                 ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
                             </ul>
                         </div>`).join('')}
@@ -448,11 +448,11 @@ const ResumeTemplates = {
                         ${(data.education||[]).map((ed,i) => `
                         <div style="margin-bottom:6px;">
                             <div style="display:flex;justify-content:space-between;align-items:baseline;">
-                                <strong contenteditable="true" data-bind="education[${i}].degree" style="font-size:10.5pt;">${ed.degree}</strong>
+                                <strong style="font-size:10.5pt;">${ed.degree}</strong>
                                 ${delBtn('remove-edu',i)}
                             </div>
                             <div style="font-size:10pt;color:#64748b;">
-                                <span contenteditable="true">${ed.institution}</span><span> · ${ed.year}</span>
+                                <span>${ed.institution}</span><span> · ${ed.year}</span>
                             </div>
                         </div>`).join('')}
                     </div>` : ''}
@@ -462,7 +462,7 @@ const ResumeTemplates = {
                         <h4 class="t4-section-head">Certifications & Achievements</h4>
                         ${(data.certifications||[]).map((c,i) => `
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;font-size:10pt;">
-                            <span contenteditable="true" data-bind="certifications[${i}]">${c}</span>
+                            <span>${c}</span>
                             ${delBtn('remove-cert',i)}
                         </div>`).join('')}
                     </div>` : ''}
