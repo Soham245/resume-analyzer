@@ -957,6 +957,107 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // ── Phase 3: Skills panel ─────────────────────────────────────────────────
+    sectionPanels['skills'] = (body) => {
+        if (!currentStructuredData) {
+            body.innerHTML = '<p style="color:var(--color-text-muted);font-size:0.85rem;">Generate or analyze a resume first.</p>';
+            return;
+        }
+        body.innerHTML = '';
+
+        const CATEGORIES = [
+            { key: 'technical', stateKey: 'technical_skills', label: 'Technical Skills' },
+            { key: 'soft',      stateKey: 'soft_skills',      label: 'Soft Skills' },
+            { key: 'languages', stateKey: 'languages',        label: 'Languages' },
+        ];
+
+        function syncAndRender() {
+            // Mirror currentSkills → currentStructuredData, recompute groups, re-render resume
+            CATEGORIES.forEach(({ key, stateKey }) => {
+                currentStructuredData[stateKey] = [...currentSkills[key]];
+            });
+            currentStructuredData.skill_groups = filterAndGroupSkills(currentStructuredData.technical_skills || []);
+            renderResume(true);
+            scheduleRescore(200);
+        }
+
+        function renderChips() {
+            CATEGORIES.forEach(({ key, label }) => {
+                const section = body.querySelector(`[data-skill-cat="${key}"]`);
+                if (!section) return;
+                const chipsEl = section.querySelector('.editor-skill-chips');
+                chipsEl.innerHTML = '';
+                currentSkills[key].forEach((skill, idx) => {
+                    const chip = document.createElement('span');
+                    chip.className = 'editor-skill-chip';
+                    chip.innerHTML = `${skill}<button type="button" aria-label="Remove ${skill}">×</button>`;
+                    chip.querySelector('button').addEventListener('click', () => {
+                        currentSkills[key].splice(idx, 1);
+                        syncAndRender();
+                        renderChips();
+                    });
+                    chipsEl.appendChild(chip);
+                });
+            });
+        }
+
+        CATEGORIES.forEach(({ key, label }) => {
+            const section = document.createElement('div');
+            section.dataset.skillCat = key;
+            section.style.cssText = 'margin-bottom:16px;';
+
+            const header = document.createElement('h3');
+            header.className = 'editor-sub-header';
+            header.textContent = label;
+            section.appendChild(header);
+
+            const chips = document.createElement('div');
+            chips.className = 'editor-skill-chips';
+            chips.style.marginBottom = '8px';
+            section.appendChild(chips);
+
+            // Add row
+            const addRow = document.createElement('div');
+            addRow.className = 'editor-skill-add-row';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'editor-field-input';
+            input.placeholder = `Add ${label.toLowerCase().replace(' skills', '')} skill…`;
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.className = 'editor-add-btn';
+            addBtn.style.cssText = 'white-space:nowrap;padding:6px 12px;';
+            addBtn.textContent = '+ Add';
+
+            function doAdd() {
+                const val = input.value.trim();
+                if (!val) return;
+                const canon = canonicalizeSkill(val);
+                if (currentSkills[key].map(s => s.toLowerCase()).includes(canon.toLowerCase())) {
+                    input.value = '';
+                    return;
+                }
+                currentSkills[key].push(canon);
+                input.value = '';
+                syncAndRender();
+                renderChips();
+            }
+
+            addBtn.addEventListener('click', doAdd);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); doAdd(); }
+            });
+
+            addRow.appendChild(input);
+            addRow.appendChild(addBtn);
+            section.appendChild(addRow);
+
+            body.appendChild(section);
+        });
+
+        renderChips();
+    };
+
     // ── Auto-fit page ─────────────────────────────────────────────────────────
     // Two-phase layout engine (document-flow model — no flex-grow stretching):
     //   Phase 1 — measure: sections render at natural content height.
