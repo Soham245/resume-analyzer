@@ -573,6 +573,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resumeDocument.innerHTML = ResumeTemplates[tpl](currentStructuredData, activeSections);
         decorateEditableSections();
         autoFitPage();
+        updateRecommendation();
     }
 
     // ── Editor drawer + hover-edit affordances ──────────────────────────────
@@ -1422,6 +1423,44 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             templateGallery.appendChild(card);
         });
+    }
+
+    // ── Phase 5: Experience-vs-Project recommendation banner ──────────────
+    const recBanner = document.getElementById('recommendation-banner');
+    const recText   = document.getElementById('recommendation-text');
+
+    function updateRecommendation() {
+        if (!recBanner || !recText || !currentStructuredData) {
+            if (recBanner) recBanner.classList.remove('is-visible');
+            return;
+        }
+        const exp  = (currentStructuredData.experience || []).length;
+        const proj = (currentStructuredData.projects    || []).length;
+        const hasBullets = (currentStructuredData.experience || []).some(
+            e => (e.bullets || e.details || []).length > 0
+        );
+
+        let msg = '';
+        if (exp === 0 && proj === 0) {
+            msg = `<strong>Add your experience or projects</strong>
+                   Resumes with at least one experience entry or project score significantly higher with ATS systems. Click the ✏️ pencil on the Experience or Projects section to get started.`;
+        } else if (exp > 0 && !hasBullets) {
+            msg = `<strong>Strengthen your experience bullets</strong>
+                   Your experience entries don't have bullet points yet. Quantified achievements (e.g. "Improved latency by 40%") make a big ATS difference.`;
+        } else if (exp === 0 && proj > 0) {
+            msg = `<strong>Consider adding work experience</strong>
+                   You have ${proj} project${proj > 1 ? 's' : ''} but no professional experience. Even internships or freelance work can boost your resume's ATS score.`;
+        } else if (proj === 0 && exp > 0 && exp <= 2) {
+            msg = `<strong>Add a project to stand out</strong>
+                   With ${exp} experience entr${exp > 1 ? 'ies' : 'y'}, adding a personal or open-source project can showcase technical breadth and initiative.`;
+        }
+
+        if (msg) {
+            recText.innerHTML = msg;
+            recBanner.classList.add('is-visible');
+        } else {
+            recBanner.classList.remove('is-visible');
+        }
     }
 
     // ── 4. ADD EXPERIENCE — moved to drawer-based editor (Phase 2) ────────
