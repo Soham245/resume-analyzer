@@ -1328,8 +1328,101 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ── 3. TEMPLATE SWITCHING ────────────────────────────────────────────────
+    // ── 3. TEMPLATE SWITCHING + VISUAL GALLERY ─────────────────────────────
     templateSelect.addEventListener('change', () => renderResume());
+
+    // Phase 4: visual template gallery
+    const TEMPLATE_META = [
+        { id: 'ats_classic',  name: 'Classic ATS',   tag: 'Best for portals',
+          mini: `<div style="padding:6px 8px;font-family:sans-serif;">
+            <div style="text-align:center;margin-bottom:4px;">
+              <div style="background:#333;height:5px;width:60%;margin:0 auto 2px;border-radius:1px;"></div>
+              <div style="background:#888;height:3px;width:40%;margin:0 auto;border-radius:1px;"></div>
+            </div>
+            <div style="border-top:1px solid #bfa;margin-bottom:3px;"></div>
+            <div style="background:#e8e0d4;height:3px;width:90%;margin-bottom:2px;border-radius:1px;"></div>
+            <div style="background:#e8e0d4;height:3px;width:75%;margin-bottom:4px;border-radius:1px;"></div>
+            <div style="background:#8b6f47;height:2px;width:50%;margin-bottom:2px;border-radius:1px;"></div>
+            <div style="background:#ddd;height:2px;width:85%;margin-bottom:1px;border-radius:1px;"></div>
+            <div style="background:#ddd;height:2px;width:70%;border-radius:1px;"></div>
+          </div>` },
+        { id: 'executive',    name: 'Executive',     tag: 'Sleek & Professional',
+          mini: `<div style="padding:6px 8px;font-family:sans-serif;">
+            <div style="background:#1a1a1a;padding:4px;margin-bottom:4px;border-radius:1px;">
+              <div style="background:#fff;height:4px;width:55%;margin-bottom:2px;border-radius:1px;"></div>
+              <div style="background:rgba(255,255,255,.5);height:2px;width:35%;border-radius:1px;"></div>
+            </div>
+            <div style="background:#8b6f47;height:2px;width:45%;margin-bottom:3px;border-radius:1px;"></div>
+            <div style="background:#ddd;height:2px;width:90%;margin-bottom:1px;border-radius:1px;"></div>
+            <div style="background:#ddd;height:2px;width:80%;margin-bottom:3px;border-radius:1px;"></div>
+            <div style="background:#8b6f47;height:2px;width:40%;margin-bottom:2px;border-radius:1px;"></div>
+            <div style="background:#ddd;height:2px;width:85%;border-radius:1px;"></div>
+          </div>` },
+        { id: 'tech_modern',  name: 'Tech Modern',   tag: 'Clean & Grid-based',
+          mini: `<div style="padding:6px 8px;font-family:sans-serif;">
+            <div style="text-align:center;margin-bottom:3px;">
+              <div style="background:#2c3e50;height:4px;width:50%;margin:0 auto 2px;border-radius:1px;"></div>
+              <div style="background:#7f8c8d;height:2px;width:65%;margin:0 auto;border-radius:1px;"></div>
+            </div>
+            <div style="display:flex;gap:3px;margin-bottom:3px;">
+              <div style="background:#3498db;height:2px;flex:1;border-radius:1px;"></div>
+              <div style="background:#2ecc71;height:2px;flex:1;border-radius:1px;"></div>
+              <div style="background:#e67e22;height:2px;flex:1;border-radius:1px;"></div>
+            </div>
+            <div style="background:#ddd;height:2px;width:90%;margin-bottom:1px;border-radius:1px;"></div>
+            <div style="background:#ddd;height:2px;width:75%;margin-bottom:3px;border-radius:1px;"></div>
+            <div style="background:#2c3e50;height:2px;width:40%;margin-bottom:2px;border-radius:1px;"></div>
+            <div style="background:#ddd;height:2px;width:80%;border-radius:1px;"></div>
+          </div>` },
+        { id: 'sidebar_pro',  name: 'Sidebar Pro',   tag: 'Two-Column Creative',
+          mini: `<div style="display:flex;height:100%;font-family:sans-serif;">
+            <div style="width:35%;background:#2c3e50;padding:5px;">
+              <div style="background:rgba(255,255,255,.7);height:4px;width:80%;margin-bottom:3px;border-radius:1px;"></div>
+              <div style="background:rgba(255,255,255,.4);height:2px;width:60%;margin-bottom:4px;border-radius:1px;"></div>
+              <div style="background:rgba(255,255,255,.3);height:2px;width:70%;margin-bottom:1px;border-radius:1px;"></div>
+              <div style="background:rgba(255,255,255,.3);height:2px;width:55%;border-radius:1px;"></div>
+            </div>
+            <div style="flex:1;padding:5px;">
+              <div style="background:#333;height:4px;width:70%;margin-bottom:2px;border-radius:1px;"></div>
+              <div style="background:#ddd;height:2px;width:90%;margin-bottom:1px;border-radius:1px;"></div>
+              <div style="background:#ddd;height:2px;width:75%;margin-bottom:3px;border-radius:1px;"></div>
+              <div style="background:#8b6f47;height:2px;width:45%;margin-bottom:2px;border-radius:1px;"></div>
+              <div style="background:#ddd;height:2px;width:80%;border-radius:1px;"></div>
+            </div>
+          </div>` },
+    ];
+
+    const templateGallery = document.getElementById('template-gallery');
+    if (templateGallery) {
+        TEMPLATE_META.forEach(tpl => {
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'template-card' + (templateSelect.value === tpl.id ? ' template-card--active' : '');
+            card.dataset.templateId = tpl.id;
+            card.setAttribute('role', 'radio');
+            card.setAttribute('aria-checked', templateSelect.value === tpl.id ? 'true' : 'false');
+            card.innerHTML = `
+                <div class="template-card__preview">
+                    <div class="template-card__preview-mini">${tpl.mini}</div>
+                </div>
+                <div class="template-card__info">
+                    <span class="template-card__name">${tpl.name}</span>
+                    <span class="template-card__tag">${tpl.tag}</span>
+                </div>`;
+            card.addEventListener('click', () => {
+                templateSelect.value = tpl.id;
+                templateSelect.dispatchEvent(new Event('change'));
+                // Update active state
+                templateGallery.querySelectorAll('.template-card').forEach(c => {
+                    c.classList.remove('template-card--active');
+                    c.setAttribute('aria-checked', 'false');
+                });
+                card.classList.add('template-card--active');
+                card.setAttribute('aria-checked', 'true');
+            });
+            templateGallery.appendChild(card);
+        });
+    }
 
     // ── 4. ADD EXPERIENCE — moved to drawer-based editor (Phase 2) ────────
 

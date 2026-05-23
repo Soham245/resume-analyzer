@@ -477,7 +477,8 @@
                 <div class="builder-header">
                     <div class="builder-header__title-group">
                         <h2 class="builder-header__title">Live Resume Editor</h2>
-                        <select id="templateSelect" class="field-input">
+                        <!-- Hidden select preserved for internal state / existing logic -->
+                        <select id="templateSelect" class="field-input" style="display:none;">
                             <option value="ats_classic">Classic ATS (Best for portals)</option>
                             <option value="executive">Executive (Sleek &amp; Professional)</option>
                             <option value="tech_modern">Tech Modern (Clean &amp; Grid-based)</option>
@@ -488,7 +489,8 @@
                     <button id="download-pdf-btn">📥 Download ATS PDF</button>
                 </div>
 
-                <!-- Entry forms moved to drawer-based editors (Phase 2) -->
+                <!-- Template gallery (Phase 4) -->
+                <div id="template-gallery" class="template-gallery" role="radiogroup" aria-label="Resume template"></div>
 
                 <!-- Optimize for Job Description (works in both upload + manual modes) -->
                 <div class="collapse-card collapse-card--accent" style="margin-bottom:12px;">
