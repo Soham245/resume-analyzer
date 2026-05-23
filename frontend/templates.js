@@ -248,121 +248,151 @@ const ResumeTemplates = {
         </div>`;
     },
 
-    // 2. Executive ────────────────────────────────────────────────────────
+    // 2. Executive — Boardroom elegant: charcoal tones, thin top accent band,
+    //    wide name with refined serif, muted palette, clean horizontal rules
     executive: (data, S) => {
         S = S || {};
         return `
         <div class="resume-wrapper" style="width:794px;height:1123px;overflow:hidden;position:relative;background:white;box-sizing:border-box;margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,0.18);">
-            <div class="resume-scale-target" style="width:794px;padding:40px;box-sizing:border-box;font-family:Arial,sans-serif;color:#222;line-height:1.25;transform-origin:top left;">
+            <div class="resume-scale-target" style="width:794px;padding:0;box-sizing:border-box;font-family:'Cambria','Georgia',serif;color:#2d2d2d;line-height:1.3;transform-origin:top left;">
 
-                <div data-section="profile">
-                    <header style="margin-bottom:10px;border-left:5px solid #2563eb;padding-left:12px;flex-shrink:0;">
-                        <h1 style="margin:0;font-size:23pt;color:#1e293b;line-height:1.1;">${data.name}</h1>
-                        <h3 style="margin:1px 0 0;font-size:13pt;color:#2563eb;line-height:1.2;">${data.title}</h3>
-                        ${contactBlock(data, 'exec')}
-                    </header>
-                    <p data-role="summary" style="margin:0 0 8px;text-align:justify;font-size:9.5pt;color:#334155;">${data.summary}</p>
-                </div>
+                <!-- Thin charcoal accent band -->
+                <div style="height:6px;background:#2d2d2d;"></div>
 
-                ${S.experience !== false ? `
-                <section data-role="experience" style="margin-bottom:8px;">
-                    <h4 style="font-size:11pt;color:#1e293b;border-bottom:2px solid #e2e8f0;margin:0 0 5px;padding-bottom:2px;text-transform:uppercase;">Experience</h4>
-                    ${(data.experience||[]).map((exp,i) => `
-                        <div style="margin-bottom:8px;break-inside:avoid;">
-                            <div style="display:flex;justify-content:space-between;align-items:baseline;font-weight:bold;font-size:10pt;">
-                                <span>${exp.role}</span>
-                                <span style="display:flex;align-items:center;">
-                                    <span style="color:#64748b;font-weight:normal;font-size:9pt;">${exp.duration}</span>
-                                        </span>
+                <div style="padding:32px 48px 30px;">
+
+                    <div data-section="profile">
+                        <header style="text-align:center;margin-bottom:14px;flex-shrink:0;">
+                            <h1 style="margin:0;font-size:28pt;font-weight:400;letter-spacing:3px;text-transform:uppercase;color:#2d2d2d;line-height:1.1;">${data.name}</h1>
+                            <div style="width:60px;height:1px;background:#999;margin:8px auto;"></div>
+                            <h3 style="margin:0;font-size:11pt;font-weight:400;color:#666;letter-spacing:1.5px;text-transform:uppercase;line-height:1.3;">${data.title}</h3>
+                            <div style="margin-top:8px;display:flex;flex-wrap:wrap;justify-content:center;gap:14px;font-size:9pt;color:#555;">
+                                ${(data._contact||{}).email !== false && data.email ? `<span style="display:inline-flex;align-items:center;gap:3px;"><span style="opacity:0.5;">${ICONS.email}</span>${data.email}</span>` : ''}
+                                ${(data._contact||{}).phone !== false && data.phone ? `<span style="display:inline-flex;align-items:center;gap:3px;"><span style="opacity:0.5;">${ICONS.phone}</span>${data.phone}</span>` : ''}
+                                ${(data._contact||{}).linkedin !== false && data.linkedin ? `<span style="display:inline-flex;align-items:center;gap:3px;"><span style="opacity:0.5;">${ICONS.linkedin}</span>${data.linkedin}</span>` : ''}
+                                ${(data._contact||{}).github !== false && data.github ? `<span style="display:inline-flex;align-items:center;gap:3px;"><span style="opacity:0.5;">${ICONS.github}</span>${data.github}</span>` : ''}
                             </div>
-                            <div style="color:#2563eb;font-size:9pt;font-weight:bold;margin-bottom:1px;">${exp.company}</div>
-                            <ul style="margin:0;padding-left:14px;font-size:9pt;color:#334155;">
-                                ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
-                            </ul>
-                        </div>`).join('')}
-                </section>` : ''}
+                        </header>
+                        <hr style="border:none;border-top:1px solid #d0d0d0;margin:0 0 10px;">
+                        <p data-role="summary" style="margin:0 0 12px;text-align:justify;font-size:9.5pt;color:#444;line-height:1.5;">${data.summary}</p>
+                    </div>
 
-                ${S.projects !== false ? projectsBlock(data.projects,'exec') : ''}
+                    ${S.experience !== false ? `
+                    <section data-role="experience" style="margin-bottom:10px;">
+                        <h4 style="font-size:9.5pt;text-transform:uppercase;letter-spacing:2px;color:#2d2d2d;margin:0 0 6px;padding-bottom:3px;border-bottom:1px solid #d0d0d0;font-weight:600;">Professional Experience</h4>
+                        ${(data.experience||[]).map((exp,i) => `
+                            <div style="margin-bottom:10px;break-inside:avoid;">
+                                <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                                    <strong style="font-size:10.5pt;color:#2d2d2d;">${exp.role}</strong>
+                                    <span style="font-size:9pt;color:#888;font-style:italic;">${exp.duration}</span>
+                                </div>
+                                <div style="font-size:9pt;color:#666;margin-bottom:2px;">${exp.company}</div>
+                                <ul style="margin:0;padding-left:14px;font-size:9pt;color:#444;">
+                                    ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;line-height:1.4;">${pt}</li>`).join('')}
+                                </ul>
+                            </div>`).join('')}
+                    </section>` : ''}
 
-                <div data-section="skills">${skillSections(data,'exec',S)}</div>
+                    ${S.projects !== false ? projectsBlock(data.projects,'exec') : ''}
 
-                ${S.education !== false ? `
-                <section data-section="education-cert" style="margin-bottom:7px;break-inside:avoid;">
-                    <h4 style="font-size:11pt;color:#1e293b;border-bottom:2px solid #e2e8f0;margin:0 0 5px;padding-bottom:2px;text-transform:uppercase;">Education</h4>
-                    ${(data.education||[]).map((ed,i) => `
-                        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1px;font-size:9.5pt;color:#334155;">
-                            <span><strong>${ed.degree}</strong> &bull; <span>${ed.institution}, ${ed.year}</span></span>
-                        </div>`).join('')}
-                </section>` : ''}
+                    <div data-section="skills">${skillSections(data,'exec',S)}</div>
 
-                ${S.certifications !== false && (data.certifications||[]).length ? `
-                <section data-section="education-cert" style="break-inside:avoid;">
-                    <h4 style="font-size:11pt;color:#1e293b;border-bottom:2px solid #e2e8f0;margin:0 0 5px;padding-bottom:2px;text-transform:uppercase;">Certifications & Achievements</h4>
-                    ${(data.certifications||[]).map((c,i) => `
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;font-size:9pt;color:#334155;">
-                            <span>${c}</span>
-                        </div>`).join('')}
-                </section>` : ''}
+                    ${S.education !== false ? `
+                    <section data-section="education-cert" style="margin-bottom:8px;break-inside:avoid;">
+                        <h4 style="font-size:9.5pt;text-transform:uppercase;letter-spacing:2px;color:#2d2d2d;margin:0 0 5px;padding-bottom:3px;border-bottom:1px solid #d0d0d0;font-weight:600;">Education</h4>
+                        ${(data.education||[]).map((ed,i) => `
+                            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;font-size:9.5pt;">
+                                <strong>${ed.degree}</strong>
+                                <span style="color:#888;font-style:italic;">${ed.institution}, ${ed.year}</span>
+                            </div>`).join('')}
+                    </section>` : ''}
 
+                    ${S.certifications !== false && (data.certifications||[]).length ? `
+                    <section data-section="education-cert" style="break-inside:avoid;">
+                        <h4 style="font-size:9.5pt;text-transform:uppercase;letter-spacing:2px;color:#2d2d2d;margin:0 0 5px;padding-bottom:3px;border-bottom:1px solid #d0d0d0;font-weight:600;">Certifications</h4>
+                        ${(data.certifications||[]).map((c,i) => `
+                            <div style="font-size:9pt;margin-bottom:2px;color:#444;padding-left:10px;border-left:2px solid #d0d0d0;">
+                                ${c}
+                            </div>`).join('')}
+                    </section>` : ''}
+
+                </div>
             </div>
         </div>`;
     },
 
-    // 3. Tech Modern ──────────────────────────────────────────────────────
+    // 3. Bold Modern — Startup/creative: two-column header with accent block,
+    //    bold sans-serif, coral-orange accent, pill-shaped skill tags, geometric feel
     tech_modern: (data, S) => {
         S = S || {};
+        const accent = '#e8553d';
+        const accentLight = '#fef2f0';
         return `
         <div class="resume-wrapper" style="width:794px;height:1123px;overflow:hidden;position:relative;background:white;box-sizing:border-box;margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,0.18);">
-            <div class="resume-scale-target" style="width:794px;padding:40px;box-sizing:border-box;font-family:sans-serif;color:#1e293b;line-height:1.25;transform-origin:top left;">
+            <div class="resume-scale-target" style="width:794px;padding:0;box-sizing:border-box;font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#1a1a1a;line-height:1.3;transform-origin:top left;">
 
+                <!-- Split header: name block + contact -->
                 <div data-section="profile">
-                    <div style="border-left:4px solid #10b981;padding-left:12px;margin-bottom:10px;flex-shrink:0;">
-                        <h1 style="margin:0;font-size:23pt;font-weight:800;line-height:1.1;">${data.name}</h1>
-                        <h3 style="margin:1px 0 0;font-size:12pt;color:#10b981;text-transform:uppercase;letter-spacing:1px;line-height:1.2;">${data.title}</h3>
-                        ${contactBlock(data, 'tech')}
+                    <header style="display:flex;flex-shrink:0;">
+                        <div style="background:${accent};color:#fff;padding:28px 24px;width:55%;box-sizing:border-box;">
+                            <h1 style="margin:0;font-size:24pt;font-weight:800;line-height:1.1;letter-spacing:-0.5px;">${data.name}</h1>
+                            <h3 style="margin:4px 0 0;font-size:11pt;font-weight:400;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:1px;line-height:1.2;">${data.title}</h3>
+                        </div>
+                        <div style="background:#fafafa;padding:28px 20px;width:45%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:4px;font-size:9pt;color:#555;border-bottom:1px solid #eee;">
+                            ${(data._contact||{}).email !== false && data.email ? `<span style="display:inline-flex;align-items:center;gap:4px;"><span style="opacity:0.5;">${ICONS.email}</span>${data.email}</span>` : ''}
+                            ${(data._contact||{}).phone !== false && data.phone ? `<span style="display:inline-flex;align-items:center;gap:4px;"><span style="opacity:0.5;">${ICONS.phone}</span>${data.phone}</span>` : ''}
+                            ${(data._contact||{}).linkedin !== false && data.linkedin ? `<span style="display:inline-flex;align-items:center;gap:4px;"><span style="opacity:0.5;">${ICONS.linkedin}</span>${data.linkedin}</span>` : ''}
+                            ${(data._contact||{}).github !== false && data.github ? `<span style="display:inline-flex;align-items:center;gap:4px;"><span style="opacity:0.5;">${ICONS.github}</span>${data.github}</span>` : ''}
+                        </div>
+                    </header>
+                    <div style="padding:16px 32px 0;">
+                        <p data-role="summary" style="margin:0 0 12px;font-size:9.5pt;text-align:justify;color:#444;line-height:1.5;">${data.summary}</p>
                     </div>
-                    <p data-role="summary" style="margin:0 0 8px;font-size:9.5pt;text-align:justify;">${data.summary}</p>
                 </div>
 
-                ${S.experience !== false ? `
-                <div data-role="experience" style="margin-bottom:8px;">
-                    <h4 style="color:#10b981;text-transform:uppercase;font-size:10pt;border-bottom:1px solid #e2e8f0;padding-bottom:2px;margin:0 0 5px;">Experience</h4>
-                    ${(data.experience||[]).map((exp,i) => `
-                        <div style="margin-bottom:8px;break-inside:avoid;">
-                            <div style="display:flex;justify-content:space-between;align-items:baseline;">
-                                <strong style="font-size:10.5pt;">${exp.role}</strong>
-                                <span style="display:flex;align-items:center;">
-                                    <span style="color:#64748b;font-size:9pt;">${exp.company} | ${exp.duration}</span>
-                                        </span>
-                            </div>
-                            <ul style="margin:0;padding-left:14px;font-size:9pt;">
-                                ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
-                            </ul>
-                        </div>`).join('')}
-                </div>` : ''}
+                <div style="padding:0 32px 30px;">
 
-                ${S.projects !== false ? projectsBlock(data.projects,'tech') : ''}
+                    ${S.experience !== false ? `
+                    <div data-role="experience" style="margin-bottom:10px;">
+                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${accent};margin:0 0 6px;padding-bottom:3px;border-bottom:2px solid ${accent};">Experience</h4>
+                        ${(data.experience||[]).map((exp,i) => `
+                            <div style="margin-bottom:9px;break-inside:avoid;padding-left:10px;border-left:3px solid ${accentLight};">
+                                <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                                    <strong style="font-size:10.5pt;">${exp.role}</strong>
+                                    <span style="font-size:8.5pt;color:#888;">${exp.duration}</span>
+                                </div>
+                                <div style="font-size:9pt;color:${accent};font-weight:600;margin-bottom:2px;">${exp.company}</div>
+                                <ul style="margin:0;padding-left:14px;font-size:9pt;color:#444;">
+                                    ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;line-height:1.4;">${pt}</li>`).join('')}
+                                </ul>
+                            </div>`).join('')}
+                    </div>` : ''}
 
-                <div data-section="skills">${skillSections(data,'tech',S)}</div>
+                    ${S.projects !== false ? projectsBlock(data.projects,'tech') : ''}
 
-                ${S.education !== false ? `
-                <div data-section="education-cert" style="margin-bottom:7px;">
-                    <h4 style="color:#10b981;text-transform:uppercase;font-size:10pt;border-bottom:1px solid #e2e8f0;padding-bottom:2px;margin:0 0 5px;">Education</h4>
-                    ${(data.education||[]).map((ed,i) => `
-                        <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:9.5pt;margin-bottom:1px;">
-                            <span><strong>${ed.degree}</strong> &mdash; ${ed.institution} (${ed.year})</span>
-                        </div>`).join('')}
-                </div>` : ''}
+                    <div data-section="skills">${skillSections(data,'tech',S)}</div>
 
-                ${S.certifications !== false && (data.certifications||[]).length ? `
-                <section data-section="education-cert" style="break-inside:avoid;">
-                    <h4 style="color:#10b981;text-transform:uppercase;font-size:10pt;border-bottom:1px solid #e2e8f0;padding-bottom:2px;margin:0 0 5px;">Certifications & Achievements</h4>
-                    ${(data.certifications||[]).map((c,i) => `
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;font-size:9pt;">
-                            <span>${c}</span>
-                        </div>`).join('')}
-                </section>` : ''}
+                    ${S.education !== false ? `
+                    <div data-section="education-cert" style="margin-bottom:7px;">
+                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${accent};margin:0 0 5px;padding-bottom:3px;border-bottom:2px solid ${accent};">Education</h4>
+                        ${(data.education||[]).map((ed,i) => `
+                            <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:9.5pt;margin-bottom:2px;">
+                                <strong>${ed.degree}</strong>
+                                <span style="color:#888;font-size:9pt;">${ed.institution} &middot; ${ed.year}</span>
+                            </div>`).join('')}
+                    </div>` : ''}
 
+                    ${S.certifications !== false && (data.certifications||[]).length ? `
+                    <section data-section="education-cert" style="break-inside:avoid;">
+                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${accent};margin:0 0 5px;padding-bottom:3px;border-bottom:2px solid ${accent};">Certifications</h4>
+                        ${(data.certifications||[]).map((c,i) => `
+                            <div style="font-size:9pt;margin-bottom:3px;color:#444;display:flex;align-items:center;gap:5px;">
+                                <span style="width:5px;height:5px;border-radius:50%;background:${accent};flex-shrink:0;"></span>
+                                ${c}
+                            </div>`).join('')}
+                    </section>` : ''}
+
+                </div>
             </div>
         </div>`;
     },
@@ -449,26 +479,35 @@ const ResumeTemplates = {
         </div>`;
     },
 
-    // 5. Modern Corporate ────────────────────────────────────────────────
+    // 5. Corporate — Consulting/structured: teal accent, grid-style contact bar,
+    //    two-column skills layout, metric-focused entries, clean professional feel
     modern_corporate: (data, S) => {
         S = S || {};
+        const accent = '#0d7377';
+        const accentBg = '#f0fafa';
         return `
         <div class="resume-wrapper" style="width:794px;height:1123px;overflow:hidden;position:relative;background:white;box-sizing:border-box;margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,0.18);">
-            <div class="resume-scale-target" style="width:794px;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif;color:#1a1a2e;line-height:1.25;transform-origin:top left;">
+            <div class="resume-scale-target" style="width:794px;padding:0;box-sizing:border-box;font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#1a1a1a;line-height:1.3;transform-origin:top left;">
 
                 <div data-section="profile">
-                    <header style="background:#1a1a2e;color:#fff;padding:28px 40px 20px;flex-shrink:0;">
-                        <h1 style="margin:0;font-size:22pt;font-weight:700;letter-spacing:0.5px;line-height:1.1;">${data.name}</h1>
-                        <h3 style="margin:3px 0 0;font-size:11pt;color:#a0c4ff;font-weight:400;letter-spacing:1px;text-transform:uppercase;line-height:1.2;">${data.title}</h3>
-                        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:10px;font-size:9pt;color:#e0e0e0;">
-                            ${(data._contact||{}).email !== false && data.email ? `<span style="display:inline-flex;align-items:center;gap:3px;"><span style="opacity:0.7;">${ICONS.email}</span>${data.email}</span>` : ''}
-                            ${(data._contact||{}).phone !== false && data.phone ? `<span style="display:inline-flex;align-items:center;gap:3px;"><span style="opacity:0.7;">${ICONS.phone}</span>${data.phone}</span>` : ''}
-                            ${(data._contact||{}).linkedin !== false && data.linkedin ? `<span style="display:inline-flex;align-items:center;gap:3px;"><span style="opacity:0.7;">${ICONS.linkedin}</span>${data.linkedin}</span>` : ''}
-                            ${(data._contact||{}).github !== false && data.github ? `<span style="display:inline-flex;align-items:center;gap:3px;"><span style="opacity:0.7;">${ICONS.github}</span>${data.github}</span>` : ''}
+                    <!-- Structured header: name left, contact right, teal bar bottom -->
+                    <header style="padding:30px 40px 0;flex-shrink:0;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                            <div>
+                                <h1 style="margin:0;font-size:24pt;font-weight:700;color:#1a1a1a;line-height:1.1;">${data.name}</h1>
+                                <h3 style="margin:3px 0 0;font-size:11pt;font-weight:500;color:${accent};line-height:1.2;">${data.title}</h3>
+                            </div>
+                            <div style="text-align:right;font-size:9pt;color:#555;line-height:1.6;">
+                                ${(data._contact||{}).email !== false && data.email ? `<div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;"><span>${data.email}</span><span style="opacity:0.5;">${ICONS.email}</span></div>` : ''}
+                                ${(data._contact||{}).phone !== false && data.phone ? `<div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;"><span>${data.phone}</span><span style="opacity:0.5;">${ICONS.phone}</span></div>` : ''}
+                                ${(data._contact||{}).linkedin !== false && data.linkedin ? `<div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;"><span>${data.linkedin}</span><span style="opacity:0.5;">${ICONS.linkedin}</span></div>` : ''}
+                                ${(data._contact||{}).github !== false && data.github ? `<div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;"><span>${data.github}</span><span style="opacity:0.5;">${ICONS.github}</span></div>` : ''}
+                            </div>
                         </div>
+                        <div style="height:3px;background:${accent};margin-top:12px;"></div>
                     </header>
-                    <div style="padding:20px 40px 0;">
-                        <p data-role="summary" style="margin:0 0 12px;font-size:9.5pt;text-align:justify;color:#334155;border-left:3px solid #a0c4ff;padding-left:10px;">${data.summary}</p>
+                    <div style="padding:12px 40px 0;">
+                        <p data-role="summary" style="margin:0 0 12px;font-size:9.5pt;text-align:justify;color:#444;line-height:1.5;">${data.summary}</p>
                     </div>
                 </div>
 
@@ -476,18 +515,16 @@ const ResumeTemplates = {
 
                     ${S.experience !== false ? `
                     <section data-role="experience" style="margin-bottom:10px;">
-                        <h4 style="font-size:10.5pt;text-transform:uppercase;color:#1a1a2e;border-bottom:2px solid #1a1a2e;margin:0 0 6px;padding-bottom:2px;letter-spacing:0.5px;">Professional Experience</h4>
+                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${accent};margin:0 0 6px;padding-bottom:3px;border-bottom:2px solid ${accent};">Experience</h4>
                         ${(data.experience||[]).map((exp,i) => `
-                            <div style="margin-bottom:8px;break-inside:avoid;">
-                                <div style="display:flex;justify-content:space-between;align-items:baseline;font-weight:bold;font-size:10pt;">
-                                    <span>${exp.role}</span>
-                                    <span style="display:flex;align-items:center;">
-                                        <span style="font-weight:normal;font-size:9pt;color:#64748b;">${exp.duration}</span>
-                                                </span>
+                            <div style="margin-bottom:9px;break-inside:avoid;">
+                                <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                                    <strong style="font-size:10.5pt;">${exp.role}</strong>
+                                    <span style="font-size:9pt;color:#888;">${exp.duration}</span>
                                 </div>
-                                <div style="font-size:9pt;color:#a0c4ff;font-weight:600;margin-bottom:1px;">${exp.company}</div>
-                                <ul style="margin:0;padding-left:14px;font-size:9pt;color:#334155;">
-                                    ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
+                                <div style="font-size:9pt;color:${accent};font-weight:600;margin-bottom:2px;">${exp.company}</div>
+                                <ul style="margin:0;padding-left:14px;font-size:9pt;color:#444;">
+                                    ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;line-height:1.4;">${pt}</li>`).join('')}
                                 </ul>
                             </div>`).join('')}
                     </section>` : ''}
@@ -497,24 +534,22 @@ const ResumeTemplates = {
                     <div data-section="skills">${skillSections(data,'exec',S)}</div>
 
                     ${S.education !== false ? `
-                    <section data-section="education-cert" style="margin-bottom:7px;break-inside:avoid;">
-                        <h4 style="font-size:10.5pt;text-transform:uppercase;color:#1a1a2e;border-bottom:2px solid #1a1a2e;margin:0 0 5px;padding-bottom:2px;letter-spacing:0.5px;">Education</h4>
+                    <section data-section="education-cert" style="margin-bottom:8px;break-inside:avoid;">
+                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${accent};margin:0 0 5px;padding-bottom:3px;border-bottom:2px solid ${accent};">Education</h4>
                         ${(data.education||[]).map((ed,i) => `
-                            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1px;font-size:9.5pt;">
+                            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;font-size:9.5pt;">
                                 <strong>${ed.degree}</strong>
-                                <span style="display:flex;align-items:center;">
-                                    <span style="color:#64748b;">${ed.institution} · ${ed.year}</span>
-                                        </span>
+                                <span style="color:#888;font-size:9pt;">${ed.institution} &middot; ${ed.year}</span>
                             </div>`).join('')}
                     </section>` : ''}
 
                     ${S.certifications !== false && (data.certifications||[]).length ? `
                     <section data-section="education-cert" style="break-inside:avoid;">
-                        <h4 style="font-size:10.5pt;text-transform:uppercase;color:#1a1a2e;border-bottom:2px solid #1a1a2e;margin:0 0 5px;padding-bottom:2px;letter-spacing:0.5px;">Certifications</h4>
+                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${accent};margin:0 0 5px;padding-bottom:3px;border-bottom:2px solid ${accent};">Certifications</h4>
                         ${(data.certifications||[]).map((c,i) => `
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;font-size:9pt;">
-                                <span>${c}</span>
-                                </div>`).join('')}
+                            <div style="font-size:9pt;margin-bottom:3px;color:#444;padding:3px 8px;background:${accentBg};border-radius:3px;">
+                                ${c}
+                            </div>`).join('')}
                     </section>` : ''}
                 </div>
 
@@ -651,49 +686,49 @@ const ResumeTemplates = {
         </div>`;
     },
 
-    // 8. Premium Executive ───────────────────────────────────────────────
+    // 8. Editorial — Magazine-inspired luxury: display serif, warm cream tones,
+    //    full-width name band, gold accent line, elegant whitespace, italic details
     premium_exec: (data, S) => {
         S = S || {};
+        const gold = '#b8860b';
+        const cream = '#fdfcf8';
         return `
-        <div class="resume-wrapper" style="width:794px;height:1123px;overflow:hidden;position:relative;background:white;box-sizing:border-box;margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,0.18);">
-            <div class="resume-scale-target" style="width:794px;padding:0;box-sizing:border-box;font-family:'Palatino Linotype','Book Antiqua',Palatino,serif;color:#2c2c2c;line-height:1.28;transform-origin:top left;">
+        <div class="resume-wrapper" style="width:794px;height:1123px;overflow:hidden;position:relative;background:${cream};box-sizing:border-box;margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,0.18);">
+            <div class="resume-scale-target" style="width:794px;padding:0;box-sizing:border-box;font-family:'Palatino Linotype','Book Antiqua','Georgia',serif;color:#2a2a2a;line-height:1.35;transform-origin:top left;">
 
                 <div data-section="profile">
-                    <div style="background:linear-gradient(135deg,#1e3a5f,#2c5f8a);color:#fff;padding:30px 40px 22px;">
-                        <header style="flex-shrink:0;">
-                            <h1 style="margin:0;font-size:24pt;font-weight:700;letter-spacing:0.5px;line-height:1.1;">${data.name}</h1>
-                            <h3 style="margin:4px 0 0;font-size:11pt;font-weight:300;color:#b8d4e8;letter-spacing:1.5px;text-transform:uppercase;line-height:1.2;">${data.title}</h3>
-                            <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:12px;font-size:9pt;color:#d0e0ec;">
-                                ${(data._contact||{}).email !== false && data.email ? `<span style="display:inline-flex;align-items:center;gap:3px;"><span style="opacity:0.7;">${ICONS.email}</span>${data.email}</span>` : ''}
-                                ${(data._contact||{}).phone !== false && data.phone ? `<span style="display:inline-flex;align-items:center;gap:3px;"><span style="opacity:0.7;">${ICONS.phone}</span>${data.phone}</span>` : ''}
-                                ${(data._contact||{}).linkedin !== false && data.linkedin ? `<span style="display:inline-flex;align-items:center;gap:3px;"><span style="opacity:0.7;">${ICONS.linkedin}</span>${data.linkedin}</span>` : ''}
-                                ${(data._contact||{}).github !== false && data.github ? `<span style="display:inline-flex;align-items:center;gap:3px;"><span style="opacity:0.7;">${ICONS.github}</span>${data.github}</span>` : ''}
-                            </div>
-                        </header>
-                    </div>
-                    <div style="padding:18px 40px 0;">
-                        <div style="border-bottom:1px solid #c0a060;margin-bottom:12px;padding-bottom:8px;">
-                            <p data-role="summary" style="margin:0;font-size:9.5pt;text-align:justify;color:#444;">${data.summary}</p>
+                    <!-- Elegant centered name with gold rule -->
+                    <header style="text-align:center;padding:40px 50px 0;flex-shrink:0;">
+                        <h1 style="margin:0;font-size:30pt;font-weight:400;letter-spacing:4px;text-transform:uppercase;color:#2a2a2a;line-height:1.1;">${data.name}</h1>
+                        <div style="width:80px;height:2px;background:${gold};margin:10px auto;"></div>
+                        <h3 style="margin:0;font-size:11pt;font-weight:400;color:#777;letter-spacing:2px;text-transform:uppercase;line-height:1.3;">${data.title}</h3>
+                        <div style="margin-top:10px;display:flex;flex-wrap:wrap;justify-content:center;gap:14px;font-size:9pt;color:#888;">
+                            ${(data._contact||{}).email !== false && data.email ? `<span style="display:inline-flex;align-items:center;gap:3px;"><span style="opacity:0.5;">${ICONS.email}</span>${data.email}</span>` : ''}
+                            ${(data._contact||{}).phone !== false && data.phone ? `<span style="display:inline-flex;align-items:center;gap:3px;"><span style="opacity:0.5;">${ICONS.phone}</span>${data.phone}</span>` : ''}
+                            ${(data._contact||{}).linkedin !== false && data.linkedin ? `<span style="display:inline-flex;align-items:center;gap:3px;"><span style="opacity:0.5;">${ICONS.linkedin}</span>${data.linkedin}</span>` : ''}
+                            ${(data._contact||{}).github !== false && data.github ? `<span style="display:inline-flex;align-items:center;gap:3px;"><span style="opacity:0.5;">${ICONS.github}</span>${data.github}</span>` : ''}
                         </div>
+                    </header>
+                    <div style="padding:14px 50px 0;">
+                        <p data-role="summary" style="margin:0 0 12px;font-size:9.5pt;text-align:center;color:#555;font-style:italic;line-height:1.6;max-width:600px;margin-left:auto;margin-right:auto;">${data.summary}</p>
+                        <hr style="border:none;border-top:1px solid #e0ddd5;margin:0;">
                     </div>
                 </div>
 
-                <div style="padding:0 40px 30px;">
+                <div style="padding:14px 50px 30px;">
 
                     ${S.experience !== false ? `
-                    <section data-role="experience" style="margin-bottom:10px;">
-                        <h4 style="font-size:10.5pt;text-transform:uppercase;color:#1e3a5f;margin:0 0 6px;letter-spacing:1px;border-bottom:1px solid #e8e0d0;padding-bottom:2px;">Professional Experience</h4>
+                    <section data-role="experience" style="margin-bottom:12px;">
+                        <h4 style="font-size:10pt;text-transform:uppercase;letter-spacing:3px;color:${gold};margin:0 0 8px;font-weight:400;">Experience</h4>
                         ${(data.experience||[]).map((exp,i) => `
-                            <div style="margin-bottom:8px;break-inside:avoid;">
-                                <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:10pt;">
-                                    <strong>${exp.role}</strong>
-                                    <span style="display:flex;align-items:center;">
-                                        <span style="font-weight:normal;font-size:9pt;color:#888;">${exp.duration}</span>
-                                                </span>
+                            <div style="margin-bottom:10px;break-inside:avoid;">
+                                <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                                    <strong style="font-size:10.5pt;font-weight:700;">${exp.role}</strong>
+                                    <span style="font-size:9pt;color:#999;font-style:italic;">${exp.duration}</span>
                                 </div>
-                                <div style="font-size:9pt;color:#1e3a5f;font-weight:600;margin-bottom:1px;">${exp.company}</div>
-                                <ul style="margin:0;padding-left:14px;font-size:9pt;color:#444;">
-                                    ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
+                                <div style="font-size:9pt;color:${gold};margin-bottom:2px;">${exp.company}</div>
+                                <ul style="margin:0;padding-left:14px;font-size:9pt;color:#444;list-style-type:none;">
+                                    ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;line-height:1.45;padding-left:8px;border-left:1px solid #e0ddd5;">${pt}</li>`).join('')}
                                 </ul>
                             </div>`).join('')}
                     </section>` : ''}
@@ -703,24 +738,22 @@ const ResumeTemplates = {
                     <div data-section="skills">${skillSections(data,'exec',S)}</div>
 
                     ${S.education !== false ? `
-                    <section data-section="education-cert" style="margin-bottom:7px;break-inside:avoid;">
-                        <h4 style="font-size:10.5pt;text-transform:uppercase;color:#1e3a5f;margin:0 0 5px;letter-spacing:1px;border-bottom:1px solid #e8e0d0;padding-bottom:2px;">Education</h4>
+                    <section data-section="education-cert" style="margin-bottom:8px;break-inside:avoid;">
+                        <h4 style="font-size:10pt;text-transform:uppercase;letter-spacing:3px;color:${gold};margin:0 0 6px;font-weight:400;">Education</h4>
                         ${(data.education||[]).map((ed,i) => `
-                            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1px;font-size:9.5pt;">
+                            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;font-size:9.5pt;">
                                 <strong>${ed.degree}</strong>
-                                <span style="display:flex;align-items:center;">
-                                    <span style="color:#888;">${ed.institution} · ${ed.year}</span>
-                                        </span>
+                                <span style="color:#999;font-style:italic;">${ed.institution}, ${ed.year}</span>
                             </div>`).join('')}
                     </section>` : ''}
 
                     ${S.certifications !== false && (data.certifications||[]).length ? `
                     <section data-section="education-cert" style="break-inside:avoid;">
-                        <h4 style="font-size:10.5pt;text-transform:uppercase;color:#1e3a5f;margin:0 0 5px;letter-spacing:1px;border-bottom:1px solid #e8e0d0;padding-bottom:2px;">Certifications</h4>
+                        <h4 style="font-size:10pt;text-transform:uppercase;letter-spacing:3px;color:${gold};margin:0 0 6px;font-weight:400;">Certifications</h4>
                         ${(data.certifications||[]).map((c,i) => `
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;font-size:9pt;">
-                                <span>${c}</span>
-                                </div>`).join('')}
+                            <div style="font-size:9pt;margin-bottom:3px;color:#555;padding-left:10px;border-left:1px solid ${gold};">
+                                ${c}
+                            </div>`).join('')}
                     </section>` : ''}
                 </div>
 

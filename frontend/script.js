@@ -1392,33 +1392,38 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="background:#ddd;height:2px;width:85%;margin-bottom:1px;border-radius:1px;"></div>
             <div style="background:#ddd;height:2px;width:70%;border-radius:1px;"></div>
           </div>` },
-        { id: 'executive',    name: 'Executive',     tag: 'Sleek & Professional',
-          mini: `<div style="padding:6px 8px;font-family:sans-serif;">
-            <div style="background:#1a1a1a;padding:4px;margin-bottom:4px;border-radius:1px;">
-              <div style="background:#fff;height:4px;width:55%;margin-bottom:2px;border-radius:1px;"></div>
-              <div style="background:rgba(255,255,255,.5);height:2px;width:35%;border-radius:1px;"></div>
+        { id: 'executive',    name: 'Executive',     tag: 'Boardroom Elegant',
+          mini: `<div style="font-family:sans-serif;">
+            <div style="background:#2d2d2d;height:4px;margin-bottom:0;"></div>
+            <div style="padding:5px 8px;">
+              <div style="text-align:center;margin-bottom:3px;">
+                <div style="background:#2d2d2d;height:4px;width:55%;margin:0 auto 2px;border-radius:1px;"></div>
+                <div style="width:20px;height:1px;background:#999;margin:2px auto;"></div>
+                <div style="background:#888;height:2px;width:35%;margin:0 auto;border-radius:1px;"></div>
+              </div>
+              <div style="border-top:1px solid #d0d0d0;margin-bottom:3px;"></div>
+              <div style="background:#ddd;height:2px;width:90%;margin-bottom:2px;border-radius:1px;"></div>
+              <div style="background:#2d2d2d;height:2px;width:40%;margin-bottom:2px;border-radius:1px;"></div>
+              <div style="background:#ddd;height:2px;width:80%;border-radius:1px;"></div>
             </div>
-            <div style="background:#8b6f47;height:2px;width:45%;margin-bottom:3px;border-radius:1px;"></div>
-            <div style="background:#ddd;height:2px;width:90%;margin-bottom:1px;border-radius:1px;"></div>
-            <div style="background:#ddd;height:2px;width:80%;margin-bottom:3px;border-radius:1px;"></div>
-            <div style="background:#8b6f47;height:2px;width:40%;margin-bottom:2px;border-radius:1px;"></div>
-            <div style="background:#ddd;height:2px;width:85%;border-radius:1px;"></div>
           </div>` },
-        { id: 'tech_modern',  name: 'Tech Modern',   tag: 'Clean & Grid-based',
-          mini: `<div style="padding:6px 8px;font-family:sans-serif;">
-            <div style="text-align:center;margin-bottom:3px;">
-              <div style="background:#2c3e50;height:4px;width:50%;margin:0 auto 2px;border-radius:1px;"></div>
-              <div style="background:#7f8c8d;height:2px;width:65%;margin:0 auto;border-radius:1px;"></div>
+        { id: 'tech_modern',  name: 'Bold Modern',   tag: 'Startup / Creative',
+          mini: `<div style="font-family:sans-serif;">
+            <div style="display:flex;">
+              <div style="background:#e8553d;width:55%;padding:5px 6px;">
+                <div style="background:#fff;height:4px;width:65%;margin-bottom:2px;border-radius:1px;"></div>
+                <div style="background:rgba(255,255,255,.6);height:2px;width:45%;border-radius:1px;"></div>
+              </div>
+              <div style="background:#fafafa;width:45%;padding:5px 4px;">
+                <div style="background:#ccc;height:2px;width:80%;margin-bottom:2px;border-radius:1px;"></div>
+                <div style="background:#ccc;height:2px;width:60%;border-radius:1px;"></div>
+              </div>
             </div>
-            <div style="display:flex;gap:3px;margin-bottom:3px;">
-              <div style="background:#3498db;height:2px;flex:1;border-radius:1px;"></div>
-              <div style="background:#2ecc71;height:2px;flex:1;border-radius:1px;"></div>
-              <div style="background:#e67e22;height:2px;flex:1;border-radius:1px;"></div>
+            <div style="padding:3px 6px;">
+              <div style="background:#e8553d;height:2px;width:35%;margin-bottom:2px;border-radius:1px;"></div>
+              <div style="background:#ddd;height:2px;width:85%;margin-bottom:1px;border-radius:1px;"></div>
+              <div style="background:#ddd;height:2px;width:70%;border-radius:1px;"></div>
             </div>
-            <div style="background:#ddd;height:2px;width:90%;margin-bottom:1px;border-radius:1px;"></div>
-            <div style="background:#ddd;height:2px;width:75%;margin-bottom:3px;border-radius:1px;"></div>
-            <div style="background:#2c3e50;height:2px;width:40%;margin-bottom:2px;border-radius:1px;"></div>
-            <div style="background:#ddd;height:2px;width:80%;border-radius:1px;"></div>
           </div>` },
         { id: 'sidebar_pro',  name: 'Sidebar Pro',   tag: 'Two-Column Creative',
           mini: `<div style="display:flex;height:100%;font-family:sans-serif;">
@@ -1436,17 +1441,18 @@ document.addEventListener('DOMContentLoaded', () => {
               <div style="background:#ddd;height:2px;width:80%;border-radius:1px;"></div>
             </div>
           </div>` },
-        { id: 'modern_corporate', name: 'Modern Corporate', tag: 'Dark Header',
+        { id: 'modern_corporate', name: 'Corporate', tag: 'Consulting Style',
           mini: `<div style="font-family:sans-serif;">
-            <div style="background:#1a1a2e;padding:5px 6px 4px;">
-              <div style="background:#fff;height:4px;width:55%;margin-bottom:2px;border-radius:1px;"></div>
-              <div style="background:#a0c4ff;height:2px;width:40%;border-radius:1px;"></div>
-            </div>
-            <div style="padding:4px 6px;">
-              <div style="background:#a0c4ff;height:2px;width:85%;margin-bottom:3px;border-radius:1px;"></div>
-              <div style="background:#1a1a2e;height:2px;width:50%;margin-bottom:2px;border-radius:1px;"></div>
-              <div style="background:#ddd;height:2px;width:90%;margin-bottom:1px;border-radius:1px;"></div>
-              <div style="background:#ddd;height:2px;width:70%;border-radius:1px;"></div>
+            <div style="padding:5px 6px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+                <div><div style="background:#1a1a1a;height:4px;width:40px;margin-bottom:2px;border-radius:1px;"></div><div style="background:#0d7377;height:2px;width:30px;border-radius:1px;"></div></div>
+                <div><div style="background:#ccc;height:2px;width:25px;margin-bottom:1px;border-radius:1px;"></div><div style="background:#ccc;height:2px;width:20px;border-radius:1px;"></div></div>
+              </div>
+              <div style="height:2px;background:#0d7377;margin-bottom:3px;"></div>
+              <div style="background:#ddd;height:2px;width:90%;margin-bottom:2px;border-radius:1px;"></div>
+              <div style="background:#0d7377;height:2px;width:35%;margin-bottom:2px;border-radius:1px;"></div>
+              <div style="background:#ddd;height:2px;width:80%;margin-bottom:1px;border-radius:1px;"></div>
+              <div style="background:#ddd;height:2px;width:65%;border-radius:1px;"></div>
             </div>
           </div>` },
         { id: 'minimal_pro', name: 'Minimal Professional', tag: 'Clean Serif',
@@ -1473,19 +1479,19 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="background:#ddd;height:2px;width:80%;margin-bottom:1px;border-radius:1px;"></div>
             <div style="background:#ddd;height:2px;width:65%;border-radius:1px;"></div>
           </div>` },
-        { id: 'premium_exec', name: 'Premium Executive', tag: 'Gradient Header',
-          mini: `<div style="font-family:sans-serif;">
-            <div style="background:linear-gradient(135deg,#1e3a5f,#2c5f8a);padding:5px 6px 4px;">
-              <div style="background:#fff;height:4px;width:50%;margin-bottom:2px;border-radius:1px;"></div>
-              <div style="background:#b8d4e8;height:2px;width:35%;border-radius:1px;"></div>
+        { id: 'premium_exec', name: 'Editorial', tag: 'Luxury Magazine',
+          mini: `<div style="font-family:sans-serif;background:#fdfcf8;">
+            <div style="padding:5px 8px;text-align:center;">
+              <div style="background:#2a2a2a;height:4px;width:55%;margin:0 auto 2px;border-radius:1px;"></div>
+              <div style="width:18px;height:1px;background:#b8860b;margin:2px auto;"></div>
+              <div style="background:#aaa;height:2px;width:30%;margin:0 auto 2px;border-radius:1px;"></div>
+              <div style="background:#e8e4d9;height:2px;width:70%;margin:0 auto 3px;border-radius:1px;"></div>
+              <div style="border-top:1px solid #e0ddd5;margin-bottom:3px;"></div>
             </div>
-            <div style="padding:4px 6px;">
-              <div style="border-bottom:1px solid #c0a060;margin-bottom:3px;padding-bottom:2px;">
-                <div style="background:#ddd;height:2px;width:85%;border-radius:1px;"></div>
-              </div>
-              <div style="background:#1e3a5f;height:2px;width:45%;margin-bottom:2px;border-radius:1px;"></div>
-              <div style="background:#ddd;height:2px;width:80%;margin-bottom:1px;border-radius:1px;"></div>
-              <div style="background:#ddd;height:2px;width:65%;border-radius:1px;"></div>
+            <div style="padding:0 8px 4px;">
+              <div style="background:#b8860b;height:2px;width:30%;margin-bottom:2px;border-radius:1px;"></div>
+              <div style="background:#ddd;height:2px;width:85%;margin-bottom:1px;border-radius:1px;"></div>
+              <div style="background:#ddd;height:2px;width:70%;border-radius:1px;"></div>
             </div>
           </div>` },
     ];
