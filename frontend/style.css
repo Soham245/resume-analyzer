@@ -517,6 +517,10 @@ select.field-input {
 
 #download-pdf-btn {
     min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
 }
 
 .icon-spinner {
