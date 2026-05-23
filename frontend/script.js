@@ -594,6 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (el.closest(`[data-edit-decorated="${key}"]`)) return;
             el.setAttribute('data-edit-decorated', key);
             el.classList.add('resume-section-hoverable');
+            el.setAttribute('data-edit-label', `Click to edit ${SECTION_LABELS[key]}`);
             if (el.querySelector(':scope > .section-edit-btn')) return;
             const btn = document.createElement('button');
             btn.type = 'button';
@@ -630,13 +631,26 @@ document.addEventListener('DOMContentLoaded', () => {
         drawerBackdrop.setAttribute('aria-hidden', 'true');
     }
 
-    // Delegate hover-icon clicks.
+    // Delegate clicks — entire hoverable section or pencil icon opens drawer.
     resumeDocument.addEventListener('click', (e) => {
+        // Try pencil button first
         const btn = e.target.closest('.section-edit-btn');
-        if (!btn) return;
-        e.preventDefault();
-        e.stopPropagation();
-        openDrawer(btn.dataset.editSection);
+        if (btn) {
+            e.preventDefault();
+            e.stopPropagation();
+            openDrawer(btn.dataset.editSection);
+            return;
+        }
+        // Click anywhere in a hoverable section
+        const section = e.target.closest('.resume-section-hoverable');
+        if (section) {
+            const key = section.getAttribute('data-edit-decorated');
+            if (key) {
+                e.preventDefault();
+                e.stopPropagation();
+                openDrawer(key);
+            }
+        }
     }, true);
 
     editorDrawerClose.addEventListener('click', closeDrawer);
@@ -1776,28 +1790,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── 6. ENTRY FORMS — moved to drawer-based editors (Phase 2) ──────────
 
-    // ── 7. BLOCK CONTROLS (per-entry delete + contact remove) ────────────────
-    resumeDocument.addEventListener('click', (e) => {
-        const btn = e.target.closest('.block-ctrl');
-        if (!btn || !currentStructuredData) return;
-        e.stopPropagation();
-
-        const action = btn.dataset.action;
-        const idx    = parseInt(btn.dataset.index, 10);
-        const field  = btn.dataset.field;
-
-        if (action === 'remove-exp')     currentStructuredData.experience.splice(idx, 1);
-        else if (action === 'remove-proj')  currentStructuredData.projects.splice(idx, 1);
-        else if (action === 'remove-cert')  currentStructuredData.certifications.splice(idx, 1);
-        else if (action === 'remove-edu')   currentStructuredData.education.splice(idx, 1);
-        else if (action === 'remove-contact') {
-            currentStructuredData._contact = currentStructuredData._contact || {};
-            currentStructuredData._contact[field] = false;
-        }
-
-        renderResume();
-        scheduleRescore(200);
-    });
+    // ── 7. BLOCK CONTROLS — removed (editing is now drawer-only) ──────────────
 
     // ── 6. SECTION TOGGLE PILLS ──────────────────────────────────────────────
     document.querySelectorAll('.sec-pill').forEach(btn => {
