@@ -1286,6 +1286,22 @@ select.field-input {
 .resume-scale-target {
     font-size: 16px;
     line-height: 1.25;
+    /* Force the renderer to honor exact font metrics + kerning instead of falling back
+       to a speed-optimized path that can leave a 1-2px pure-white column between bold
+       wide-bearing glyphs (e.g. Arial-Bold "W") and the next character at ~96 DPI. */
+    text-rendering: geometricPrecision;
+    font-kerning: normal;
+    font-feature-settings: "kern" 1;
+    font-variant-ligatures: common-ligatures;
+}
+
+/* Resume content must never break mid-word. Defaults already do this, but make it
+   explicit so no inherited / future rule can introduce break-all / anywhere here. */
+.resume-scale-target,
+.resume-scale-target * {
+    word-break: normal;
+    overflow-wrap: normal;
+    hyphens: manual;
 }
 
 .resume-scale-target h1 {
@@ -1909,4 +1925,703 @@ body.stage-analyzed .app-header {
     background: linear-gradient(90deg, var(--color-primary), #c9a472);
     border-radius: 999px;
     transition: width 0.36s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   23. BUILDER LAYOUT (side-by-side resume + drawer)
+   ───────────────────────────────────────────────────────────────────────── */
+.builder-layout {
+    display: flex;
+    gap: 0;
+    position: relative;
+    min-height: 1200px;
+}
+
+.builder-layout__preview {
+    flex: 1;
+    min-width: 0;
+    transition: margin-right 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.builder-layout__preview.drawer-open {
+    margin-right: 420px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   24. SECTION HOVER EDIT ICONS
+   ───────────────────────────────────────────────────────────────────────── */
+.resume-section-hoverable {
+    position: relative;
+    transition: outline-color 0.18s ease;
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+
+.resume-section-hoverable:hover {
+    outline-color: rgba(139, 111, 71, 0.18);
+}
+
+.section-edit-btn {
+    position: absolute;
+    top: 0px;
+    right: 2px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--color-surface-strong);
+    border: 1px solid var(--color-border);
+    color: var(--color-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.85);
+    transition: opacity 0.18s ease, transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    z-index: 5;
+    box-shadow: 0 2px 8px rgba(69, 48, 28, 0.1);
+}
+
+.section-edit-btn svg {
+    width: 13px;
+    height: 13px;
+}
+
+.resume-section-hoverable:hover .section-edit-btn {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.section-edit-btn:hover {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 14px rgba(139, 111, 71, 0.3);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   25. EDITOR DRAWER (right-side slide-out)
+   ───────────────────────────────────────────────────────────────────────── */
+.editor-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 420px;
+    height: 100vh;
+    background: var(--color-surface);
+    border-left: 1px solid var(--color-border);
+    box-shadow: -8px 0 40px rgba(69, 48, 28, 0.12);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+    overflow: hidden;
+}
+
+.editor-drawer.is-open {
+    transform: translateX(0);
+}
+
+.editor-drawer__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--color-border);
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
+}
+
+.editor-drawer__title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.editor-drawer__count {
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: rgba(139, 111, 71, 0.12);
+    color: var(--color-primary);
+    padding: 2px 8px;
+    border-radius: 999px;
+    line-height: 1.3;
+}
+
+.editor-drawer__close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-strong);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.editor-drawer__close:hover {
+    background: var(--color-surface-muted);
+    color: var(--color-text);
+}
+
+.editor-drawer__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.editor-drawer__panel {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.editor-drawer__panel.is-active {
+    display: flex;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   26. EDITOR PANEL COMPONENTS
+   ───────────────────────────────────────────────────────────────────────── */
+/* Field groups inside drawer panels */
+.editor-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.editor-field-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.editor-field-input {
+    width: 100%;
+    background: var(--color-surface-strong);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 0.875rem;
+    outline: none;
+    font-family: inherit;
+    resize: none;
+}
+
+.editor-field-input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(139, 111, 71, 0.1);
+    background: #fffdfb;
+}
+
+.editor-field-row {
+    display: grid;
+    gap: 10px;
+}
+
+.editor-field-row--2 {
+    grid-template-columns: 1fr 1fr;
+}
+
+.editor-field-row--3 {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+/* Entry cards (for experience/project/education/cert items) */
+.editor-entry-card {
+    background: var(--color-surface-strong);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.editor-entry-card:hover {
+    border-color: var(--color-border-strong);
+    box-shadow: 0 2px 10px rgba(69, 48, 28, 0.06);
+}
+
+.editor-entry-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.editor-entry-card__title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.editor-entry-card__subtitle {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.editor-entry-card__actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.editor-entry-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 0.72rem;
+}
+
+.editor-entry-btn:hover {
+    background: var(--color-surface-muted);
+    color: var(--color-text);
+    border-color: var(--color-border-strong);
+}
+
+.editor-entry-btn--danger:hover {
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+    border-color: rgba(197, 90, 74, 0.3);
+}
+
+/* Add entry button inside drawer */
+.editor-add-btn {
+    width: 100%;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    border: 1.5px dashed var(--color-border-strong);
+    background: transparent;
+    color: var(--color-primary);
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.editor-add-btn:hover {
+    background: rgba(139, 111, 71, 0.06);
+    border-color: var(--color-primary);
+}
+
+/* Inline editor form (appears when adding/editing an entry) */
+.editor-inline-form {
+    background: rgba(139, 111, 71, 0.04);
+    border: 1px solid rgba(139, 111, 71, 0.2);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.editor-inline-form.is-active {
+    display: flex;
+}
+
+.editor-inline-form__actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.editor-inline-form__save {
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    border: 0;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.editor-inline-form__save:hover {
+    background: var(--color-primary-hover);
+}
+
+.editor-inline-form__cancel {
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-strong);
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.editor-inline-form__cancel:hover {
+    background: var(--color-surface-muted);
+}
+
+/* Section separator */
+.editor-section-divider {
+    height: 1px;
+    background: var(--color-border);
+    margin: 4px 0;
+}
+
+/* Sub-section headers inside drawers */
+.editor-sub-header {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* Skill chips inside drawer */
+.editor-skill-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    background: rgba(139, 111, 71, 0.1);
+    color: var(--color-primary);
+    border: 1px solid rgba(139, 111, 71, 0.2);
+}
+
+.editor-skill-chip button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-size: 0.8125rem;
+    line-height: 1;
+    color: inherit;
+    opacity: 0.6;
+}
+
+.editor-skill-chip button:hover {
+    opacity: 1;
+}
+
+.editor-skill-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 28px;
+}
+
+.editor-skill-add-row {
+    display: flex;
+    gap: 6px;
+}
+
+.editor-skill-add-row .editor-field-input {
+    flex: 1;
+}
+
+.editor-skill-add-row button {
+    padding: 0 14px;
+    border-radius: var(--radius-sm);
+    border: 0;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.editor-skill-add-row button:hover {
+    background: var(--color-primary-hover);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   27. TEMPLATE GALLERY
+   ───────────────────────────────────────────────────────────────────────── */
+.template-gallery {
+    display: flex;
+    gap: 12px;
+    padding: 4px 0;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+.template-gallery::-webkit-scrollbar {
+    height: 4px;
+}
+
+.template-gallery::-webkit-scrollbar-thumb {
+    background: rgba(139, 111, 71, 0.3);
+    border-radius: 999px;
+}
+
+.template-card {
+    flex-shrink: 0;
+    width: 130px;
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-strong);
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.template-card:hover {
+    border-color: var(--color-border-strong);
+    box-shadow: 0 4px 16px rgba(69, 48, 28, 0.1);
+    transform: translateY(-2px);
+}
+
+.template-card--active {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(139, 111, 71, 0.2), 0 4px 16px rgba(69, 48, 28, 0.12);
+}
+
+.template-card__preview {
+    height: 90px;
+    background: #f0ebe5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    position: relative;
+}
+
+.template-card__preview-mini {
+    width: 100%;
+    height: 100%;
+    background: white;
+    border-radius: 2px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    gap: 3px;
+    overflow: hidden;
+}
+
+.template-card__preview-mini div {
+    border-radius: 1px;
+}
+
+.template-card__info {
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+}
+
+.template-card__name {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.template-badge {
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.template-badge--free {
+    background: rgba(90, 133, 96, 0.12);
+    color: var(--color-success);
+}
+
+.template-badge--pro {
+    background: rgba(197, 148, 90, 0.15);
+    color: #a17832;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   28. RECOMMENDATION BANNER
+   ───────────────────────────────────────────────────────────────────────── */
+.recommendation-banner {
+    display: none;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    background: rgba(197, 148, 90, 0.08);
+    border: 1px solid rgba(197, 148, 90, 0.25);
+    border-radius: var(--radius-sm);
+    font-size: 0.8125rem;
+    color: #7a5c2e;
+    line-height: 1.45;
+}
+
+.recommendation-banner.is-visible {
+    display: flex;
+}
+
+.recommendation-banner__icon {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    color: var(--color-warning);
+    margin-top: 1px;
+}
+
+.recommendation-banner__text strong {
+    display: block;
+    font-size: 0.84rem;
+    margin-bottom: 2px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   29. SAVE-STATE INDICATOR
+   ───────────────────────────────────────────────────────────────────────── */
+.save-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--color-text-faint);
+    opacity: 0;
+    transition: opacity 0.28s ease, color 0.28s ease;
+    white-space: nowrap;
+}
+
+.save-indicator.is-saving {
+    opacity: 1;
+    color: var(--color-text-muted);
+}
+
+.save-indicator.is-saved {
+    opacity: 1;
+    color: var(--color-success);
+}
+
+.save-indicator__icon {
+    width: 14px;
+    height: 14px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   30. DRAWER OVERLAY BACKDROP
+   ───────────────────────────────────────────────────────────────────────── */
+.drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(45, 37, 32, 0.15);
+    z-index: 49;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+}
+
+.drawer-backdrop.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   31. RESPONSIVE — DRAWER + GALLERY
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+    .editor-drawer {
+        width: 380px;
+    }
+
+    .builder-layout__preview.drawer-open {
+        margin-right: 380px;
+    }
+
+    .template-gallery {
+        gap: 10px;
+    }
+
+    .template-card {
+        width: 115px;
+    }
+
+    .template-card__preview {
+        height: 76px;
+    }
+}
+
+@media (max-width: 768px) {
+    .editor-drawer {
+        width: 100%;
+        max-width: 100vw;
+    }
+
+    .builder-layout__preview.drawer-open {
+        margin-right: 0;
+    }
+
+    .section-edit-btn {
+        right: 2px;
+        width: 24px;
+        height: 24px;
+    }
+
+    .template-gallery {
+        gap: 8px;
+    }
+
+    .template-card {
+        width: 105px;
+    }
+
+    .template-card__preview {
+        height: 64px;
+    }
+
+    .editor-field-row--2,
+    .editor-field-row--3 {
+        grid-template-columns: 1fr;
+    }
 }

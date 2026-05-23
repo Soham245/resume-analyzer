@@ -1,0 +1,18 @@
+diff --git a/.claude/settings.local.json b/.claude/settings.local.json
+index b1606e8..7c241f6 100644
+--- a/.claude/settings.local.json
++++ b/.claude/settings.local.json
+@@ -4,7 +4,12 @@
+       "Bash(python -c \":*)",
+       "Bash(python -c \"import flask; print\\(''flask ok''\\)\")",
+       "Bash(python -c \"import http.server; print\\(''http.server ok''\\)\")",
+-      "mcp__Claude_Preview__preview_start"
++      "mcp__Claude_Preview__preview_start",
++      "Bash(git add *)",
++      "Bash(git commit -m ' *)",
++      "Bash(git push *)",
++      "Bash(gh pr *)",
++      "PowerShell(gh pr list --head claude/sleepy-kilby-6d269f --json url,number,state)"
+     ]
+   }
+ }

@@ -1,0 +1,334 @@
+diff --git a/backend/app.py b/backend/app.py
+index f5471fc..edf7743 100644
+--- a/backend/app.py
++++ b/backend/app.py
+@@ -177,29 +177,35 @@ def optimize_resume():
+         with ai_semaphore:
+             structured_json = optimize_resume_for_jd(raw_text, jd_text, skills, api_key)
+         structured_json['skill_groups'] = filter_and_group_skills(structured_json.get('technical_skills') or [])
+-        
++
+         improved_score_data = scorer.cached_ats_score(structured_json, jd_text)
+-        
+-        # We need to copy the dictionaries since cached results shouldn't be mutated
++
++        # Copy so we don't mutate cached results.
+         initial_score_data = dict(initial_score_data)
+         improved_score_data = dict(improved_score_data)
+ 
+-        max_boost = min(25, int(initial_score_data.get("score", 0) * 0.4))
+-        improvement = improved_score_data.get("score", 0) - initial_score_data.get("score", 0)
+-        improvement = min(improvement, max_boost)
+-        improvement = max(0, improvement)
+-        
+-        improved_score_data["score"] = initial_score_data.get("score", 0) + improvement
++        # Honest improvement = optimized minus original, floored at 0 so the UI
++        # never shows a negative delta (which would be confusing for users
++        # whose original keyword-only score happened to outscore the
++        # post-optimization full breakdown). The displayed total now matches
++        # the sum of the breakdown categories.
++        improvement = max(
++            0,
++            improved_score_data.get("score", 0) - initial_score_data.get("score", 0),
++        )
+ 
+         exp_count = len(structured_json.get("experience", []))
+         proj_count = len(structured_json.get("projects", []))
+-        
++
+         logger.info({
+             "experience_count": exp_count,
+             "project_limit": proj_count,
+             "initial_score": initial_score_data["score"],
++            "initial_breakdown": initial_score_data.get("breakdown"),
+             "final_score": improved_score_data["score"],
+-            "improvement": improvement
++            "final_breakdown": improved_score_data.get("breakdown"),
++            "confidence": improved_score_data.get("confidence"),
++            "improvement": improvement,
+         })
+ 
+         response_payload = {
+diff --git a/frontend/script.js b/frontend/script.js
+index 0722dd0..e9cbcc0 100644
+--- a/frontend/script.js
++++ b/frontend/script.js
+@@ -1,3 +1,110 @@
++// ── Skill display casing ─────────────────────────────────────────────────
++// The backend / AI sometimes returns skills lower-cased ("firebase", "flask").
++// Apply a brand-name lookup first, then fall back to capitalising the first
++// letter of each word. Covers technical skills, soft skills, languages, and
++// project tech_stack lists — used at every data-ingress point so chips AND
++// the rendered resume preview/PDF stay consistent.
++const SKILL_BRAND_CASE = {
++    'javascript': 'JavaScript', 'typescript': 'TypeScript',
++    'nodejs': 'Node.js', 'node.js': 'Node.js', 'node': 'Node.js',
++    'reactjs': 'React', 'react.js': 'React', 'react': 'React',
++    'react native': 'React Native',
++    'vuejs': 'Vue.js', 'vue.js': 'Vue.js', 'vue': 'Vue.js',
++    'nextjs': 'Next.js', 'next.js': 'Next.js',
++    'nuxtjs': 'Nuxt.js', 'nuxt.js': 'Nuxt.js',
++    'expressjs': 'Express.js', 'express.js': 'Express.js', 'express': 'Express.js',
++    'angularjs': 'Angular', 'angular.js': 'Angular',
++    'nestjs': 'Nest.js', 'nest.js': 'Nest.js',
++    'mongodb': 'MongoDB', 'mysql': 'MySQL', 'postgresql': 'PostgreSQL',
++    'postgres': 'PostgreSQL', 'sqlite': 'SQLite', 'mariadb': 'MariaDB',
++    'dynamodb': 'DynamoDB', 'couchdb': 'CouchDB', 'influxdb': 'InfluxDB',
++    'tensorflow': 'TensorFlow', 'pytorch': 'PyTorch',
++    'scikit-learn': 'scikit-learn', 'sklearn': 'scikit-learn',
++    'numpy': 'NumPy', 'pandas': 'pandas', 'scipy': 'SciPy',
++    'github': 'GitHub', 'gitlab': 'GitLab', 'bitbucket': 'Bitbucket',
++    'github actions': 'GitHub Actions', 'gitlab ci': 'GitLab CI',
++    'graphql': 'GraphQL',
++    'restful': 'REST APIs', 'rest api': 'REST API', 'rest apis': 'REST APIs',
++    'aws': 'AWS', 'gcp': 'GCP', 'azure': 'Azure',
++    'html': 'HTML', 'html5': 'HTML', 'css': 'CSS', 'css3': 'CSS',
++    'sql': 'SQL', 'nosql': 'NoSQL',
++    'jquery': 'jQuery', 'php': 'PHP',
++    'tailwindcss': 'Tailwind CSS', 'tailwind css': 'Tailwind CSS', 'tailwind': 'Tailwind CSS',
++    'fastapi': 'FastAPI', 'spring boot': 'Spring Boot',
++    'ci/cd': 'CI/CD', 'nlp': 'NLP', 'ml': 'Machine Learning', 'dl': 'Deep Learning',
++    'machine learning': 'Machine Learning', 'deep learning': 'Deep Learning',
++    'api': 'API', 'apis': 'APIs',
++    'ui': 'UI', 'ux': 'UX', 'ui/ux': 'UI/UX',
++    'ios': 'iOS', 'macos': 'macOS', 'os': 'OS',
++    'oop': 'OOP', 'oops': 'OOP',
++    'devops': 'DevOps', 'devsecops': 'DevSecOps',
++    'json': 'JSON', 'xml': 'XML', 'yaml': 'YAML', 'csv': 'CSV',
++    'tcp/ip': 'TCP/IP', 'http': 'HTTP', 'https': 'HTTPS',
++    'jwt': 'JWT', 'oauth': 'OAuth', 'oauth2': 'OAuth2',
++    'pwa': 'PWA', 'spa': 'SPA', 'ssr': 'SSR',
++    'wcag': 'WCAG', 'seo': 'SEO',
++    'c++': 'C++', 'c#': 'C#', 'objective-c': 'Objective-C',
++    'matlab': 'MATLAB',
++    'aws lambda': 'AWS Lambda', 'aws s3': 'AWS S3', 'aws ec2': 'AWS EC2',
++};
++
++function formatSkillLabel(skill) {
++    if (skill == null) return skill;
++    const trimmed = String(skill).trim();
++    if (!trimmed) return trimmed;
++    const lower = trimmed.toLowerCase();
++    if (SKILL_BRAND_CASE[lower]) return SKILL_BRAND_CASE[lower];
++    // If the value already has any uppercase letter, assume the source cased
++    // it deliberately and leave it alone (e.g. "FastAPI" returned by backend).
++    if (trimmed !== lower) return trimmed;
++    // All-lowercase fallback: capitalise the first letter of every word.
++    return lower.replace(/(^|[\s\-/])([a-z])/g, (_, sep, ch) => sep + ch.toUpperCase());
++}
++
++function formatSkillList(arr) {
++    if (!Array.isArray(arr)) return arr;
++    const seen = new Set();
++    const out = [];
++    for (const item of arr) {
++        const formatted = formatSkillLabel(item);
++        if (!formatted) continue;
++        const key = formatted.toLowerCase();
++        if (seen.has(key)) continue;
++        seen.add(key);
++        out.push(formatted);
++    }
++    return out;
++}
++
++function normalizeSkillCasing(data) {
++    if (!data || typeof data !== 'object') return data;
++    if (Array.isArray(data.technical_skills)) data.technical_skills = formatSkillList(data.technical_skills);
++    if (Array.isArray(data.soft_skills))      data.soft_skills      = formatSkillList(data.soft_skills);
++    if (Array.isArray(data.languages))        data.languages        = formatSkillList(data.languages);
++    if (data.skill_groups && typeof data.skill_groups === 'object') {
++        for (const k of Object.keys(data.skill_groups)) {
++            if (Array.isArray(data.skill_groups[k])) {
++                data.skill_groups[k] = formatSkillList(data.skill_groups[k]);
++            }
++        }
++    }
++    if (Array.isArray(data.projects)) {
++        for (const p of data.projects) {
++            if (p && Array.isArray(p.tech_stack)) p.tech_stack = formatSkillList(p.tech_stack);
++        }
++    }
++    return data;
++}
++
++function normalizeSkillBuckets(buckets) {
++    if (!buckets || typeof buckets !== 'object') return buckets;
++    return {
++        technical: formatSkillList(buckets.technical || []),
++        soft:      formatSkillList(buckets.soft || []),
++        languages: formatSkillList(buckets.languages || []),
++    };
++}
++
+ // ── Client-side skill filtering + grouping (mirrors backend filter_and_group_skills) ──
+ // Runs immediately on every data set so skill_groups is always populated,
+ // even when the Flask server hasn't been restarted with the new backend code.
+@@ -124,13 +231,18 @@ document.addEventListener('DOMContentLoaded', () => {
+         technical: true,  soft: true,     languages: true,
+     };
+ 
+-    // ── Single setter: always computes skill_groups so templates always show grouped skills ──
++    // ── Single setter: normalises skill casing, ensures skill_groups exists ──
+     function setCurrentData(data) {
+-        currentStructuredData = data;
+-        // Always compute groups client-side; backend value takes precedence if present
++        currentStructuredData = normalizeSkillCasing(data);
+         if (!currentStructuredData.skill_groups || !Object.keys(currentStructuredData.skill_groups).length) {
+             currentStructuredData.skill_groups = filterAndGroupSkills(currentStructuredData.technical_skills || []);
+         }
++        // Re-normalise after grouping in case filterAndGroupSkills emitted lower-cased entries.
++        if (currentStructuredData.skill_groups && typeof currentStructuredData.skill_groups === 'object') {
++            for (const k of Object.keys(currentStructuredData.skill_groups)) {
++                currentStructuredData.skill_groups[k] = formatSkillList(currentStructuredData.skill_groups[k] || []);
++            }
++        }
+         console.log('[setCurrentData] skill_groups:', JSON.stringify(currentStructuredData.skill_groups));
+     }
+ 
+@@ -154,7 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
+             background:${style.bg};color:${style.color};border:1px solid ${style.border};`;
+ 
+         const label = document.createElement('span');
+-        label.textContent = text;
++        label.textContent = formatSkillLabel(text);
+         badge.appendChild(label);
+ 
+         if (onRemove) {
+@@ -371,10 +483,11 @@ document.addEventListener('DOMContentLoaded', () => {
+ 
+     // ── Add skill ────────────────────────────────────────────────────────────
+     addSkillBtn.addEventListener('click', () => {
+-        const val = newSkillInput.value.trim();
++        const raw = newSkillInput.value.trim();
+         const cat = newSkillCategory.value;
+-        if (val && !currentSkills[cat].map(s => s.toLowerCase()).includes(val.toLowerCase())) {
+-            currentSkills[cat].push(val);
++        const formatted = formatSkillLabel(raw);
++        if (formatted && !currentSkills[cat].map(s => s.toLowerCase()).includes(formatted.toLowerCase())) {
++            currentSkills[cat].push(formatted);
+             newSkillInput.value = '';
+             renderUserSkills();
+         }
+@@ -424,14 +537,10 @@ document.addEventListener('DOMContentLoaded', () => {
+             if (requestId !== latestRequestIds.analyze) return;
+ 
+             savedRawText  = data.raw_text;
+-            currentSkills = {
+-                technical: data.resume_skills?.technical || [],
+-                soft:      data.resume_skills?.soft      || [],
+-                languages: data.resume_skills?.languages || [],
+-            };
++            currentSkills = normalizeSkillBuckets(data.resume_skills);
+ 
+             renderUserSkills();
+-            renderJdSkills(data.jd_skills || {});
++            renderJdSkills(normalizeSkillBuckets(data.jd_skills));
+             renderSuggestions(data.suggestions || []);
+ 
+             resultsSection.classList.remove('hidden');
+@@ -498,11 +607,22 @@ document.addEventListener('DOMContentLoaded', () => {
+                 throw new Error(payload.error || `Server error ${res.status}`);
+             }
+ 
+-            console.log('ATS Score Improved:', payload.original_score, '->', payload.optimized_score, '(+', payload.improvement, ')');
++            console.groupCollapsed('[ATS] /optimize result');
++            console.log('original:', payload.original_score);
++            console.log('optimized:', payload.optimized_score);
++            console.log('improvement:', payload.improvement, ' confidence:', payload.confidence);
++            console.log('breakdown(optimized):', payload.optimized_score?.breakdown);
++            console.log('insights:', payload.insights);
++            console.groupEnd();
+             if (payload.original_score) {
+                 setTimeout(() => updateScoreCard(payload), 120);
+             }
+             setCurrentData(payload.resume || payload);
++            currentSkills = normalizeSkillBuckets({
++                technical: currentStructuredData?.technical_skills,
++                soft:      currentStructuredData?.soft_skills,
++                languages: currentStructuredData?.languages,
++            });
+             builderSection.classList.remove('hidden');
+             renderResume();
+             requestAnimationFrame(() => autoFitPage()); // re-measure now section is visible
+@@ -630,7 +750,7 @@ document.addEventListener('DOMContentLoaded', () => {
+             languages.length ? `Languages: ${languages.join(', ')}`        : '',
+         ].filter(Boolean).join('\n\n');
+ 
+-        currentSkills = { technical, soft, languages };
++        currentSkills = normalizeSkillBuckets({ technical, soft, languages });
+         savedJdText   = jdText;
+ 
+         errorMessage.classList.add('hidden');
+@@ -656,7 +776,7 @@ document.addEventListener('DOMContentLoaded', () => {
+                 if (requestId !== latestRequestIds.manual) return;
+                 if (!analysisRes.ok) throw new Error(analysisData.error || `Analysis error ${analysisRes.status}`);
+ 
+-                renderManualAnalysis(currentSkills, analysisData.jd_skills || {});
++                renderManualAnalysis(currentSkills, normalizeSkillBuckets(analysisData.jd_skills));
+                 renderManualSuggestions(analysisData.suggestions || []);
+                 manualAnalysisSection.classList.remove('hidden');
+                 manualAnalysisSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+@@ -679,11 +799,21 @@ document.addEventListener('DOMContentLoaded', () => {
+                 if (requestId !== latestRequestIds.manual) return;
+                 if (!optimizeRes.ok) throw new Error(optimizePayload.error || `Optimize error ${optimizeRes.status}`);
+ 
+-                console.log('ATS Score Improved:', optimizePayload.original_score, '->', optimizePayload.optimized_score, '(+', optimizePayload.improvement, ')');
++                console.groupCollapsed('[ATS] manual optimize result');
++                console.log('original:', optimizePayload.original_score);
++                console.log('optimized:', optimizePayload.optimized_score);
++                console.log('improvement:', optimizePayload.improvement, ' confidence:', optimizePayload.confidence);
++                console.log('breakdown(optimized):', optimizePayload.optimized_score?.breakdown);
++                console.groupEnd();
+                 if (optimizePayload.original_score) {
+                     setTimeout(() => updateScoreCard(optimizePayload), 120);
+                 }
+                 setCurrentData(optimizePayload.resume || optimizePayload);
++                currentSkills = normalizeSkillBuckets({
++                    technical: currentStructuredData?.technical_skills,
++                    soft:      currentStructuredData?.soft_skills,
++                    languages: currentStructuredData?.languages,
++                });
+ 
+             } else {
+                 // ── No JD: generate plain resume from inputs ──────────────────
+@@ -698,11 +828,11 @@ document.addEventListener('DOMContentLoaded', () => {
+                 if (!res.ok) throw new Error(payload.error || `Server error ${res.status}`);
+ 
+                 setCurrentData(payload);
+-                currentSkills = {
+-                    technical: payload.technical_skills || [],
+-                    soft:      payload.soft_skills      || [],
+-                    languages: payload.languages        || [],
+-                };
++                currentSkills = normalizeSkillBuckets({
++                    technical: currentStructuredData?.technical_skills,
++                    soft:      currentStructuredData?.soft_skills,
++                    languages: currentStructuredData?.languages,
++                });
+             }
+ 
+             builderSection.classList.remove('hidden');
+@@ -788,11 +918,21 @@ document.addEventListener('DOMContentLoaded', () => {
+             if (requestId !== latestRequestIds.builder) return;
+             if (!res.ok) throw new Error(payload.error || `Server error ${res.status}`);
+ 
+-            console.log('ATS Score Improved:', payload.original_score, '->', payload.optimized_score, '(+', payload.improvement, ')');
++            console.groupCollapsed('[ATS] builder optimize result');
++            console.log('original:', payload.original_score);
++            console.log('optimized:', payload.optimized_score);
++            console.log('improvement:', payload.improvement, ' confidence:', payload.confidence);
++            console.log('breakdown(optimized):', payload.optimized_score?.breakdown);
++            console.groupEnd();
+             if (payload.original_score) {
+                 setTimeout(() => updateScoreCard(payload), 120);
+             }
+             setCurrentData(payload.resume || payload);
++            currentSkills = normalizeSkillBuckets({
++                technical: currentStructuredData?.technical_skills,
++                soft:      currentStructuredData?.soft_skills,
++                languages: currentStructuredData?.languages,
++            });
+             renderResume();
+ 
+             // Collapse the JD panel after success

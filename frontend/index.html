@@ -629,11 +629,27 @@
                     </div>
                 </div>
 
-                <div class="resume-frame">
-                    <div id="resume-document"></div>
+                <div id="builder-preview" class="builder-layout__preview">
+                    <div class="resume-frame">
+                        <div id="resume-document"></div>
+                    </div>
                 </div>
             </section>
         </section><!-- /main-results-wrapper -->
+
+        <!-- ─────────────────────────────────────────────────────────────
+             EDITOR DRAWER (slide-out from right; populated per section)
+             ───────────────────────────────────────────────────────────── -->
+        <div id="drawer-backdrop" class="drawer-backdrop" aria-hidden="true"></div>
+        <aside id="editor-drawer" class="editor-drawer" aria-hidden="true" aria-labelledby="editor-drawer-title" role="dialog">
+            <header class="editor-drawer__header">
+                <h2 id="editor-drawer-title" class="editor-drawer__title">Edit section</h2>
+                <button type="button" id="editor-drawer-close" class="editor-drawer__close" aria-label="Close editor">×</button>
+            </header>
+            <div id="editor-drawer-body" class="editor-drawer__body custom-scrollbar">
+                <p style="color:var(--color-text-muted);font-size:0.85rem;margin:0;">Hover any section in the resume and click the pencil icon to edit it here. Consolidated editors arrive in the next phase.</p>
+            </div>
+        </aside>
     </main>
 
     <script src="templates.js"></script>

@@ -5,6 +5,7 @@ node_modules/
 dist/
 build/
 *.log
+tests/
 
 # Local SQLite skill registry (created at runtime)
 backend/database/*.db

@@ -205,17 +205,17 @@ const ResumeTemplates = {
         <div class="resume-wrapper" style="width:794px;height:1123px;overflow:hidden;position:relative;background:white;box-sizing:border-box;margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,0.18);">
             <div class="resume-scale-target" style="width:794px;padding:40px;box-sizing:border-box;font-family:'Times New Roman',serif;color:#111;line-height:1.25;transform-origin:top left;">
 
-                <header style="text-align:center;border-bottom:1.5px solid #111;padding-bottom:6px;margin-bottom:8px;flex-shrink:0;">
+                <header data-section="profile" style="text-align:center;border-bottom:1.5px solid #111;padding-bottom:6px;margin-bottom:8px;flex-shrink:0;">
                     <h1 contenteditable="true" style="margin:0;font-size:23pt;text-transform:uppercase;line-height:1.1;" data-bind="name">${data.name}</h1>
                     <h3 contenteditable="true" style="margin:2px 0 0;font-size:12pt;font-weight:normal;line-height:1.2;" data-bind="title">${data.title}</h3>
                     ${contactBlock(data, 'ats')}
                 </header>
 
-                <section data-role="summary" style="margin-bottom:6px;">
+                <section data-role="summary" data-section="profile" style="margin-bottom:6px;">
                     <p contenteditable="true" style="margin:0;text-align:justify;font-size:9.5pt;" data-bind="summary">${data.summary}</p>
                 </section>
 
-                ${skillSections(data, 'ats', S)}
+                <div data-section="skills">${skillSections(data, 'ats', S)}</div>
 
                 ${S.experience !== false ? `
                 <section data-role="experience" style="margin-bottom:8px;">
@@ -239,7 +239,7 @@ const ResumeTemplates = {
                 ${S.projects !== false ? projectsBlock(data.projects,'ats') : ''}
 
                 ${S.education !== false ? `
-                <section style="margin-bottom:8px;break-inside:avoid;">
+                <section data-section="education-cert" style="margin-bottom:8px;break-inside:avoid;">
                     <h4 contenteditable="true" style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 5px;">Education</h4>
                     ${(data.education||[]).map((ed,i) => `
                         <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:9.5pt;margin-bottom:1px;">
@@ -252,7 +252,7 @@ const ResumeTemplates = {
                 </section>` : ''}
 
                 ${S.certifications !== false && (data.certifications||[]).length ? `
-                <section style="break-inside:avoid;">
+                <section data-section="education-cert" style="break-inside:avoid;">
                     <h4 contenteditable="true" style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 5px;">Certifications & Achievements</h4>
                     ${(data.certifications||[]).map((c,i) => `
                         <div style="display:flex;align-items:center;font-size:9pt;margin-bottom:1px;gap:3px;">
@@ -272,13 +272,13 @@ const ResumeTemplates = {
         <div class="resume-wrapper" style="width:794px;height:1123px;overflow:hidden;position:relative;background:white;box-sizing:border-box;margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,0.18);">
             <div class="resume-scale-target" style="width:794px;padding:40px;box-sizing:border-box;font-family:Arial,sans-serif;color:#222;line-height:1.25;transform-origin:top left;">
 
-                <header style="margin-bottom:10px;border-left:5px solid #2563eb;padding-left:12px;flex-shrink:0;">
+                <header data-section="profile" style="margin-bottom:10px;border-left:5px solid #2563eb;padding-left:12px;flex-shrink:0;">
                     <h1 contenteditable="true" style="margin:0;font-size:23pt;color:#1e293b;line-height:1.1;" data-bind="name">${data.name}</h1>
                     <h3 contenteditable="true" style="margin:1px 0 0;font-size:13pt;color:#2563eb;line-height:1.2;" data-bind="title">${data.title}</h3>
                     ${contactBlock(data, 'exec')}
                 </header>
 
-                <p contenteditable="true" data-role="summary" style="margin:0 0 8px;text-align:justify;font-size:9.5pt;color:#334155;" data-bind="summary">${data.summary}</p>
+                <p contenteditable="true" data-role="summary" data-section="profile" style="margin:0 0 8px;text-align:justify;font-size:9.5pt;color:#334155;" data-bind="summary">${data.summary}</p>
 
                 ${S.experience !== false ? `
                 <section data-role="experience" style="margin-bottom:8px;">
@@ -301,10 +301,10 @@ const ResumeTemplates = {
 
                 ${S.projects !== false ? projectsBlock(data.projects,'exec') : ''}
 
-                ${skillSections(data,'exec',S)}
+                <div data-section="skills">${skillSections(data,'exec',S)}</div>
 
                 ${S.education !== false ? `
-                <section style="margin-bottom:7px;break-inside:avoid;">
+                <section data-section="education-cert" style="margin-bottom:7px;break-inside:avoid;">
                     <h4 contenteditable="true" style="font-size:11pt;color:#1e293b;border-bottom:2px solid #e2e8f0;margin:0 0 5px;padding-bottom:2px;text-transform:uppercase;">Education</h4>
                     ${(data.education||[]).map((ed,i) => `
                         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1px;font-size:9.5pt;color:#334155;">
@@ -314,7 +314,7 @@ const ResumeTemplates = {
                 </section>` : ''}
 
                 ${S.certifications !== false && (data.certifications||[]).length ? `
-                <section style="break-inside:avoid;">
+                <section data-section="education-cert" style="break-inside:avoid;">
                     <h4 contenteditable="true" style="font-size:11pt;color:#1e293b;border-bottom:2px solid #e2e8f0;margin:0 0 5px;padding-bottom:2px;text-transform:uppercase;">Certifications & Achievements</h4>
                     ${(data.certifications||[]).map((c,i) => `
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;font-size:9pt;color:#334155;">
@@ -334,13 +334,13 @@ const ResumeTemplates = {
         <div class="resume-wrapper" style="width:794px;height:1123px;overflow:hidden;position:relative;background:white;box-sizing:border-box;margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,0.18);">
             <div class="resume-scale-target" style="width:794px;padding:40px;box-sizing:border-box;font-family:sans-serif;color:#1e293b;line-height:1.25;transform-origin:top left;">
 
-                <div style="border-left:4px solid #10b981;padding-left:12px;margin-bottom:10px;flex-shrink:0;">
+                <div data-section="profile" style="border-left:4px solid #10b981;padding-left:12px;margin-bottom:10px;flex-shrink:0;">
                     <h1 contenteditable="true" style="margin:0;font-size:23pt;font-weight:800;line-height:1.1;" data-bind="name">${data.name}</h1>
                     <h3 contenteditable="true" style="margin:1px 0 0;font-size:12pt;color:#10b981;text-transform:uppercase;letter-spacing:1px;line-height:1.2;" data-bind="title">${data.title}</h3>
                     ${contactBlock(data, 'tech')}
                 </div>
 
-                <p contenteditable="true" data-role="summary" style="margin:0 0 8px;font-size:9.5pt;text-align:justify;" data-bind="summary">${data.summary}</p>
+                <p contenteditable="true" data-role="summary" data-section="profile" style="margin:0 0 8px;font-size:9.5pt;text-align:justify;" data-bind="summary">${data.summary}</p>
 
                 ${S.experience !== false ? `
                 <div data-role="experience" style="margin-bottom:8px;">
@@ -362,10 +362,10 @@ const ResumeTemplates = {
 
                 ${S.projects !== false ? projectsBlock(data.projects,'tech') : ''}
 
-                ${skillSections(data,'tech',S)}
+                <div data-section="skills">${skillSections(data,'tech',S)}</div>
 
                 ${S.education !== false ? `
-                <div style="margin-bottom:7px;">
+                <div data-section="education-cert" style="margin-bottom:7px;">
                     <h4 contenteditable="true" style="color:#10b981;text-transform:uppercase;font-size:10pt;border-bottom:1px solid #e2e8f0;padding-bottom:2px;margin:0 0 5px;">Education</h4>
                     ${(data.education||[]).map((ed,i) => `
                         <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:9.5pt;margin-bottom:1px;">
@@ -375,7 +375,7 @@ const ResumeTemplates = {
                 </div>` : ''}
 
                 ${S.certifications !== false && (data.certifications||[]).length ? `
-                <section style="break-inside:avoid;">
+                <section data-section="education-cert" style="break-inside:avoid;">
                     <h4 contenteditable="true" style="color:#10b981;text-transform:uppercase;font-size:10pt;border-bottom:1px solid #e2e8f0;padding-bottom:2px;margin:0 0 5px;">Certifications & Achievements</h4>
                     ${(data.certifications||[]).map((c,i) => `
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;font-size:9pt;">
@@ -397,23 +397,25 @@ const ResumeTemplates = {
 
                 <!-- Sidebar (28%) -->
                 <div class="t4-sidebar">
-                    <h1 contenteditable="true" data-bind="name" style="font-size:25pt;font-weight:700;line-height:1.15;margin:0 0 4px;color:#f8fafc;">${data.name}</h1>
-                    <p contenteditable="true" data-bind="title" style="font-size:10.5pt;color:#94a3b8;font-weight:400;margin:0 0 14px;line-height:1.3;">${data.title}</p>
+                    <div data-section="profile">
+                        <h1 contenteditable="true" data-bind="name" style="font-size:25pt;font-weight:700;line-height:1.15;margin:0 0 4px;color:#f8fafc;">${data.name}</h1>
+                        <p contenteditable="true" data-bind="title" style="font-size:10.5pt;color:#94a3b8;font-weight:400;margin:0 0 14px;line-height:1.3;">${data.title}</p>
 
-                    <div class="t4-sb-section">
-                        <h4 style="text-transform:uppercase;font-size:9pt;letter-spacing:0.5px;color:#cbd5e1;border-bottom:1px solid #334155;margin:0 0 6px;padding-bottom:3px;">Contact</h4>
-                        <div style="font-size:9.5pt;color:#94a3b8;">
-                            ${contactBlock(data,'sidebar')}
+                        <div class="t4-sb-section">
+                            <h4 style="text-transform:uppercase;font-size:9pt;letter-spacing:0.5px;color:#cbd5e1;border-bottom:1px solid #334155;margin:0 0 6px;padding-bottom:3px;">Contact</h4>
+                            <div style="font-size:9.5pt;color:#94a3b8;">
+                                ${contactBlock(data,'sidebar')}
+                            </div>
                         </div>
                     </div>
 
-                    ${skillSections(data,'sidebar',S)}
+                    <div data-section="skills">${skillSections(data,'sidebar',S)}</div>
                 </div>
 
                 <!-- Main content (72%) -->
                 <div class="t4-main">
 
-                    <div data-role="summary" class="t4-section">
+                    <div data-role="summary" data-section="profile" class="t4-section">
                         <h4 class="t4-section-head">Profile</h4>
                         <p contenteditable="true" data-bind="summary" style="margin:0;font-size:10.5pt;line-height:1.45;text-align:justify;">${data.summary}</p>
                     </div>
@@ -441,7 +443,7 @@ const ResumeTemplates = {
                     ${S.projects !== false ? projectsBlock(data.projects,'sidebar') : ''}
 
                     ${S.education !== false && (data.education||[]).length ? `
-                    <div class="t4-section">
+                    <div class="t4-section" data-section="education-cert">
                         <h4 class="t4-section-head">Education</h4>
                         ${(data.education||[]).map((ed,i) => `
                         <div style="margin-bottom:6px;">
@@ -456,7 +458,7 @@ const ResumeTemplates = {
                     </div>` : ''}
 
                     ${S.certifications !== false && (data.certifications||[]).length ? `
-                    <div class="t4-section">
+                    <div class="t4-section" data-section="education-cert">
                         <h4 class="t4-section-head">Certifications & Achievements</h4>
                         ${(data.certifications||[]).map((c,i) => `
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;font-size:10pt;">

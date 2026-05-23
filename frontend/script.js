@@ -571,8 +571,109 @@ document.addEventListener('DOMContentLoaded', () => {
         const tpl = templateSelect.value || 'ats_classic';
         resumeDocument.style.cssText = 'display:flex;flex-direction:column;align-items:center;width:100%;padding:0;background:transparent;';
         resumeDocument.innerHTML = ResumeTemplates[tpl](currentStructuredData, activeSections);
+        decorateEditableSections();
         autoFitPage();
     }
+
+    // ── Editor drawer + hover-edit affordances ──────────────────────────────
+    // Drawer body is populated by per-section panel renderers (Phase 2+).
+    // Phase 1 ships only the open/close plumbing and the hover pencil icon.
+    const editorDrawer       = document.getElementById('editor-drawer');
+    const editorDrawerBody   = document.getElementById('editor-drawer-body');
+    const editorDrawerTitle  = document.getElementById('editor-drawer-title');
+    const editorDrawerClose  = document.getElementById('editor-drawer-close');
+    const drawerBackdrop     = document.getElementById('drawer-backdrop');
+    const builderPreview     = document.getElementById('builder-preview');
+
+    const SECTION_LABELS = {
+        profile:          'Profile',
+        experience:       'Experience',
+        projects:         'Projects',
+        skills:           'Skills',
+        'education-cert': 'Education & Certifications',
+    };
+    // Sections that have a real editor panel registered. Anything else still
+    // opens the drawer but renders the Phase-1 placeholder.
+    const sectionPanels = {};
+
+    const PENCIL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
+
+    // Map an element's data-* attributes to a canonical section key.
+    function sectionKeyFor(el) {
+        if (!el) return null;
+        if (el.dataset.section) return el.dataset.section;
+        const role = el.dataset.role;
+        if (role === 'experience' || role === 'projects') return role;
+        if (role === 'summary') return 'profile';
+        return null;
+    }
+
+    // After every render, find each top-level editable section and bolt on a
+    // hover-revealed pencil icon. Dedupes by checking for an existing button
+    // so re-renders don't accumulate.
+    function decorateEditableSections() {
+        const targets = resumeDocument.querySelectorAll('[data-section], [data-role="experience"], [data-role="projects"]');
+        targets.forEach(el => {
+            const key = sectionKeyFor(el);
+            if (!key || !SECTION_LABELS[key]) return;
+            // Only decorate the outermost match for each key — avoid stacking
+            // pencils on nested data-section duplicates (e.g., summary inside profile group).
+            if (el.closest(`[data-edit-decorated="${key}"]`)) return;
+            el.setAttribute('data-edit-decorated', key);
+            el.classList.add('resume-section-hoverable');
+            if (el.querySelector(':scope > .section-edit-btn')) return;
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'section-edit-btn';
+            btn.setAttribute('aria-label', `Edit ${SECTION_LABELS[key]}`);
+            btn.dataset.editSection = key;
+            btn.innerHTML = PENCIL_SVG;
+            el.appendChild(btn);
+        });
+    }
+
+    function openDrawer(sectionKey) {
+        const label = SECTION_LABELS[sectionKey] || 'Edit section';
+        editorDrawerTitle.textContent = label;
+        // If a panel is registered for this section, let it own the body.
+        // Otherwise show a friendly placeholder (Phase 1 state).
+        if (typeof sectionPanels[sectionKey] === 'function') {
+            sectionPanels[sectionKey](editorDrawerBody);
+        } else {
+            editorDrawerBody.innerHTML =
+                `<p style="color:var(--color-text-muted);font-size:0.85rem;margin:0;">` +
+                `The <strong>${label}</strong> editor will open here in the next phase.</p>`;
+        }
+        editorDrawer.classList.add('is-open');
+        editorDrawer.setAttribute('aria-hidden', 'false');
+        drawerBackdrop.classList.add('is-visible');
+        drawerBackdrop.setAttribute('aria-hidden', 'false');
+        if (builderPreview) builderPreview.classList.add('drawer-open');
+    }
+
+    function closeDrawer() {
+        editorDrawer.classList.remove('is-open');
+        editorDrawer.setAttribute('aria-hidden', 'true');
+        drawerBackdrop.classList.remove('is-visible');
+        drawerBackdrop.setAttribute('aria-hidden', 'true');
+        if (builderPreview) builderPreview.classList.remove('drawer-open');
+    }
+
+    // Delegate hover-icon clicks. Block bubbling so we don't trip the
+    // .block-ctrl handler or contenteditable focus.
+    resumeDocument.addEventListener('click', (e) => {
+        const btn = e.target.closest('.section-edit-btn');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        openDrawer(btn.dataset.editSection);
+    }, true);
+
+    editorDrawerClose.addEventListener('click', closeDrawer);
+    drawerBackdrop.addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && editorDrawer.classList.contains('is-open')) closeDrawer();
+    });
 
     // ── Auto-fit page ─────────────────────────────────────────────────────────
     // Two-phase layout engine (document-flow model — no flex-grow stretching):
@@ -1328,6 +1429,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // ── Strip interactive elements ────────────────────────────────────────
         clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
         clone.querySelectorAll('.block-ctrl').forEach(el => el.remove());
+        clone.querySelectorAll('.section-edit-btn').forEach(el => el.remove());
 
         // ── Remove transform scaling — Playwright renders at native 794×1123px ─
         const scaler = clone.querySelector('.resume-scale-target');

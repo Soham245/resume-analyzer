@@ -1,0 +1,1449 @@
+diff --git a/frontend/index.html b/frontend/index.html
+index f5c278f..5bfdad1 100644
+--- a/frontend/index.html
++++ b/frontend/index.html
+@@ -63,39 +63,34 @@
+                     <form id="analyzer-form" class="analysis-form">
+                         <div class="analysis-grid">
+ 
+-                            <div data-panel-label="Resume Upload"
+-                                class="upload-dropzone relative h-48 rounded-xl border-2 border-dashed transition-colors flex flex-col items-center justify-center group overflow-hidden">
+-                                <input type="file" id="resume-file" accept=".pdf" required
+-                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+-
+-                                <div id="upload-text"
+-                                    class="text-center group-hover:scale-105 transition-transform duration-300">
+-                                    <div class="flex items-center justify-center space-x-2 text-white">
+-                                        <svg class="w-5 h-5 text-slate-300" fill="currentColor" viewBox="0 0 20 20">
++                            <div data-panel-label="Resume Upload" class="upload-dropzone">
++                                <input type="file" id="resume-file" accept=".pdf" required class="upload-dropzone__input">
++
++                                <div id="upload-text" class="upload-dropzone__prompt">
++                                    <div class="upload-dropzone__title">
++                                        <svg class="upload-dropzone__icon" fill="currentColor" viewBox="0 0 20 20">
+                                             <path fill-rule="evenodd"
+                                                 d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                                                 clip-rule="evenodd"></path>
+                                         </svg>
+-                                        <span class="font-medium text-base">Drag & drop your resume</span>
++                                        <span>Drag &amp; drop your resume</span>
+                                     </div>
+-                                    <p class="text-slate-400 text-sm mt-1">or click to upload</p>
++                                    <p class="upload-dropzone__hint">or click to upload</p>
+                                 </div>
+ 
+-                                <div id="file-name" class="hidden text-center z-0 px-4">
+-                                    <svg class="w-8 h-8 text-indigo-400 mx-auto mb-2" fill="none" stroke="currentColor"
++                                <div id="file-name" class="upload-dropzone__file hidden">
++                                    <svg class="upload-dropzone__file-icon" fill="none" stroke="currentColor"
+                                         viewBox="0 0 24 24">
+                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                             d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                     </svg>
+-                                    <p id="file-name-text"
+-                                        class="text-indigo-300 font-medium truncate w-full max-w-[200px]"></p>
++                                    <p id="file-name-text" class="upload-dropzone__file-name"></p>
+                                 </div>
+                             </div>
+ 
+-                            <div data-panel-label="Job Description"
+-                                class="job-description-panel relative w-full h-full rounded-xl overflow-y-auto p-4 transition-all flex">
++                            <div data-panel-label="Job Description" class="job-description-panel">
+                                 <textarea id="jd-text" required placeholder="Paste job description here..."
+-                                    class="custom-scrollbar w-full h-full bg-transparent border-none outline-none focus:ring-0 text-slate-200 placeholder-slate-500 resize-none"></textarea>
++                                    class="job-description-panel__textarea custom-scrollbar"></textarea>
+                             </div>
+                         </div>
+ 
+@@ -121,116 +116,103 @@
+                     <!-- Row 1: Name + Role -->
+                     <div class="grid grid-cols-2 gap-3">
+                         <div class="space-y-1">
+-                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Full Name
+-                                <span class="text-indigo-400">*</span></label>
++                            <label class="form-label">Full Name
++                                <span class="form-label__required" aria-hidden="true">*</span></label>
+                             <input id="m-name" type="text" placeholder="John Doe"
+-                                class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                                class="field field--full">
+                         </div>
+                         <div class="space-y-1">
+-                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Target Role
+-                                <span class="text-indigo-400">*</span></label>
++                            <label class="form-label">Target Role
++                                <span class="form-label__required" aria-hidden="true">*</span></label>
+                             <input id="m-title" type="text" placeholder="e.g. Full Stack Developer"
+-                                class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                                class="field field--full">
+                         </div>
+                     </div>
+ 
+                     <!-- Row 2: Contact (4 cols) -->
+                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                         <input id="m-email" type="email" placeholder="Email"
+-                            class="bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                            class="field">
+                         <input id="m-phone" type="tel" placeholder="Phone"
+-                            class="bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                            class="field">
+                         <input id="m-linkedin" type="text" placeholder="LinkedIn URL"
+-                            class="bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                            class="field">
+                         <input id="m-github" type="text" placeholder="GitHub URL"
+-                            class="bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                            class="field">
+                     </div>
+ 
+                     <!-- Row 3: Education + Experience -->
+                     <div class="grid grid-cols-2 gap-3">
+                         <div class="space-y-1">
+                             <label
+-                                class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Education</label>
++                                class="form-label">Education</label>
+                             <textarea id="m-education" rows="3"
+                                 placeholder="B.Tech Computer Science, MIT, 2020–2024&#10;(one entry per line)"
+-                                class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
++                                class="field field--full field--textarea custom-scrollbar"></textarea>
+                         </div>
+                         <div class="space-y-1">
+-                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Experience
+-                                <span class="text-slate-600 normal-case font-normal">(optional)</span></label>
++                            <label class="form-label">Experience
++                                <span class="form-label__hint">(optional)</span></label>
+                             <textarea id="m-experience" rows="3"
+                                 placeholder="Software Engineer, Google, 2022–Present&#10;Led payment gateway integration, reduced checkout errors by 30%"
+-                                class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
++                                class="field field--full field--textarea custom-scrollbar"></textarea>
+                         </div>
+                     </div>
+ 
+                     <!-- Row 4: Projects + Certifications -->
+                     <div class="grid grid-cols-2 gap-3">
+                         <div class="space-y-1">
+-                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Projects <span
+-                                    class="text-slate-600 normal-case font-normal">(optional)</span></label>
++                            <label class="form-label">Projects <span class="form-label__hint">(optional)</span></label>
+                             <textarea id="m-projects" rows="3"
+                                 placeholder="E-Commerce App | React, Node.js, MongoDB | Built cart + checkout, integrated Stripe&#10;(one project per line)"
+-                                class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
++                                class="field field--full field--textarea custom-scrollbar"></textarea>
+                         </div>
+                         <div class="space-y-1">
+-                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Certifications
+-                                <span class="text-slate-600 normal-case font-normal">(optional)</span></label>
++                            <label class="form-label">Certifications
++                                <span class="form-label__hint">(optional)</span></label>
+                             <textarea id="m-certifications" rows="3"
+                                 placeholder="AWS Solutions Architect — Amazon (2023)&#10;Google Cloud Professional — Google (2024)"
+-                                class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
++                                class="field field--full field--textarea custom-scrollbar"></textarea>
+                         </div>
+                     </div>
+ 
+                     <!-- Row 5: Skills (3 cols) -->
+                     <div class="grid grid-cols-3 gap-3">
+                         <div class="space-y-1">
+-                            <label class="text-xs font-semibold text-indigo-400 uppercase tracking-widest">Technical
+-                                Skills</label>
+-                            <input id="m-technical" type="text" placeholder="Python, React, Docker, PostgreSQL"
+-                                class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                            <label class="form-label">Technical Skills</label>
++                            <input id="m-technical" type="text" placeholder="Python, React, Docker, PostgreSQL" class="field field--full">
+                         </div>
+                         <div class="space-y-1">
+-                            <label class="text-xs font-semibold text-violet-400 uppercase tracking-widest">Soft
+-                                Skills</label>
+-                            <input id="m-soft" type="text" placeholder="Leadership, Communication"
+-                                class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                            <label class="form-label">Soft Skills</label>
++                            <input id="m-soft" type="text" placeholder="Leadership, Communication" class="field field--full">
+                         </div>
+                         <div class="space-y-1">
+-                            <label
+-                                class="text-xs font-semibold text-sky-400 uppercase tracking-widest">Languages</label>
+-                            <input id="m-languages" type="text" placeholder="English, Hindi"
+-                                class="w-full bg-[#181d2b] border border-[#2e3549] text-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                            <label class="form-label">Languages</label>
++                            <input id="m-languages" type="text" placeholder="English, Hindi" class="field field--full">
+                         </div>
+                     </div>
+ 
+                     <!-- JD Input -->
+                     <div class="space-y-1">
+-                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Paste Job
+-                            Description
+-                            <span class="text-slate-600 normal-case font-normal">(optional — enables skill matching
+-                                &amp;
+-                                JD-optimized resume)</span></label>
++                        <label class="form-label">Paste Job Description
++                            <span class="form-label__hint">(optional — enables skill matching &amp; JD-optimized resume)</span>
++                        </label>
+                         <textarea id="m-jd-text" rows="4"
+                             placeholder="Paste the job description here to get skill gap analysis, improvement suggestions, and a JD-optimized resume..."
+-                            class="w-full bg-[#23293b] border border-[#2e3549] text-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
++                            class="field field--full field--textarea custom-scrollbar"></textarea>
+                     </div>
+ 
+                     <!-- Generate button -->
+-                    <button id="generate-manual-btn"
+-                        class="w-full bg-[#8358ff] text-white font-medium py-3.5 rounded-xl hover:bg-[#724aeb] transition-colors flex justify-center items-center gap-2">
++                    <button id="generate-manual-btn" class="primary-button w-full">
+                         <span id="gen-btn-text">✨ Generate Resume from Inputs</span>
+-                        <svg id="gen-spinner" class="animate-spin h-5 w-5 text-white hidden"
++                        <svg id="gen-spinner" class="animate-spin h-5 w-5 hidden"
+                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+-                            </circle>
++                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                             <path class="opacity-75" fill="currentColor"
+-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+-                            </path>
++                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                         </svg>
+                     </button>
+-                    <p class="text-xs text-slate-600 text-center -mt-1">Edit inputs and click again to regenerate at any
+-                        time.</p>
++                    <p class="manual-mode__hint">Edit inputs and click again to regenerate at any time.</p>
+ 
+                 </div><!-- /manual-mode -->
+ 
+@@ -241,63 +223,64 @@
+             <!-- Manual Mode — Skill Analysis Results (shown when JD is provided) -->
+             <section id="manual-analysis-section" class="hidden analysis-section manual-results">
+                 <div class="results-card results-card--stacked">
+-                    <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2"><span>⚡</span> Skill Analysis
++                    <h2 class="results-card__title results-card__title--stacked">
++                        <span aria-hidden="true">⚡</span> Skill Analysis
+                     </h2>
+ 
+                     <!-- Two columns: Your Skills | JD Requirements -->
+                     <div class="grid grid-cols-2 gap-4">
+-                        <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
+-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Your Skills</h3>
++                        <div class="skill-panel">
++                            <h3 class="skill-panel__title">Your Skills</h3>
+                             <div>
+-                                <p class="text-xs font-semibold text-indigo-400 mb-1.5">Technical</p>
+-                                <div id="manual-skills-technical" class="flex flex-wrap gap-2 min-h-[22px]"></div>
++                                <p class="skill-panel__label">Technical</p>
++                                <div id="manual-skills-technical" class="chip-row"></div>
+                             </div>
+                             <div>
+-                                <p class="text-xs font-semibold text-violet-400 mb-1.5">Soft Skills</p>
+-                                <div id="manual-skills-soft" class="flex flex-wrap gap-2 min-h-[22px]"></div>
++                                <p class="skill-panel__label">Soft Skills</p>
++                                <div id="manual-skills-soft" class="chip-row"></div>
+                             </div>
+                             <div>
+-                                <p class="text-xs font-semibold text-sky-400 mb-1.5">Languages</p>
+-                                <div id="manual-skills-languages" class="flex flex-wrap gap-2 min-h-[22px]"></div>
++                                <p class="skill-panel__label">Languages</p>
++                                <div id="manual-skills-languages" class="chip-row"></div>
+                             </div>
+                         </div>
+ 
+-                        <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
+-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Job Description
++                        <div class="skill-panel">
++                            <h3 class="skill-panel__title">Job Description
+                                 Requirements</h3>
+                             <div>
+-                                <p class="text-xs font-semibold text-amber-400 mb-1.5">Technical</p>
+-                                <div id="manual-jd-technical" class="flex flex-wrap gap-2 min-h-[22px]"></div>
++                                <p class="skill-panel__label">Technical</p>
++                                <div id="manual-jd-technical" class="chip-row"></div>
+                             </div>
+                             <div>
+-                                <p class="text-xs font-semibold text-orange-400 mb-1.5">Soft Skills</p>
+-                                <div id="manual-jd-soft" class="flex flex-wrap gap-2 min-h-[22px]"></div>
++                                <p class="skill-panel__label">Soft Skills</p>
++                                <div id="manual-jd-soft" class="chip-row"></div>
+                             </div>
+                             <div>
+-                                <p class="text-xs font-semibold text-teal-400 mb-1.5">Languages</p>
+-                                <div id="manual-jd-languages" class="flex flex-wrap gap-2 min-h-[22px]"></div>
++                                <p class="skill-panel__label">Languages</p>
++                                <div id="manual-jd-languages" class="chip-row"></div>
+                             </div>
+                         </div>
+                     </div>
+ 
+                     <!-- Skill Match: Matched vs Missing -->
+-                    <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50">
+-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Skill Match</h3>
++                    <div class="skill-panel">
++                        <h3 class="skill-panel__title skill-panel__title--mb">Skill Match</h3>
+                         <div class="grid grid-cols-2 gap-3">
+                             <div>
+-                                <p class="text-xs font-semibold text-emerald-400 mb-1.5">Matching Skills</p>
+-                                <div id="manual-skills-matched" class="flex flex-wrap gap-2 min-h-[22px]"></div>
++                                <p class="skill-panel__label skill-panel__label--matched">Matching Skills</p>
++                                <div id="manual-skills-matched" class="chip-row"></div>
+                             </div>
+                             <div>
+-                                <p class="text-xs font-semibold text-red-400 mb-1.5">Missing Skills</p>
+-                                <div id="manual-skills-missing" class="flex flex-wrap gap-2 min-h-[22px]"></div>
++                                <p class="skill-panel__label skill-panel__label--missing">Missing Skills</p>
++                                <div id="manual-skills-missing" class="chip-row"></div>
+                             </div>
+                         </div>
+                     </div>
+ 
+                     <!-- Suggestions -->
+-                    <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50">
+-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">How to Improve Match
++                    <div class="skill-panel">
++                        <h3 class="skill-panel__title skill-panel__title--mb">How to Improve Match
+                         </h3>
+                         <ul id="manual-suggestions-list" class="space-y-2"></ul>
+                     </div>
+@@ -310,11 +293,11 @@
+ 
+             <!-- Empty State -->
+             <div id="empty-state" class="empty-state">
+-                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
++                <svg class="empty-state__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                 </svg>
+-                <p class="text-gray-500 font-medium">Upload your resume and click optimize to see your ATS score</p>
++                <p class="empty-state__text">Upload your resume and click optimize to see your ATS score</p>
+             </div>
+ 
+             <!-- New Score Card Section -->
+@@ -379,83 +362,82 @@
+             <section id="results-section" class="hidden analysis-section">
+                 <div class="results-grid">
+ 
+-                    <div class="results-card results-card--viewer flex flex-col h-[850px] overflow-hidden">
+-                        <div class="results-card__header flex justify-between items-center">
+-                            <h2 class="text-lg font-bold text-slate-200 flex items-center">
+-                                <span class="mr-2">📄</span> Your Resume
++                    <div class="results-card results-card--viewer">
++                        <div class="results-card__header">
++                            <h2 class="results-card__title">
++                                <span aria-hidden="true">📄</span> Your Resume
+                             </h2>
+                         </div>
+-                        <iframe id="pdf-viewer" class="w-full flex-grow bg-slate-900" src=""></iframe>
++                        <iframe id="pdf-viewer" src=""></iframe>
+                     </div>
+ 
+-                    <div class="results-card results-card--insights flex flex-col h-[850px] overflow-hidden">
+-
++                    <div class="results-card results-card--insights">
+                         <div class="results-card__header">
+-                            <h2 class="text-lg font-bold text-slate-200 flex items-center">
+-                                <span class="mr-2">⚡</span> Resume Optimizer
++                            <h2 class="results-card__title">
++                                <span aria-hidden="true">⚡</span> Resume Optimizer
+                             </h2>
+                         </div>
+ 
+-                        <div class="p-6 overflow-y-auto custom-scrollbar flex-grow space-y-5">
++                        <div class="results-card__body custom-scrollbar">
+ 
+                             <!-- Success -->
+-                            <div class="bg-emerald-900/20 border border-emerald-700/40 p-3 rounded-xl text-center">
+-                                <p class="text-emerald-400 font-medium text-sm">Resume extracted successfully.</p>
++                            <div class="status-banner status-banner--success">
++                                <p>Resume extracted successfully.</p>
+                             </div>
+ 
+                             <!-- Your Skills -->
+-                            <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
+-                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Your Skills</h3>
++                            <div class="skill-panel">
++                                <h3 class="skill-panel__title">Your Skills</h3>
+ 
+                                 <div>
+-                                    <p class="text-xs font-semibold text-indigo-400 mb-1.5">Technical</p>
+-                                    <div id="skills-technical" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
++                                    <p class="skill-panel__label">Technical</p>
++                                    <div id="skills-technical" class="chip-row"></div>
+                                 </div>
+                                 <div>
+-                                    <p class="text-xs font-semibold text-violet-400 mb-1.5">Soft Skills</p>
+-                                    <div id="skills-soft" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
++                                    <p class="skill-panel__label">Soft Skills</p>
++                                    <div id="skills-soft" class="chip-row"></div>
+                                 </div>
+                                 <div>
+-                                    <p class="text-xs font-semibold text-sky-400 mb-1.5">Languages</p>
+-                                    <div id="skills-languages" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
++                                    <p class="skill-panel__label">Languages</p>
++                                    <div id="skills-languages" class="chip-row"></div>
+                                 </div>
+ 
+                                 <!-- Add skill row -->
+                                 <div class="flex gap-2 pt-1">
+                                     <input type="text" id="new-skill-input" placeholder="Add a skill..."
+-                                        class="flex-1 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                                        class="field field--sm flex-1">
+                                     <select id="new-skill-category"
+-                                        class="bg-slate-700 border border-slate-600 text-slate-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-500">
++                                        class="field field--sm">
+                                         <option value="technical">Technical</option>
+                                         <option value="soft">Soft</option>
+                                         <option value="languages">Language</option>
+                                     </select>
+                                     <button id="add-skill-btn"
+-                                        class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-indigo-500 transition-colors">Add</button>
++                                        class="btn btn--sm">Add</button>
+                                 </div>
+                             </div>
+ 
+                             <!-- JD Requirements -->
+-                            <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
+-                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Job Description
++                            <div class="skill-panel">
++                                <h3 class="skill-panel__title">Job Description
+                                     Requirements</h3>
+                                 <div>
+-                                    <p class="text-xs font-semibold text-amber-400 mb-1.5">Technical</p>
+-                                    <div id="jd-technical" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
++                                    <p class="skill-panel__label">Technical</p>
++                                    <div id="jd-technical" class="chip-row"></div>
+                                 </div>
+                                 <div>
+-                                    <p class="text-xs font-semibold text-orange-400 mb-1.5">Soft Skills</p>
+-                                    <div id="jd-soft" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
++                                    <p class="skill-panel__label">Soft Skills</p>
++                                    <div id="jd-soft" class="chip-row"></div>
+                                 </div>
+                                 <div>
+-                                    <p class="text-xs font-semibold text-teal-400 mb-1.5">Languages</p>
+-                                    <div id="jd-languages" class="flex flex-wrap gap-1.5 min-h-[22px]"></div>
++                                    <p class="skill-panel__label">Languages</p>
++                                    <div id="jd-languages" class="chip-row"></div>
+                                 </div>
+                             </div>
+ 
+                             <!-- How to Improve Match -->
+-                            <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/50">
+-                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">How to
++                            <div class="skill-panel">
++                                <h3 class="skill-panel__title skill-panel__title--mb">How to
+                                     Improve
+                                     Match</h3>
+                                 <ul id="suggestions-list" class="space-y-2"></ul>
+@@ -499,116 +481,116 @@
+                 <div class="grid grid-cols-2 gap-3 mb-3 items-start">
+ 
+                     <!-- Add Experience Block -->
+-                    <div class="border border-slate-700 rounded-xl overflow-hidden">
++                    <div class="collapse-card">
+                         <button id="toggle-exp-form"
+-                            class="w-full flex items-center justify-between px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 transition-colors text-sm font-medium text-slate-300">
++                            class="collapse-toggle">
+                             <span class="flex items-center gap-2">
+-                                <span class="text-indigo-400 font-bold text-base leading-none"
++                                <span class="collapse-toggle__icon"
+                                     id="toggle-exp-icon">+</span>
+                                 Add Experience Entry
+                             </span>
+-                            <span class="text-xs text-slate-500">Role · Company · Duration · Bullets</span>
++                            <span class="collapse-toggle__hint">Role · Company · Duration · Bullets</span>
+                         </button>
+-                        <div id="exp-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
++                        <div id="exp-form" class="collapse-body hidden">
+                             <div class="grid grid-cols-3 gap-3">
+                                 <input id="exp-role" type="text" placeholder="Role / Job Title"
+-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                                    class="field">
+                                 <input id="exp-company" type="text" placeholder="Company / Organization"
+-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                                    class="field">
+                                 <input id="exp-duration" type="text" placeholder="Duration (e.g. Jan 2023 – Present)"
+-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                                    class="field">
+                             </div>
+                             <textarea id="exp-desc" rows="3"
+                                 placeholder="2 Bullet points, one per line (e.g. Led backend migration, reducing API latency by 40%)"
+-                                class="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none"></textarea>
++                                class="field field--full field--textarea"></textarea>
+                             <button id="add-exp-btn"
+-                                class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-500 transition-colors">
++                                class="btn">
+                                 Add to Resume
+                             </button>
+                         </div>
+                     </div>
+ 
+                     <!-- Add Project Block -->
+-                    <div class="border border-slate-700 rounded-xl overflow-hidden">
++                    <div class="collapse-card">
+                         <button id="toggle-proj-form"
+-                            class="w-full flex items-center justify-between px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 transition-colors text-sm font-medium text-slate-300">
++                            class="collapse-toggle">
+                             <span class="flex items-center gap-2">
+-                                <span class="text-indigo-400 font-bold text-base leading-none"
++                                <span class="collapse-toggle__icon"
+                                     id="toggle-proj-icon">+</span>
+                                 Add Project Entry
+                             </span>
+-                            <span class="text-xs text-slate-500">Title · Stack · Bullets</span>
++                            <span class="collapse-toggle__hint">Title · Stack · Bullets</span>
+                         </button>
+-                        <div id="proj-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
++                        <div id="proj-form" class="collapse-body hidden">
+                             <div class="grid grid-cols-2 gap-3">
+                                 <input id="proj-title" type="text" placeholder="Project Title"
+-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                                    class="field">
+                                 <input id="proj-stack" type="text" placeholder="Tech Stack (comma-separated)"
+-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                                    class="field">
+                             </div>
+                             <textarea id="proj-desc" rows="3"
+                                 placeholder="3 Bullet points, one per line (e.g. Built REST API serving 10k daily requests)"
+-                                class="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500 resize-none"></textarea>
++                                class="field field--full field--textarea"></textarea>
+                             <button id="add-proj-btn"
+-                                class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-500 transition-colors">
++                                class="btn">
+                                 Add to Resume
+                             </button>
+                         </div>
+                     </div>
+ 
+                     <!-- Add Education Block -->
+-                    <div class="border border-slate-700 rounded-xl overflow-hidden">
++                    <div class="collapse-card">
+                         <button id="toggle-edu-form"
+-                            class="w-full flex items-center justify-between px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 transition-colors text-sm font-medium text-slate-300">
++                            class="collapse-toggle">
+                             <span class="flex items-center gap-2">
+-                                <span class="text-indigo-400 font-bold text-base leading-none"
++                                <span class="collapse-toggle__icon"
+                                     id="toggle-edu-icon">+</span>
+                                 Add Education Entry
+                             </span>
+-                            <span class="text-xs text-slate-500">Degree · Institution · Year · GPA</span>
++                            <span class="collapse-toggle__hint">Degree · Institution · Year · GPA</span>
+                         </button>
+-                        <div id="edu-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
++                        <div id="edu-form" class="collapse-body hidden">
+                             <div class="grid grid-cols-2 gap-3">
+                                 <input id="edu-degree" type="text" placeholder="Degree (e.g. B.Tech Computer Science)"
+-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                                    class="field">
+                                 <input id="edu-institution" type="text" placeholder="Institution"
+-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                                    class="field">
+                             </div>
+                             <div class="grid grid-cols-2 gap-3">
+                                 <input id="edu-year" type="text" placeholder="Year / Duration (e.g. 2019–2023)"
+-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                                    class="field">
+                                 <input id="edu-gpa" type="text" placeholder="GPA / Score (optional)"
+-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                                    class="field">
+                             </div>
+                             <button id="add-edu-btn"
+-                                class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-500 transition-colors">
++                                class="btn">
+                                 Add to Resume
+                             </button>
+                         </div>
+                     </div>
+ 
+                     <!-- Add Certification Block -->
+-                    <div class="border border-slate-700 rounded-xl overflow-hidden">
++                    <div class="collapse-card">
+                         <button id="toggle-cert-form"
+-                            class="w-full flex items-center justify-between px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 transition-colors text-sm font-medium text-slate-300">
++                            class="collapse-toggle">
+                             <span class="flex items-center gap-2">
+-                                <span class="text-indigo-400 font-bold text-base leading-none"
++                                <span class="collapse-toggle__icon"
+                                     id="toggle-cert-icon">+</span>
+                                 Add Certification
+                             </span>
+-                            <span class="text-xs text-slate-500">Name · Issuer · Date</span>
++                            <span class="collapse-toggle__hint">Name · Issuer · Date</span>
+                         </button>
+-                        <div id="cert-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
++                        <div id="cert-form" class="collapse-body hidden">
+                             <div class="grid grid-cols-3 gap-3">
+                                 <input id="cert-name" type="text" placeholder="Certification Name"
+-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                                    class="field">
+                                 <input id="cert-org" type="text" placeholder="Issuing Organization"
+-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                                    class="field">
+                                 <input id="cert-date" type="text" placeholder="Date / Validity (e.g. Jan 2024)"
+-                                    class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500">
++                                    class="field">
+                             </div>
+                             <button id="add-cert-btn"
+-                                class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-500 transition-colors">
++                                class="btn">
+                                 Add to Resume
+                             </button>
+                         </div>
+@@ -617,20 +599,20 @@
+                 </div><!-- /entry-forms-grid -->
+ 
+                 <!-- Optimize for Job Description (works in both upload + manual modes) -->
+-                <div class="mb-3 border border-emerald-800/40 rounded-xl overflow-hidden">
++                <div class="collapse-card collapse-card--success">
+                     <button id="toggle-builder-jd"
+-                        class="w-full flex items-center justify-between px-4 py-2.5 bg-emerald-900/20 hover:bg-emerald-900/30 transition-colors text-sm font-medium text-emerald-400">
++                        class="collapse-toggle collapse-toggle--success">
+                         <span class="flex items-center gap-2">
+                             <span id="builder-jd-icon" class="font-bold text-base leading-none">+</span>
+                             Optimize for a Job Description
+                         </span>
+-                        <span class="text-xs text-slate-500">Paste JD → AI rewrites resume for ATS match</span>
++                        <span class="collapse-toggle__hint">Paste JD → AI rewrites resume for ATS match</span>
+                     </button>
+-                    <div id="builder-jd-form" class="hidden px-4 py-3 bg-slate-900/40 space-y-3">
++                    <div id="builder-jd-form" class="collapse-body hidden">
+                         <textarea id="builder-jd-text" rows="4" placeholder="Paste the job description here..."
+-                            class="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-emerald-500 placeholder-slate-500 resize-none custom-scrollbar"></textarea>
++                            class="field field--full field--textarea custom-scrollbar"></textarea>
+                         <button id="builder-optimize-btn"
+-                            class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition-colors flex items-center gap-2">
++                            class="btn btn--success">
+                             <span id="builder-opt-text">Optimize Resume</span>
+                             <svg id="builder-opt-spinner" class="animate-spin h-4 w-4 text-white hidden"
+                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+diff --git a/frontend/style.css b/frontend/style.css
+index ca57eff..5d4ad54 100644
+--- a/frontend/style.css
++++ b/frontend/style.css
+@@ -220,10 +220,22 @@ p:last-child {
+     color: var(--color-text-muted);
+     border-style: dashed;
+     background: rgba(255, 255, 255, 0.6);
++    display: flex;
++    flex-direction: column;
++    align-items: center;
++    gap: var(--space-3);
+ }
+ 
+-.empty-state svg {
+-    color: var(--color-text-subtle) !important;
++.empty-state__icon {
++    width: 48px;
++    height: 48px;
++    color: var(--color-text-subtle);
++}
++
++.empty-state__text {
++    margin: 0;
++    color: var(--color-text-muted);
++    font-weight: 500;
+ }
+ 
+ /* ============================================================================
+@@ -278,22 +290,29 @@ p:last-child {
+     gap: var(--space-5);
+ }
+ 
+-.analysis-grid > div,
+-.manual-mode > .grid,
+-.manual-mode > .space-y-1,
+-.results-card > .p-6 > div,
+-.builder-surface .border,
+-.builder-surface .mb-3.border,
+-.builder-surface .mb-4 {
++.analysis-grid > div {
+     min-width: 0;
+ }
+ 
+-.upload-dropzone,
+-.job-description-panel {
+-    background: var(--color-surface-subtle) !important;
+-    border-color: var(--color-border-strong) !important;
++/* Upload dropzone */
++.upload-dropzone {
++    position: relative;
++    background: var(--color-surface-subtle);
++    border: 2px dashed var(--color-border-strong);
++    border-radius: var(--radius-lg);
+     min-height: 220px;
+     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
++    display: flex;
++    flex-direction: column;
++    align-items: center;
++    justify-content: center;
++    overflow: hidden;
++    transition: border-color var(--transition), background-color var(--transition);
++}
++
++.upload-dropzone:hover {
++    border-color: var(--color-primary);
++    background: var(--color-surface);
+ }
+ 
+ .upload-dropzone::before,
+@@ -311,169 +330,271 @@ p:last-child {
+     z-index: 2;
+ }
+ 
+-.upload-dropzone {
+-    border-style: dashed;
+-    transition: border-color var(--transition), background-color var(--transition);
++.upload-dropzone__input {
++    position: absolute;
++    inset: 0;
++    width: 100%;
++    height: 100%;
++    opacity: 0;
++    cursor: pointer;
++    z-index: 10;
+ }
+ 
+-.upload-dropzone:hover {
+-    border-color: var(--color-primary) !important;
+-    background: var(--color-surface) !important;
++.upload-dropzone__prompt {
++    text-align: center;
++    margin-top: 18px;
++    transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+ }
+ 
+-#upload-text,
+-#file-name {
++.upload-dropzone:hover .upload-dropzone__prompt {
++    transform: scale(1.04);
++}
++
++.upload-dropzone__title {
++    display: flex;
++    align-items: center;
++    justify-content: center;
++    gap: 8px;
++    color: var(--color-text);
++    font-weight: 600;
++    font-size: 1rem;
++}
++
++.upload-dropzone__icon {
++    width: 20px;
++    height: 20px;
++    color: var(--color-primary);
++}
++
++.upload-dropzone__hint {
++    margin: 4px 0 0;
++    color: var(--color-text-muted);
++    font-size: 0.85rem;
++}
++
++.upload-dropzone__file {
++    text-align: center;
+     margin-top: 18px;
++    padding: 0 16px;
+ }
+ 
+-#upload-text .flex,
+-#upload-text p,
+-#file-name,
+-#file-name-text {
+-    color: var(--color-text) !important;
++.upload-dropzone__file-icon {
++    width: 32px;
++    height: 32px;
++    color: var(--color-primary);
++    margin: 0 auto 8px;
++    display: block;
+ }
+ 
+-#upload-text p,
+-#file-name-text {
+-    color: var(--color-text-muted) !important;
++.upload-dropzone__file-name {
++    color: var(--color-primary);
++    font-weight: 600;
++    margin: 0;
++    max-width: 220px;
++    overflow: hidden;
++    text-overflow: ellipsis;
++    white-space: nowrap;
+ }
+ 
+-#upload-text svg {
+-    color: var(--color-primary) !important;
++/* JD textarea panel */
++.job-description-panel {
++    position: relative;
++    background: var(--color-surface-subtle);
++    border: 1px solid var(--color-border-strong);
++    border-radius: var(--radius-lg);
++    min-height: 220px;
++    padding: 40px 16px 16px;
++    overflow-y: auto;
++    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
++    display: flex;
++}
++
++.job-description-panel__textarea {
++    width: 100%;
++    flex: 1;
++    background: transparent !important;
++    border: 0 !important;
++    outline: none !important;
++    box-shadow: none !important;
++    padding: 0 !important;
++    color: var(--color-text) !important;
++    resize: none;
++    font-family: inherit;
++    font-size: 0.925rem;
++    line-height: 1.55;
++}
++
++.job-description-panel__textarea:focus {
++    background: transparent !important;
++    box-shadow: none !important;
++    border: 0 !important;
+ }
+ 
+ /* ============================================================================
+    8. INPUTS, TEXTAREAS, SELECTS
+    ============================================================================ */
+-#jd-text,
+-#m-education,
+-#m-experience,
+-#m-projects,
+-#m-certifications,
+-#m-jd-text,
+-#builder-jd-text,
+-#exp-desc,
+-#proj-desc,
++.field,
+ input[type="text"],
+ input[type="email"],
+ input[type="tel"],
+ textarea,
+ select {
+-    background: var(--color-surface) !important;
+-    color: var(--color-text) !important;
+-    border: 1px solid var(--color-border) !important;
+-    border-radius: var(--radius-md) !important;
+-    box-shadow: var(--shadow-xs) !important;
+-    padding: 12px 14px !important;
++    background: var(--color-surface);
++    color: var(--color-text);
++    border: 1px solid var(--color-border);
++    border-radius: var(--radius-md);
++    box-shadow: var(--shadow-xs);
++    padding: 12px 14px;
++    font-family: inherit;
++    font-size: 0.9rem;
++    line-height: 1.4;
+     transition: border-color var(--transition), box-shadow var(--transition), background-color var(--transition);
+ }
+ 
+-#jd-text {
+-    padding-top: 40px !important;
++.field--full {
++    width: 100%;
+ }
+ 
+-input::placeholder,
+-textarea::placeholder {
+-    color: var(--color-text-subtle) !important;
++.field--sm {
++    padding: 8px 12px;
++    font-size: 0.8rem;
+ }
+ 
++.field--textarea {
++    resize: none;
++    min-height: 80px;
++    line-height: 1.5;
++}
++
++.field:focus,
+ input:focus,
+ textarea:focus,
+ select:focus {
+-    outline: none !important;
+-    border-color: var(--color-primary) !important;
+-    box-shadow: 0 0 0 3px rgba(139, 111, 71, 0.14) !important;
+-    background: var(--color-surface) !important;
++    outline: none;
++    border-color: var(--color-primary);
++    box-shadow: 0 0 0 3px rgba(139, 111, 71, 0.14);
++    background: var(--color-surface);
+ }
+ 
+-select {
++input::placeholder,
++textarea::placeholder,
++.field::placeholder {
++    color: var(--color-text-subtle);
++}
++
++select,
++.field[as="select"] {
+     background-image:
+-        url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236b5d52' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+-    background-repeat: no-repeat !important;
+-    background-position: right 14px center !important;
+-    appearance: none !important;
+-    -webkit-appearance: none !important;
+-    padding-right: 38px !important;
++        url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236b5d52' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
++    background-repeat: no-repeat;
++    background-position: right 14px center;
++    appearance: none;
++    -webkit-appearance: none;
++    padding-right: 38px;
++}
++
++/* Form labels */
++.form-label {
++    display: block;
++    font-size: 0.7rem;
++    font-weight: 700;
++    text-transform: uppercase;
++    letter-spacing: 0.1em;
++    color: var(--color-text-muted);
++}
++
++.form-label__required {
++    color: var(--color-primary);
++    margin-left: 2px;
++}
++
++.form-label__hint {
++    text-transform: none;
++    letter-spacing: 0;
++    font-weight: 400;
++    color: var(--color-text-subtle);
++    margin-left: 4px;
++}
++
++.manual-mode__hint {
++    margin: -2px 0 0;
++    font-size: 0.78rem;
++    color: var(--color-text-subtle);
++    text-align: center;
+ }
+ 
+ /* ============================================================================
+    9. BUTTONS
+    ============================================================================ */
++.btn,
+ .primary-button,
+-#generate-manual-btn,
+-#builder-optimize-btn,
+-#download-pdf-btn,
+ .builder-download-btn,
+-#add-exp-btn,
+-#add-proj-btn,
+-#add-edu-btn,
+-#add-cert-btn,
+-#add-skill-btn,
+ #start-rewrite-btn {
+-    border: 0 !important;
+-    background: var(--color-primary) !important;
+-    color: #ffffff !important;
+-    border-radius: var(--radius-md) !important;
+-    font-weight: 600 !important;
+-    display: inline-flex !important;
+-    align-items: center !important;
+-    justify-content: center !important;
++    border: 0;
++    background: var(--color-primary);
++    color: #ffffff;
++    border-radius: var(--radius-md);
++    font-weight: 600;
++    font-size: 0.875rem;
++    display: inline-flex;
++    align-items: center;
++    justify-content: center;
+     gap: 8px;
+-    padding: 0 22px !important;
+-    min-height: 48px;
+-    box-shadow: 0 6px 14px rgba(139, 111, 71, 0.18);
++    padding: 0 18px;
++    min-height: 40px;
+     letter-spacing: 0.01em;
+ }
+ 
++.btn:hover,
+ .primary-button:hover,
+-#generate-manual-btn:hover,
+-#builder-optimize-btn:hover,
+-#download-pdf-btn:hover,
+ .builder-download-btn:hover,
+-#add-exp-btn:hover,
+-#add-proj-btn:hover,
+-#add-edu-btn:hover,
+-#add-cert-btn:hover,
+-#add-skill-btn:hover,
+ #start-rewrite-btn:hover {
+-    background: var(--color-primary-hover) !important;
+-    box-shadow: 0 8px 18px rgba(139, 111, 71, 0.22);
++    background: var(--color-primary-hover);
+ }
+ 
++.btn:active,
+ .primary-button:active,
+-#generate-manual-btn:active,
+-#builder-optimize-btn:active,
+-#download-pdf-btn:active,
+ .builder-download-btn:active,
+-#add-exp-btn:active,
+-#add-proj-btn:active,
+-#add-edu-btn:active,
+-#add-cert-btn:active,
+-#add-skill-btn:active,
+ #start-rewrite-btn:active {
+-    background: var(--color-primary-active) !important;
++    background: var(--color-primary-active);
++}
++
++.btn--sm {
++    min-height: 32px;
++    padding: 0 12px;
++    font-size: 0.78rem;
++}
++
++.btn--success {
++    background: var(--color-success);
++    box-shadow: 0 4px 12px rgba(79, 125, 86, 0.18);
++}
++
++.btn--success:hover {
++    background: #3f6644;
++}
++
++.primary-button,
++#start-rewrite-btn {
++    min-height: 48px;
++    padding: 0 22px;
++    box-shadow: 0 6px 14px rgba(139, 111, 71, 0.18);
++}
++
++.primary-button:hover,
++#start-rewrite-btn:hover {
++    box-shadow: 0 8px 18px rgba(139, 111, 71, 0.22);
+ }
+ 
+ #submit-btn,
+ #generate-manual-btn {
+     min-height: 52px;
+-    font-size: 0.95rem !important;
+-}
+-
+-#add-exp-btn,
+-#add-proj-btn,
+-#add-edu-btn,
+-#add-cert-btn,
+-#add-skill-btn,
+-#builder-optimize-btn {
+-    min-height: 40px;
+-    box-shadow: none;
+-    padding: 0 16px !important;
+-    font-size: 0.85rem !important;
++    font-size: 0.95rem;
+ }
+ 
+-#add-skill-btn {
+-    min-height: 36px;
++.builder-download-btn {
++    min-height: 44px;
++    padding: 0 18px;
+ }
+ 
+ /* ============================================================================
+@@ -500,133 +621,158 @@ select {
+ }
+ 
+ .manual-mode .grid {
+-    gap: var(--space-3) !important;
+-}
+-
+-.manual-mode label,
+-.manual-mode .text-xs,
+-.results-card .text-xs,
+-.builder-surface .text-xs,
+-.results-card .text-slate-400,
+-.results-card .text-slate-500,
+-.builder-surface .text-slate-500,
+-.manual-results .text-slate-400,
+-.manual-results .text-slate-600 {
+-    color: var(--color-text-muted) !important;
++    gap: var(--space-3);
+ }
+ 
+ /* ============================================================================
+-   12. RESULTS CARDS (skill panels)
++   12. RESULTS CARDS + SKILL PANELS
+    ============================================================================ */
+-.results-card .bg-slate-900\/40,
+-.results-card .bg-emerald-900\/20,
+-.manual-results .bg-slate-900\/40,
+-.builder-surface .bg-slate-700\/50,
+-.builder-surface .bg-slate-900\/40,
+-.builder-surface .bg-emerald-900\/20 {
+-    background: var(--color-surface-subtle) !important;
+-    border: 1px solid var(--color-border) !important;
+-    border-radius: var(--radius-lg) !important;
+-    color: var(--color-text) !important;
+-    box-shadow: none !important;
++.results-card {
++    overflow: hidden;
++    padding: 0;
++    display: flex;
++    flex-direction: column;
+ }
+ 
+-.results-card,
+-.manual-results .results-card {
+-    overflow: hidden;
+-    padding: 0 !important;
++.results-card--viewer,
++.results-card--insights {
++    height: 820px;
+ }
+ 
+-.results-card__header,
+-.builder-header {
++.results-card__header {
+     padding: var(--space-5) var(--space-6);
+-    border-bottom: 1px solid var(--color-border-soft) !important;
++    border-bottom: 1px solid var(--color-border-soft);
+     background: var(--color-surface-subtle);
++    flex-shrink: 0;
+ }
+ 
+-.results-card h2,
+-.results-card h3,
+-.builder-surface h2 {
+-    color: var(--color-text) !important;
++.results-card__title {
++    margin: 0;
++    color: var(--color-text);
++    font-size: 1.05rem;
++    font-weight: 700;
++    display: flex;
++    align-items: center;
++    gap: 8px;
+ }
+ 
+-.results-card h2 {
+-    font-size: 1.05rem !important;
+-    font-weight: 700 !important;
++.results-card__title--stacked {
++    padding: var(--space-5) var(--space-6);
++    border-bottom: 1px solid var(--color-border-soft);
++    background: var(--color-surface-subtle);
+ }
+ 
+-.results-card__header h2 {
+-    margin: 0;
++.results-card--stacked {
++    display: flex;
++    flex-direction: column;
+ }
+ 
+-.results-card .p-6,
+-.builder-surface {
+-    color: var(--color-text) !important;
++.results-card--stacked .grid,
++.results-card--stacked .skill-panel {
++    margin: 0 var(--space-6);
+ }
+ 
+-/* Skill chip color overrides → consistent palette */
+-.results-card .text-emerald-400,
+-.results-card .text-indigo-400,
+-.results-card .text-violet-400,
+-.results-card .text-sky-400,
+-.results-card .text-amber-400,
+-.results-card .text-orange-400,
+-.results-card .text-teal-400,
+-.manual-results .text-emerald-400,
+-.manual-results .text-indigo-400,
+-.manual-results .text-violet-400,
+-.manual-results .text-sky-400,
+-.manual-results .text-amber-400,
+-.manual-results .text-orange-400,
+-.manual-results .text-teal-400,
+-.builder-surface .text-emerald-400,
+-.builder-surface .text-indigo-400 {
+-    color: var(--color-primary) !important;
+-    font-weight: 700 !important;
+-    letter-spacing: 0.06em;
++.results-card--stacked > .grid:first-of-type {
++    margin-top: var(--space-5);
+ }
+ 
+-.results-card .text-red-400,
+-.manual-results .text-red-400 {
+-    color: var(--color-danger) !important;
+-    font-weight: 700 !important;
+-    letter-spacing: 0.06em;
++.results-card--stacked > *:last-child {
++    margin-bottom: var(--space-6);
+ }
+ 
+-/* Stack content vertically inside skill panel */
+-.manual-mode .grid,
+-.results-card .grid {
+-    padding: 0;
++.results-card--stacked > .skill-panel {
++    margin-top: var(--space-4);
+ }
+ 
+-/* Layout: results grid + viewer */
+-.results-grid {
+-    display: grid;
+-    grid-template-columns: 1.1fr 1fr;
+-    gap: var(--space-6);
++.results-card__body {
++    padding: var(--space-6);
++    overflow-y: auto;
++    flex: 1 1 auto;
++    display: flex;
++    flex-direction: column;
++    gap: var(--space-4);
+ }
+ 
+-.results-card--viewer,
+-.results-card--insights {
++#pdf-viewer {
++    background: var(--color-bg-soft);
++    border: 0;
++    border-top: 1px solid var(--color-border-soft);
++    flex: 1 1 auto;
++    width: 100%;
++}
++
++/* Skill panel — used inside results-card / manual-results */
++.skill-panel {
++    background: var(--color-surface-subtle);
++    border: 1px solid var(--color-border);
++    border-radius: var(--radius-lg);
++    padding: var(--space-4);
+     display: flex;
+     flex-direction: column;
+-    height: 820px;
++    gap: var(--space-3);
+ }
+ 
+-.results-card--viewer .results-card__header,
+-.results-card--insights .results-card__header {
+-    flex-shrink: 0;
++.skill-panel__title {
++    font-size: 0.7rem;
++    font-weight: 700;
++    color: var(--color-text-muted);
++    text-transform: uppercase;
++    letter-spacing: 0.1em;
++    margin: 0;
+ }
+ 
+-#pdf-viewer {
+-    background: var(--color-bg-soft) !important;
+-    border-top: 1px solid var(--color-border-soft);
+-    flex: 1 1 auto;
+-    border: 0;
++.skill-panel__title--mb {
++    margin-bottom: var(--space-3);
++}
++
++.skill-panel__label {
++    margin: 0 0 6px;
++    font-size: 0.7rem;
++    font-weight: 700;
++    color: var(--color-primary);
++    text-transform: uppercase;
++    letter-spacing: 0.08em;
++}
++
++.skill-panel__label--matched {
++    color: var(--color-success);
++}
++
++.skill-panel__label--missing {
++    color: var(--color-danger);
+ }
+ 
+-.results-card--insights .p-6 {
+-    padding: var(--space-6) !important;
++.chip-row {
++    display: flex;
++    flex-wrap: wrap;
++    gap: 6px;
++    min-height: 22px;
++}
++
++/* Status banner (success notice in optimizer) */
++.status-banner {
++    border-radius: var(--radius-md);
++    padding: 10px 14px;
++    font-size: 0.85rem;
++    text-align: center;
++}
++
++.status-banner p {
++    margin: 0;
++}
++
++.status-banner--success {
++    background: var(--color-success-soft);
++    color: var(--color-success);
++    border: 1px solid rgba(79, 125, 86, 0.18);
++    font-weight: 500;
++}
++
++/* Layout: results grid + viewer */
++.results-grid {
++    display: grid;
++    grid-template-columns: 1.1fr 1fr;
++    gap: var(--space-6);
+ }
+ 
+ /* ============================================================================
+@@ -780,17 +926,6 @@ select {
+     margin: 0 0 var(--space-4);
+ }
+ 
+-/* Tailwind text-color overrides inside score card */
+-#scoreCard .text-gray-900,
+-#scoreCard .text-gray-700,
+-#scoreCard .text-gray-500,
+-#scoreCard .text-gray-400,
+-#scoreCard .text-gray-300,
+-#scoreCard .text-emerald-600 {
+-    color: inherit !important;
+-}
+-
+-#scoreCard ul,
+ #scoreCard #insightList,
+ #scoreCard #breakdownBars {
+     color: var(--color-text);
+@@ -881,72 +1016,79 @@ select {
+ }
+ 
+ /* Builder collapse cards */
+-.builder-surface .border {
+-    border-color: var(--color-border) !important;
+-    border-radius: var(--radius-lg) !important;
++.collapse-card {
++    border: 1px solid var(--color-border);
++    border-radius: var(--radius-lg);
++    overflow: hidden;
++    background: var(--color-surface);
++}
++
++.collapse-card--success {
++    border-color: rgba(79, 125, 86, 0.28);
+ }
+ 
+ .builder-surface .grid.grid-cols-2 {
+-    gap: var(--space-3) !important;
++    gap: var(--space-3);
+ }
+ 
+-.builder-surface .border button:first-of-type,
+-#toggle-exp-form,
+-#toggle-proj-form,
+-#toggle-edu-form,
+-#toggle-cert-form,
+-#toggle-builder-jd {
+-    background: var(--color-surface-subtle) !important;
+-    color: var(--color-text) !important;
+-    border: 0 !important;
+-    padding: 12px 16px !important;
+-    font-size: 0.875rem !important;
+-    font-weight: 600 !important;
+-    border-bottom: 0 !important;
++.collapse-toggle {
++    width: 100%;
++    display: flex;
++    align-items: center;
++    justify-content: space-between;
++    background: var(--color-surface-subtle);
++    color: var(--color-text);
++    border: 0;
++    padding: 12px 16px;
++    font-size: 0.875rem;
++    font-weight: 600;
++    text-align: left;
++    cursor: pointer;
+ }
+ 
+-#toggle-exp-form:hover,
+-#toggle-proj-form:hover,
+-#toggle-edu-form:hover,
+-#toggle-cert-form:hover {
+-    background: var(--color-surface-muted) !important;
++.collapse-toggle:hover {
++    background: var(--color-surface-muted);
+ }
+ 
+-#toggle-exp-icon,
+-#toggle-proj-icon,
+-#toggle-edu-icon,
+-#toggle-cert-icon,
+-#builder-jd-icon {
+-    color: var(--color-primary) !important;
++.collapse-toggle > span:first-child {
++    display: inline-flex;
++    align-items: center;
++    gap: 8px;
++}
++
++.collapse-toggle__icon {
++    color: var(--color-primary);
+     font-weight: 700;
++    font-size: 1rem;
++    line-height: 1;
+ }
+ 
+-#toggle-builder-jd {
+-    color: var(--color-success) !important;
+-    background: rgba(79, 125, 86, 0.08) !important;
++.collapse-toggle__hint {
++    font-size: 0.78rem;
++    color: var(--color-text-subtle);
++    font-weight: 500;
+ }
+ 
+-#toggle-builder-jd:hover {
+-    background: rgba(79, 125, 86, 0.14) !important;
++.collapse-toggle--success {
++    background: rgba(79, 125, 86, 0.08);
++    color: var(--color-success);
+ }
+ 
+-#exp-form,
+-#proj-form,
+-#edu-form,
+-#cert-form,
+-#builder-jd-form {
+-    background: var(--color-surface) !important;
+-    border-top: 1px solid var(--color-border-soft) !important;
+-    padding: var(--space-4) !important;
++.collapse-toggle--success:hover {
++    background: rgba(79, 125, 86, 0.14);
+ }
+ 
+-#builder-optimize-btn {
+-    background: var(--color-success) !important;
+-    box-shadow: 0 4px 12px rgba(79, 125, 86, 0.2);
++.collapse-toggle--success .collapse-toggle__icon {
++    color: var(--color-success);
+ }
+ 
+-#builder-optimize-btn:hover {
+-    background: #3f6644 !important;
++.collapse-body {
++    background: var(--color-surface);
++    border-top: 1px solid var(--color-border-soft);
++    padding: var(--space-4);
++    display: flex;
++    flex-direction: column;
++    gap: var(--space-3);
+ }
+ 
+ /* Section toggle pills */
