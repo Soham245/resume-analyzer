@@ -1940,11 +1940,6 @@ body.stage-analyzed .app-header {
 .builder-layout__preview {
     flex: 1;
     min-width: 0;
-    transition: margin-right 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.builder-layout__preview.drawer-open {
-    margin-right: 420px;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -2580,9 +2575,6 @@ body.stage-analyzed .app-header {
         width: 380px;
     }
 
-    .builder-layout__preview.drawer-open {
-        margin-right: 380px;
-    }
 
     .template-gallery {
         gap: 10px;
@@ -2603,9 +2595,6 @@ body.stage-analyzed .app-header {
         max-width: 100vw;
     }
 
-    .builder-layout__preview.drawer-open {
-        margin-right: 0;
-    }
 
     .section-edit-btn {
         right: 2px;

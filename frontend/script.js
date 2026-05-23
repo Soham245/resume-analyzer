@@ -649,7 +649,6 @@ document.addEventListener('DOMContentLoaded', () => {
         editorDrawer.setAttribute('aria-hidden', 'false');
         drawerBackdrop.classList.add('is-visible');
         drawerBackdrop.setAttribute('aria-hidden', 'false');
-        if (builderPreview) builderPreview.classList.add('drawer-open');
     }
 
     function closeDrawer() {
@@ -657,7 +656,6 @@ document.addEventListener('DOMContentLoaded', () => {
         editorDrawer.setAttribute('aria-hidden', 'true');
         drawerBackdrop.classList.remove('is-visible');
         drawerBackdrop.setAttribute('aria-hidden', 'true');
-        if (builderPreview) builderPreview.classList.remove('drawer-open');
     }
 
     // Delegate hover-icon clicks. Block bubbling so we don't trip the
