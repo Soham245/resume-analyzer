@@ -1190,33 +1190,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ── Add skill ────────────────────────────────────────────────────────────
-    addSkillBtn.addEventListener('click', () => {
-        const val = newSkillInput.value.trim();
-        const cat = newSkillCategory.value;
-        if (!val) return;
-        const canon = canonicalizeSkill(val);
-        if (currentSkills[cat].map(s => s.toLowerCase()).includes(canon.toLowerCase())) return;
-        currentSkills[cat].push(canon);
-        // Mirror into structured resume so rescore sees the new skill in the right section.
-        if (currentStructuredData) {
-            const key = cat === 'technical' ? 'technical_skills'
-                      : cat === 'soft'      ? 'soft_skills'
-                      :                       'languages';
-            currentStructuredData[key] = currentStructuredData[key] || [];
-            if (!currentStructuredData[key].map(s => s.toLowerCase()).includes(canon.toLowerCase())) {
-                currentStructuredData[key].push(canon);
+    // ── Add skill (controls removed from analysis panel — guarded) ─────────
+    if (addSkillBtn) {
+        addSkillBtn.addEventListener('click', () => {
+            const val = newSkillInput.value.trim();
+            const cat = newSkillCategory.value;
+            if (!val) return;
+            const canon = canonicalizeSkill(val);
+            if (currentSkills[cat].map(s => s.toLowerCase()).includes(canon.toLowerCase())) return;
+            currentSkills[cat].push(canon);
+            if (currentStructuredData) {
+                const key = cat === 'technical' ? 'technical_skills'
+                          : cat === 'soft'      ? 'soft_skills'
+                          :                       'languages';
+                currentStructuredData[key] = currentStructuredData[key] || [];
+                if (!currentStructuredData[key].map(s => s.toLowerCase()).includes(canon.toLowerCase())) {
+                    currentStructuredData[key].push(canon);
+                }
+                currentStructuredData.skill_groups = filterAndGroupSkills(currentStructuredData.technical_skills || []);
             }
-            currentStructuredData.skill_groups = filterAndGroupSkills(currentStructuredData.technical_skills || []);
-        }
-        newSkillInput.value = '';
-        renderUserSkills();
-        scheduleRescore();
-    });
+            newSkillInput.value = '';
+            renderUserSkills();
+            scheduleRescore();
+        });
+    }
 
-    newSkillInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); addSkillBtn.click(); }
-    });
+    if (newSkillInput) {
+        newSkillInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); addSkillBtn.click(); }
+        });
+    }
 
     // ── 1. ANALYSIS FLOW ─────────────────────────────────────────────────────
     form.addEventListener('submit', async (e) => {
@@ -1563,43 +1566,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ── Phase 5: Experience-vs-Project recommendation banner ──────────────
-    const recBanner = document.getElementById('recommendation-banner');
-    const recText   = document.getElementById('recommendation-text');
-
-    function updateRecommendation() {
-        if (!recBanner || !recText || !currentStructuredData) {
-            if (recBanner) recBanner.classList.remove('is-visible');
-            return;
-        }
-        const exp  = (currentStructuredData.experience || []).length;
-        const proj = (currentStructuredData.projects    || []).length;
-        const hasBullets = (currentStructuredData.experience || []).some(
-            e => (e.bullets || e.details || []).length > 0
-        );
-
-        let msg = '';
-        if (exp === 0 && proj === 0) {
-            msg = `<strong>Add your experience or projects</strong>
-                   Resumes with at least one experience entry or project score significantly higher with ATS systems. Click the ✏️ pencil on the Experience or Projects section to get started.`;
-        } else if (exp > 0 && !hasBullets) {
-            msg = `<strong>Strengthen your experience bullets</strong>
-                   Your experience entries don't have bullet points yet. Quantified achievements (e.g. "Improved latency by 40%") make a big ATS difference.`;
-        } else if (exp === 0 && proj > 0) {
-            msg = `<strong>Consider adding work experience</strong>
-                   You have ${proj} project${proj > 1 ? 's' : ''} but no professional experience. Even internships or freelance work can boost your resume's ATS score.`;
-        } else if (proj === 0 && exp > 0 && exp <= 2) {
-            msg = `<strong>Add a project to stand out</strong>
-                   With ${exp} experience entr${exp > 1 ? 'ies' : 'y'}, adding a personal or open-source project can showcase technical breadth and initiative.`;
-        }
-
-        if (msg) {
-            recText.innerHTML = msg;
-            recBanner.classList.add('is-visible');
-        } else {
-            recBanner.classList.remove('is-visible');
-        }
-    }
+    // ── Recommendation banner (removed — HTML deleted) ─────────────────────
+    function updateRecommendation() { /* no-op: banner removed */ }
 
     // ── 4. ADD EXPERIENCE — moved to drawer-based editor (Phase 2) ────────
 
@@ -1818,7 +1786,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const signal = controllers.pdf.signal;
         const requestId = ++latestRequestIds.pdf;
         
-        downloadPdfBtn.textContent = 'Generating PDF...';
+        const pdfLabel = downloadPdfBtn.querySelector('.download-pdf-btn__label');
+        if (pdfLabel) pdfLabel.textContent = 'Generating PDF…';
 
         const resumeWrapper = resumeDocument.querySelector('.resume-wrapper');
         const clone = resumeWrapper.cloneNode(true);
@@ -1912,7 +1881,8 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Failed to generate PDF.");
         } finally {
             if (requestId === latestRequestIds.pdf) {
-                downloadPdfBtn.textContent = '📥 Download ATS PDF';
+                const lbl = downloadPdfBtn.querySelector('.download-pdf-btn__label');
+                if (lbl) lbl.textContent = 'Download PDF';
             }
         }
     });
@@ -2085,14 +2055,20 @@ function updateScoreCard(payload) {
 
     setScoreDonut(document.getElementById('scoreDonutProgress'), safeOptScore);
 
-    // Update collapsed mini-donut and toggle value
+    // Update collapsed mini-donut
     const miniProg = document.getElementById('scoreMiniProgress');
     if (miniProg) {
         const pct = 100 - safeOptScore;
         miniProg.setAttribute('stroke-dashoffset', pct);
     }
-    const toggleVal = document.getElementById('scoreToggleValue');
-    if (toggleVal) toggleVal.innerHTML = `${safeOptScore}<small>/100</small>`;
+
+    // Update collapsed score comparison (always-visible "22 → 36 (85%)")
+    const collOrig = document.getElementById('scoreCollapsedOrig');
+    const collOpt  = document.getElementById('scoreCollapsedOpt');
+    const collConf = document.getElementById('scoreCollapsedConf');
+    if (collOrig) animateNumber(collOrig, parseInt(collOrig.textContent) || 0, safeOrigScore);
+    if (collOpt)  animateNumber(collOpt,  parseInt(collOpt.textContent)  || 0, safeOptScore);
+    if (collConf) animateNumber(collConf, parseInt(collConf.textContent) || 0, safeConfidence);
 
     renderInsights(document.getElementById('insightList'), payload.insights);
     renderBreakdown(document.getElementById('breakdownBars'), opt.breakdown);
