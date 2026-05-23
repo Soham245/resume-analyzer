@@ -1422,6 +1422,58 @@ document.addEventListener('DOMContentLoaded', () => {
               <div style="background:#ddd;height:2px;width:80%;border-radius:1px;"></div>
             </div>
           </div>` },
+        { id: 'modern_corporate', name: 'Modern Corporate', tag: 'Dark Header',
+          mini: `<div style="font-family:sans-serif;">
+            <div style="background:#1a1a2e;padding:5px 6px 4px;">
+              <div style="background:#fff;height:4px;width:55%;margin-bottom:2px;border-radius:1px;"></div>
+              <div style="background:#a0c4ff;height:2px;width:40%;border-radius:1px;"></div>
+            </div>
+            <div style="padding:4px 6px;">
+              <div style="background:#a0c4ff;height:2px;width:85%;margin-bottom:3px;border-radius:1px;"></div>
+              <div style="background:#1a1a2e;height:2px;width:50%;margin-bottom:2px;border-radius:1px;"></div>
+              <div style="background:#ddd;height:2px;width:90%;margin-bottom:1px;border-radius:1px;"></div>
+              <div style="background:#ddd;height:2px;width:70%;border-radius:1px;"></div>
+            </div>
+          </div>` },
+        { id: 'minimal_pro', name: 'Minimal Professional', tag: 'Clean Serif',
+          mini: `<div style="padding:6px 8px;font-family:sans-serif;">
+            <div style="margin-bottom:3px;">
+              <div style="background:#222;height:5px;width:50%;margin-bottom:2px;border-radius:1px;"></div>
+              <div style="background:#ccc;height:2px;width:35%;margin-bottom:2px;border-radius:1px;"></div>
+              <div style="border-top:1px solid #ddd;margin-top:3px;"></div>
+            </div>
+            <div style="background:#f0f0f0;height:2px;width:90%;margin-bottom:3px;border-radius:1px;"></div>
+            <div style="background:#888;height:2px;width:30%;margin-bottom:2px;border-radius:1px;"></div>
+            <div style="background:#ddd;height:2px;width:85%;margin-bottom:1px;border-radius:1px;"></div>
+            <div style="background:#ddd;height:2px;width:70%;border-radius:1px;"></div>
+          </div>` },
+        { id: 'tech_pro', name: 'Tech Professional', tag: 'Code-Inspired',
+          mini: `<div style="padding:5px 7px;font-family:sans-serif;">
+            <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
+              <div style="background:#333;height:4px;width:40%;border-radius:1px;"></div>
+              <div style="background:#0ea5e9;height:2px;width:30%;border-radius:1px;"></div>
+            </div>
+            <div style="border-top:2px dashed #0ea5e9;margin-bottom:3px;"></div>
+            <div style="background:#f1f5f9;height:3px;width:90%;margin-bottom:3px;border-radius:1px;border-left:2px solid #0ea5e9;"></div>
+            <div style="background:#0ea5e9;height:2px;width:35%;margin-bottom:2px;border-radius:1px;"></div>
+            <div style="background:#ddd;height:2px;width:80%;margin-bottom:1px;border-radius:1px;"></div>
+            <div style="background:#ddd;height:2px;width:65%;border-radius:1px;"></div>
+          </div>` },
+        { id: 'premium_exec', name: 'Premium Executive', tag: 'Gradient Header',
+          mini: `<div style="font-family:sans-serif;">
+            <div style="background:linear-gradient(135deg,#1e3a5f,#2c5f8a);padding:5px 6px 4px;">
+              <div style="background:#fff;height:4px;width:50%;margin-bottom:2px;border-radius:1px;"></div>
+              <div style="background:#b8d4e8;height:2px;width:35%;border-radius:1px;"></div>
+            </div>
+            <div style="padding:4px 6px;">
+              <div style="border-bottom:1px solid #c0a060;margin-bottom:3px;padding-bottom:2px;">
+                <div style="background:#ddd;height:2px;width:85%;border-radius:1px;"></div>
+              </div>
+              <div style="background:#1e3a5f;height:2px;width:45%;margin-bottom:2px;border-radius:1px;"></div>
+              <div style="background:#ddd;height:2px;width:80%;margin-bottom:1px;border-radius:1px;"></div>
+              <div style="background:#ddd;height:2px;width:65%;border-radius:1px;"></div>
+            </div>
+          </div>` },
     ];
 
     const templateGallery = document.getElementById('template-gallery');
