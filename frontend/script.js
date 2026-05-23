@@ -675,6 +675,288 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Escape' && editorDrawer.classList.contains('is-open')) closeDrawer();
     });
 
+    // ── Phase 2: Section panel renderers ────────────────────────────────────
+    // Each panel renderer receives the drawer body element and populates it.
+    // Mutations go through currentStructuredData → renderResume(true) → scheduleRescore().
+
+    // Shared: render an entry list with edit/delete/reorder + add form.
+    function renderEntryList(container, {
+        dataKey,          // e.g. 'experience'
+        titleFn,          // (entry) => display title
+        subtitleFn,       // (entry) => subtitle (optional)
+        formFields,       // [{id, label, placeholder, type:'text'|'textarea', rows}]
+        requiredFields,   // [id] — must be non-empty
+        buildEntry,       // (vals) => entry object
+        populateForm,     // (entry, formEl) => fill inputs for editing
+    }) {
+        if (!currentStructuredData) {
+            container.innerHTML = '<p style="color:var(--color-text-muted);font-size:0.85rem;">Generate or analyze a resume first.</p>';
+            return;
+        }
+        const entries = currentStructuredData[dataKey] || [];
+        container.innerHTML = '';
+
+        // Entry cards
+        entries.forEach((entry, idx) => {
+            const card = document.createElement('div');
+            card.className = 'editor-entry-card';
+            card.innerHTML = `
+                <div class="editor-entry-card__header">
+                    <div style="min-width:0;">
+                        <div class="editor-entry-card__title">${titleFn(entry)}</div>
+                        ${subtitleFn ? `<div class="editor-entry-card__subtitle">${subtitleFn(entry)}</div>` : ''}
+                    </div>
+                    <div class="editor-entry-card__actions">
+                        ${idx > 0 ? `<button type="button" class="editor-entry-btn" data-act="up" data-idx="${idx}" title="Move up">↑</button>` : ''}
+                        ${idx < entries.length - 1 ? `<button type="button" class="editor-entry-btn" data-act="down" data-idx="${idx}" title="Move down">↓</button>` : ''}
+                        <button type="button" class="editor-entry-btn editor-entry-btn--danger" data-act="delete" data-idx="${idx}" title="Delete">×</button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        // Wire card actions via delegation
+        container.addEventListener('click', function handler(e) {
+            const btn = e.target.closest('[data-act]');
+            if (!btn) return;
+            const act = btn.dataset.act;
+            const idx = parseInt(btn.dataset.idx, 10);
+            const arr = currentStructuredData[dataKey];
+            if (!arr) return;
+            if (act === 'delete') {
+                arr.splice(idx, 1);
+            } else if (act === 'up' && idx > 0) {
+                [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
+            } else if (act === 'down' && idx < arr.length - 1) {
+                [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+            }
+            renderResume(true);
+            scheduleRescore(200);
+            renderEntryList(container, { dataKey, titleFn, subtitleFn, formFields, requiredFields, buildEntry, populateForm });
+        });
+
+        // Add-new form
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'editor-add-btn';
+        addBtn.innerHTML = `<span>+</span> Add ${SECTION_LABELS[dataKey] || 'entry'}`;
+        container.appendChild(addBtn);
+
+        const form = document.createElement('div');
+        form.className = 'editor-inline-form';
+        form.innerHTML = formFields.map(f => {
+            if (f.type === 'textarea') {
+                return `<div class="editor-field-group">
+                    <label class="editor-field-label">${f.label}</label>
+                    <textarea class="editor-field-input" data-fid="${f.id}" rows="${f.rows || 3}" placeholder="${f.placeholder || ''}"></textarea>
+                </div>`;
+            }
+            return `<div class="editor-field-group">
+                <label class="editor-field-label">${f.label}</label>
+                <input type="text" class="editor-field-input" data-fid="${f.id}" placeholder="${f.placeholder || ''}">
+            </div>`;
+        }).join('') + `
+            <div class="editor-inline-form__actions">
+                <button type="button" class="editor-inline-form__cancel">Cancel</button>
+                <button type="button" class="editor-inline-form__save">Save</button>
+            </div>`;
+        container.appendChild(form);
+
+        addBtn.addEventListener('click', () => {
+            form.classList.toggle('is-active');
+            addBtn.style.display = form.classList.contains('is-active') ? 'none' : '';
+        });
+
+        form.querySelector('.editor-inline-form__cancel').addEventListener('click', () => {
+            form.classList.remove('is-active');
+            addBtn.style.display = '';
+            form.querySelectorAll('.editor-field-input').forEach(el => el.value = '');
+        });
+
+        form.querySelector('.editor-inline-form__save').addEventListener('click', () => {
+            const vals = {};
+            let missing = false;
+            form.querySelectorAll('.editor-field-input').forEach(el => {
+                vals[el.dataset.fid] = el.value.trim();
+            });
+            for (const rId of (requiredFields || [])) {
+                if (!vals[rId]) { missing = true; break; }
+            }
+            if (missing) return;
+
+            currentStructuredData[dataKey] = currentStructuredData[dataKey] || [];
+            currentStructuredData[dataKey].push(buildEntry(vals));
+            renderResume(true);
+            scheduleRescore(200);
+
+            form.classList.remove('is-active');
+            addBtn.style.display = '';
+            form.querySelectorAll('.editor-field-input').forEach(el => el.value = '');
+            renderEntryList(container, { dataKey, titleFn, subtitleFn, formFields, requiredFields, buildEntry, populateForm });
+        });
+    }
+
+    // ── Profile panel ───────────────────────────────────────────────────────
+    sectionPanels['profile'] = (body) => {
+        if (!currentStructuredData) {
+            body.innerHTML = '<p style="color:var(--color-text-muted);font-size:0.85rem;">Generate or analyze a resume first.</p>';
+            return;
+        }
+        const d = currentStructuredData;
+        body.innerHTML = `
+            <div class="editor-field-group">
+                <label class="editor-field-label">Name</label>
+                <input type="text" class="editor-field-input" data-profile="name" value="${d.name || ''}">
+            </div>
+            <div class="editor-field-group">
+                <label class="editor-field-label">Professional Title</label>
+                <input type="text" class="editor-field-input" data-profile="title" value="${d.title || ''}">
+            </div>
+            <div class="editor-field-group">
+                <label class="editor-field-label">Summary / About</label>
+                <textarea class="editor-field-input" data-profile="summary" rows="4">${d.summary || ''}</textarea>
+            </div>
+            <div class="editor-section-divider"></div>
+            <h3 class="editor-sub-header">Contact Information</h3>
+            <div class="editor-field-row editor-field-row--2">
+                <div class="editor-field-group">
+                    <label class="editor-field-label">Email</label>
+                    <input type="email" class="editor-field-input" data-profile="email" value="${d.email || ''}">
+                </div>
+                <div class="editor-field-group">
+                    <label class="editor-field-label">Phone</label>
+                    <input type="tel" class="editor-field-input" data-profile="phone" value="${d.phone || ''}">
+                </div>
+            </div>
+            <div class="editor-field-row editor-field-row--2">
+                <div class="editor-field-group">
+                    <label class="editor-field-label">LinkedIn</label>
+                    <input type="text" class="editor-field-input" data-profile="linkedin" value="${d.linkedin || ''}">
+                </div>
+                <div class="editor-field-group">
+                    <label class="editor-field-label">GitHub</label>
+                    <input type="text" class="editor-field-input" data-profile="github" value="${d.github || ''}">
+                </div>
+            </div>
+        `;
+
+        body.querySelectorAll('[data-profile]').forEach(el => {
+            el.addEventListener('input', () => {
+                const key = el.dataset.profile;
+                currentStructuredData[key] = el.value.trim();
+                renderResume(true);
+                scheduleRescore();
+            });
+        });
+    };
+
+    // ── Experience panel ────────────────────────────────────────────────────
+    sectionPanels['experience'] = (body) => {
+        renderEntryList(body, {
+            dataKey: 'experience',
+            titleFn: e => e.role || 'Untitled',
+            subtitleFn: e => [e.company, e.duration].filter(Boolean).join(' · '),
+            requiredFields: ['role', 'company'],
+            formFields: [
+                { id: 'role', label: 'Role / Job Title', placeholder: 'e.g. Senior Software Engineer' },
+                { id: 'company', label: 'Company', placeholder: 'e.g. Acme Corp' },
+                { id: 'duration', label: 'Duration', placeholder: 'e.g. Jan 2023 – Present' },
+                { id: 'desc', label: 'Bullet Points (one per line)', placeholder: 'Led backend migration, reducing API latency by 40%', type: 'textarea', rows: 3 },
+            ],
+            buildEntry: v => ({
+                role: v.role,
+                company: v.company,
+                duration: v.duration || '',
+                points: v.desc ? v.desc.split('\n').map(l => l.replace(/^[-•*]\s*/, '').trim()).filter(Boolean) : [],
+            }),
+        });
+    };
+
+    // ── Projects panel ──────────────────────────────────────────────────────
+    sectionPanels['projects'] = (body) => {
+        renderEntryList(body, {
+            dataKey: 'projects',
+            titleFn: p => p.title || 'Untitled',
+            subtitleFn: p => (p.tech_stack || []).join(', '),
+            requiredFields: ['title'],
+            formFields: [
+                { id: 'title', label: 'Project Title', placeholder: 'e.g. E-Commerce Platform' },
+                { id: 'stack', label: 'Tech Stack (comma-separated)', placeholder: 'React, Node.js, MongoDB' },
+                { id: 'desc', label: 'Bullet Points (one per line)', placeholder: 'Built cart + checkout, integrated Stripe', type: 'textarea', rows: 3 },
+            ],
+            buildEntry: v => ({
+                title: v.title,
+                tech_stack: v.stack ? v.stack.split(',').map(s => s.trim()).filter(Boolean) : [],
+                points: v.desc ? v.desc.split('\n').map(l => l.replace(/^[-•*]\s*/, '').trim()).filter(Boolean) : [],
+            }),
+        });
+    };
+
+    // ── Education & Certifications panel ────────────────────────────────────
+    sectionPanels['education-cert'] = (body) => {
+        if (!currentStructuredData) {
+            body.innerHTML = '<p style="color:var(--color-text-muted);font-size:0.85rem;">Generate or analyze a resume first.</p>';
+            return;
+        }
+        body.innerHTML = '';
+
+        // Education sub-section
+        const eduHeader = document.createElement('h3');
+        eduHeader.className = 'editor-sub-header';
+        eduHeader.textContent = 'Education';
+        body.appendChild(eduHeader);
+
+        const eduContainer = document.createElement('div');
+        eduContainer.style.cssText = 'display:flex;flex-direction:column;gap:10px;margin-bottom:16px;';
+        body.appendChild(eduContainer);
+
+        renderEntryList(eduContainer, {
+            dataKey: 'education',
+            titleFn: e => e.degree || 'Untitled',
+            subtitleFn: e => [e.institution, e.year].filter(Boolean).join(' · '),
+            requiredFields: ['degree', 'institution'],
+            formFields: [
+                { id: 'degree', label: 'Degree', placeholder: 'e.g. B.Tech Computer Science' },
+                { id: 'institution', label: 'Institution', placeholder: 'e.g. MIT' },
+                { id: 'year', label: 'Year / Duration', placeholder: 'e.g. 2019–2023' },
+                { id: 'gpa', label: 'GPA / Score (optional)', placeholder: 'e.g. 3.8/4.0' },
+            ],
+            buildEntry: v => ({
+                degree: v.gpa ? `${v.degree} (${v.gpa})` : v.degree,
+                institution: v.institution,
+                year: v.year || '',
+            }),
+        });
+
+        // Certifications sub-section
+        const certHeader = document.createElement('h3');
+        certHeader.className = 'editor-sub-header';
+        certHeader.textContent = 'Certifications';
+        body.appendChild(certHeader);
+
+        const certContainer = document.createElement('div');
+        certContainer.style.cssText = 'display:flex;flex-direction:column;gap:10px;';
+        body.appendChild(certContainer);
+
+        renderEntryList(certContainer, {
+            dataKey: 'certifications',
+            titleFn: c => typeof c === 'string' ? c : (c.name || 'Untitled'),
+            requiredFields: ['name'],
+            formFields: [
+                { id: 'name', label: 'Certification Name', placeholder: 'e.g. AWS Solutions Architect' },
+                { id: 'org', label: 'Issuing Organization', placeholder: 'e.g. Amazon' },
+                { id: 'date', label: 'Date / Validity', placeholder: 'e.g. Jan 2024' },
+            ],
+            buildEntry: v => {
+                let s = v.name;
+                if (v.org) s += ` — ${v.org}`;
+                if (v.date) s += ` (${v.date})`;
+                return s;
+            },
+        });
+    };
+
     // ── Auto-fit page ─────────────────────────────────────────────────────────
     // Two-phase layout engine (document-flow model — no flex-grow stretching):
     //   Phase 1 — measure: sections render at natural content height.
@@ -948,53 +1230,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── 3. TEMPLATE SWITCHING ────────────────────────────────────────────────
     templateSelect.addEventListener('change', () => renderResume());
 
-    // ── 4. ADD EXPERIENCE BLOCK ──────────────────────────────────────────────
-    const toggleExpBtn  = document.getElementById('toggle-exp-form');
-    const toggleExpIcon = document.getElementById('toggle-exp-icon');
-    const expForm       = document.getElementById('exp-form');
-    const addExpBtn     = document.getElementById('add-exp-btn');
-
-    toggleExpBtn.addEventListener('click', () => {
-        const isHidden = expForm.classList.toggle('hidden');
-        toggleExpIcon.textContent = isHidden ? '+' : '−';
-    });
-
-    addExpBtn.addEventListener('click', () => {
-        const role     = document.getElementById('exp-role').value.trim();
-        const company  = document.getElementById('exp-company').value.trim();
-        const duration = document.getElementById('exp-duration').value.trim();
-        const desc     = document.getElementById('exp-desc').value.trim();
-
-        if (!role || !company) {
-            errorMessage.textContent = 'Role and Company are required to add an experience entry.';
-            errorMessage.classList.remove('hidden');
-            return;
-        }
-        if (!currentStructuredData) {
-            errorMessage.textContent = 'Run "Optimize Resume" first, then add experience entries.';
-            errorMessage.classList.remove('hidden');
-            return;
-        }
-
-        errorMessage.classList.add('hidden');
-
-        const points = desc
-            ? desc.split('\n').map(l => l.replace(/^[-•*]\s*/, '').trim()).filter(Boolean)
-            : [];
-
-        currentStructuredData.experience = currentStructuredData.experience || [];
-        currentStructuredData.experience.push({ role, company, duration, points });
-        renderResume(true);
-        scheduleRescore(200);
-
-        // Clear and collapse form
-        document.getElementById('exp-role').value     = '';
-        document.getElementById('exp-company').value  = '';
-        document.getElementById('exp-duration').value = '';
-        document.getElementById('exp-desc').value     = '';
-        expForm.classList.add('hidden');
-        toggleExpIcon.textContent = '+';
-    });
+    // ── 4. ADD EXPERIENCE — moved to drawer-based editor (Phase 2) ────────
 
     // ── 5. MANUAL ENTRY — GENERATE FROM INPUTS ───────────────────────────────
     const generateManualBtn = document.getElementById('generate-manual-btn');
@@ -1271,95 +1507,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ── 6. SHARED ENTRY FORM UTILITY ─────────────────────────────────────────
-    function setupEntryForm({ toggleId, iconId, formId, addBtnId, requiredIds, fieldIds, buildEntry, dataKey, errorText }) {
-        const toggle = document.getElementById(toggleId);
-        const icon   = document.getElementById(iconId);
-        const form   = document.getElementById(formId);
-        const addBtn = document.getElementById(addBtnId);
-
-        toggle.addEventListener('click', () => {
-            const hidden = form.classList.toggle('hidden');
-            icon.textContent = hidden ? '+' : '−';
-        });
-
-        addBtn.addEventListener('click', () => {
-            if (!currentStructuredData) {
-                errorMessage.textContent = 'Run "Optimize Resume" first, then add entries.';
-                errorMessage.classList.remove('hidden');
-                return;
-            }
-            const missing = requiredIds.find(id => !document.getElementById(id).value.trim());
-            if (missing) {
-                errorMessage.textContent = errorText || 'Please fill all required fields.';
-                errorMessage.classList.remove('hidden');
-                return;
-            }
-            errorMessage.classList.add('hidden');
-
-            const vals = {};
-            fieldIds.forEach(id => { vals[id] = document.getElementById(id).value.trim(); });
-
-            currentStructuredData[dataKey] = currentStructuredData[dataKey] || [];
-            currentStructuredData[dataKey].push(buildEntry(vals));
-            renderResume(true);
-            scheduleRescore(200);
-
-            fieldIds.forEach(id => { document.getElementById(id).value = ''; });
-            form.classList.add('hidden');
-            icon.textContent = '+';
-        });
-    }
-
-    // Projects
-    setupEntryForm({
-        toggleId: 'toggle-proj-form', iconId: 'toggle-proj-icon',
-        formId: 'proj-form',          addBtnId: 'add-proj-btn',
-        requiredIds: ['proj-title'],
-        fieldIds:    ['proj-title', 'proj-stack', 'proj-desc'],
-        dataKey:     'projects',
-        errorText:   'Project title is required.',
-        buildEntry: (v) => ({
-            title:      v['proj-title'],
-            tech_stack: v['proj-stack']
-                ? v['proj-stack'].split(',').map(s => s.trim()).filter(Boolean)
-                : [],
-            points: v['proj-desc']
-                ? v['proj-desc'].split('\n').map(l => l.replace(/^[-•*]\s*/, '').trim()).filter(Boolean)
-                : [],
-        }),
-    });
-
-    // Education
-    setupEntryForm({
-        toggleId: 'toggle-edu-form', iconId: 'toggle-edu-icon',
-        formId: 'edu-form',          addBtnId: 'add-edu-btn',
-        requiredIds: ['edu-degree', 'edu-institution'],
-        fieldIds:    ['edu-degree', 'edu-institution', 'edu-year', 'edu-gpa'],
-        dataKey:     'education',
-        errorText:   'Degree and Institution are required.',
-        buildEntry: (v) => ({
-            degree:      v['edu-gpa'] ? `${v['edu-degree']} (${v['edu-gpa']})` : v['edu-degree'],
-            institution: v['edu-institution'],
-            year:        v['edu-year'] || '',
-        }),
-    });
-
-    // Certifications  (data model is a flat string array)
-    setupEntryForm({
-        toggleId: 'toggle-cert-form', iconId: 'toggle-cert-icon',
-        formId: 'cert-form',          addBtnId: 'add-cert-btn',
-        requiredIds: ['cert-name'],
-        fieldIds:    ['cert-name', 'cert-org', 'cert-date'],
-        dataKey:     'certifications',
-        errorText:   'Certification name is required.',
-        buildEntry: (v) => {
-            let s = v['cert-name'];
-            if (v['cert-org'])  s += ` — ${v['cert-org']}`;
-            if (v['cert-date']) s += ` (${v['cert-date']})`;
-            return s;
-        },
-    });
+    // ── 6. ENTRY FORMS — moved to drawer-based editors (Phase 2) ──────────
 
     // ── 7a. LIVE INLINE EDIT SYNC ────────────────────────────────────────────
     // Update currentStructuredData on every keystroke so template switches
