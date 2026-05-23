@@ -760,9 +760,79 @@ select.field-input {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-xl);
     box-shadow: var(--color-shadow);
-    padding: var(--space-3);
+    padding: 0;
     margin-bottom: var(--space-3);
     color: var(--color-text);
+    overflow: hidden;
+}
+
+/* Collapsible toggle bar */
+.scorecard__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 14px var(--space-3);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    color: var(--color-text);
+    font: inherit;
+}
+.scorecard__toggle:hover {
+    background: var(--color-surface-strong);
+}
+.scorecard__toggle-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.scorecard__mini-donut {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+}
+.scorecard__toggle-info {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+.scorecard__toggle-title {
+    font-weight: 600;
+    font-size: 0.9375rem;
+}
+.scorecard__toggle-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+.scorecard__toggle-value small {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+}
+.scorecard__chevron {
+    width: 20px;
+    height: 20px;
+    color: var(--color-text-muted);
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+}
+
+/* Collapsed state: hide body */
+.scorecard--collapsed .scorecard__body {
+    display: none;
+}
+.scorecard--collapsed .scorecard__chevron {
+    transform: rotate(0deg);
+}
+
+/* Expanded state */
+.scorecard:not(.scorecard--collapsed) .scorecard__body {
+    padding: 0 var(--space-3) var(--space-3);
+}
+.scorecard:not(.scorecard--collapsed) .scorecard__chevron {
+    transform: rotate(180deg);
 }
 
 .scorecard__head {

@@ -326,28 +326,26 @@
                 </div>
             </div>
 
-            <!-- Score Card -->
-            <section id="scoreCard" class="hidden hover-lift smooth-ui scorecard">
-                <header class="scorecard__head">
-                    <div>
-                        <h2 class="scorecard__title">ATS Compatibility Score</h2>
-                        <p class="scorecard__subtitle">This score shows how well your resume matches ATS criteria</p>
-                        <p id="scoreLabel" class="sr-only">Analyzing...</p>
-                    </div>
-                    <div class="scorecard__head-actions">
-                        <div id="scoreImprovement" class="hidden">↗ <span id="improvementValue">0</span>% potential improvement</div>
-                        <div class="scorecard__confidence">
-                            <svg class="scorecard__confidence-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                                <path d="M9 12l2 2 4-4"/>
-                            </svg>
-                            <div class="scorecard__confidence-text">
-                                <p class="scorecard__confidence-value"><span id="confidenceValue">0</span>% confidence</p>
-                                <p class="scorecard__confidence-label">High reliability</p>
-                            </div>
+            <!-- Score Card (collapsible) -->
+            <section id="scoreCard" class="hidden smooth-ui scorecard scorecard--collapsed">
+                <button type="button" class="scorecard__toggle" id="scorecard-toggle" aria-expanded="false">
+                    <div class="scorecard__toggle-left">
+                        <svg class="scorecard__mini-donut" viewBox="0 0 36 36">
+                            <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--color-border)" stroke-width="3"/>
+                            <circle id="scoreMiniProgress" cx="18" cy="18" r="15.9" fill="none"
+                                stroke="var(--color-primary)" stroke-width="3" stroke-dasharray="100" stroke-dashoffset="100"
+                                stroke-linecap="round" transform="rotate(-90 18 18)"/>
+                        </svg>
+                        <div class="scorecard__toggle-info">
+                            <span class="scorecard__toggle-title">ATS Score</span>
+                            <span class="scorecard__toggle-value" id="scoreToggleValue">0<small>/100</small></span>
                         </div>
                     </div>
-                </header>
+                    <svg class="scorecard__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+                <p id="scoreLabel" class="sr-only">Analyzing...</p>
 
                 <div class="scorecard__body">
                     <!-- Donut -->
@@ -370,6 +368,17 @@
                         <div class="scorecard__compare-arrow" aria-hidden="true">↓</div>
                         <p class="scorecard__compare-label">Optimized Score</p>
                         <p class="scorecard__compare-value scorecard__compare-value--optimized"><span id="optimizedScoreValue">0</span>/100</p>
+                    </div>
+
+                    <!-- Confidence -->
+                    <div class="scorecard__confidence">
+                        <svg class="scorecard__confidence-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            <path d="M9 12l2 2 4-4"/>
+                        </svg>
+                        <div class="scorecard__confidence-text">
+                            <p class="scorecard__confidence-value"><span id="confidenceValue">0</span>% confidence</p>
+                        </div>
                     </div>
 
                     <!-- Breakdown -->

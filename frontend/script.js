@@ -1676,6 +1676,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── 5b. BUILDER — OPTIMIZE FOR JD (removed from builder UI, Fix #9) ────
 
+    // ── 5c. Collapsible ATS score card toggle ────────────────────────────────
+    const scorecardToggle = document.getElementById('scorecard-toggle');
+    if (scorecardToggle) {
+        scorecardToggle.addEventListener('click', () => {
+            const card = document.getElementById('scoreCard');
+            if (!card) return;
+            const collapsed = card.classList.toggle('scorecard--collapsed');
+            scorecardToggle.setAttribute('aria-expanded', !collapsed);
+        });
+    }
+
     // ── 6. ENTRY FORMS — moved to drawer-based editors (Phase 2) ──────────
 
     // ── 7. BLOCK CONTROLS (per-entry delete + contact remove) ────────────────
@@ -1988,14 +1999,14 @@ function updateScoreCard(payload) {
 
     setScoreDonut(document.getElementById('scoreDonutProgress'), safeOptScore);
 
-    const impEl = document.getElementById('scoreImprovement');
-    if (impEl && payload.improvement > 0) {
-        impEl.classList.remove('hidden');
-        const impVal = document.getElementById('improvementValue');
-        if (impVal) impVal.textContent = payload.improvement;
-    } else if (impEl) {
-        impEl.classList.add('hidden');
+    // Update collapsed mini-donut and toggle value
+    const miniProg = document.getElementById('scoreMiniProgress');
+    if (miniProg) {
+        const pct = 100 - safeOptScore;
+        miniProg.setAttribute('stroke-dashoffset', pct);
     }
+    const toggleVal = document.getElementById('scoreToggleValue');
+    if (toggleVal) toggleVal.innerHTML = `${safeOptScore}<small>/100</small>`;
 
     renderInsights(document.getElementById('insightList'), payload.insights);
     renderBreakdown(document.getElementById('breakdownBars'), opt.breakdown);
