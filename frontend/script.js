@@ -650,21 +650,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // Mutations go through currentStructuredData → renderResume() → scheduleRescore().
 
     // Shared: render an entry list with edit/delete/reorder + add form.
-    function renderEntryList(container, {
-        dataKey,          // e.g. 'experience'
-        titleFn,          // (entry) => display title
-        subtitleFn,       // (entry) => subtitle (optional)
-        formFields,       // [{id, label, placeholder, type:'text'|'textarea', rows}]
-        requiredFields,   // [id] — must be non-empty
-        buildEntry,       // (vals) => entry object
-        populateForm,     // (entry, formEl) => fill inputs for editing
-    }) {
+    function renderEntryList(container, opts) {
+        const { dataKey, titleFn, subtitleFn, formFields, requiredFields, buildEntry, populateForm } = opts;
         if (!currentStructuredData) {
             container.innerHTML = '<p style="color:var(--color-text-muted);font-size:0.85rem;">Generate or analyze a resume first.</p>';
             return;
         }
         const entries = currentStructuredData[dataKey] || [];
         container.innerHTML = '';
+        let editingIndex = -1; // tracks which entry is being edited
+
+        function rerender() {
+            renderResume();
+            scheduleRescore(200);
+            renderEntryList(container, opts);
+        }
 
         // Entry cards
         entries.forEach((entry, idx) => {
@@ -677,6 +677,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${subtitleFn ? `<div class="editor-entry-card__subtitle">${subtitleFn(entry)}</div>` : ''}
                     </div>
                     <div class="editor-entry-card__actions">
+                        <button type="button" class="editor-entry-btn" data-act="edit" data-idx="${idx}" title="Edit">✎</button>
                         ${idx > 0 ? `<button type="button" class="editor-entry-btn" data-act="up" data-idx="${idx}" title="Move up">↑</button>` : ''}
                         ${idx < entries.length - 1 ? `<button type="button" class="editor-entry-btn" data-act="down" data-idx="${idx}" title="Move down">↓</button>` : ''}
                         <button type="button" class="editor-entry-btn editor-entry-btn--danger" data-act="delete" data-idx="${idx}" title="Delete">×</button>
@@ -696,17 +697,24 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!arr) return;
             if (act === 'delete') {
                 arr.splice(idx, 1);
+                rerender();
             } else if (act === 'up' && idx > 0) {
                 [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
+                rerender();
             } else if (act === 'down' && idx < arr.length - 1) {
                 [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+                rerender();
+            } else if (act === 'edit') {
+                editingIndex = idx;
+                // Populate form with existing entry data and show it
+                if (populateForm) populateForm(arr[idx], form);
+                form.classList.add('is-active');
+                addBtn.style.display = 'none';
+                saveBtn.textContent = 'Update';
             }
-            renderResume();
-            scheduleRescore(200);
-            renderEntryList(container, { dataKey, titleFn, subtitleFn, formFields, requiredFields, buildEntry, populateForm });
         });
 
-        // Add-new form
+        // Add-new / edit form
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'editor-add-btn';
@@ -733,18 +741,24 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
         container.appendChild(form);
 
+        const saveBtn = form.querySelector('.editor-inline-form__save');
+
         addBtn.addEventListener('click', () => {
-            form.classList.toggle('is-active');
-            addBtn.style.display = form.classList.contains('is-active') ? 'none' : '';
+            editingIndex = -1;
+            saveBtn.textContent = 'Save';
+            form.querySelectorAll('.editor-field-input').forEach(el => el.value = '');
+            form.classList.add('is-active');
+            addBtn.style.display = 'none';
         });
 
         form.querySelector('.editor-inline-form__cancel').addEventListener('click', () => {
+            editingIndex = -1;
             form.classList.remove('is-active');
             addBtn.style.display = '';
             form.querySelectorAll('.editor-field-input').forEach(el => el.value = '');
         });
 
-        form.querySelector('.editor-inline-form__save').addEventListener('click', () => {
+        saveBtn.addEventListener('click', () => {
             const vals = {};
             let missing = false;
             form.querySelectorAll('.editor-field-input').forEach(el => {
@@ -756,14 +770,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (missing) return;
 
             currentStructuredData[dataKey] = currentStructuredData[dataKey] || [];
-            currentStructuredData[dataKey].push(buildEntry(vals));
-            renderResume();
-            scheduleRescore(200);
+            if (editingIndex >= 0) {
+                // Update existing entry
+                currentStructuredData[dataKey][editingIndex] = buildEntry(vals);
+            } else {
+                // Add new entry
+                currentStructuredData[dataKey].push(buildEntry(vals));
+            }
 
+            editingIndex = -1;
             form.classList.remove('is-active');
             addBtn.style.display = '';
             form.querySelectorAll('.editor-field-input').forEach(el => el.value = '');
-            renderEntryList(container, { dataKey, titleFn, subtitleFn, formFields, requiredFields, buildEntry, populateForm });
+            rerender();
         });
     }
 
@@ -840,6 +859,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 duration: v.duration || '',
                 points: v.desc ? v.desc.split('\n').map(l => l.replace(/^[-•*]\s*/, '').trim()).filter(Boolean) : [],
             }),
+            populateForm: (e, form) => {
+                form.querySelector('[data-fid="role"]').value = e.role || '';
+                form.querySelector('[data-fid="company"]').value = e.company || '';
+                form.querySelector('[data-fid="duration"]').value = e.duration || '';
+                form.querySelector('[data-fid="desc"]').value = (e.points || e.details || []).join('\n');
+            },
         });
     };
 
@@ -860,6 +885,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 tech_stack: v.stack ? v.stack.split(',').map(s => s.trim()).filter(Boolean) : [],
                 points: v.desc ? v.desc.split('\n').map(l => l.replace(/^[-•*]\s*/, '').trim()).filter(Boolean) : [],
             }),
+            populateForm: (p, form) => {
+                form.querySelector('[data-fid="title"]').value = p.title || '';
+                form.querySelector('[data-fid="stack"]').value = (p.tech_stack || []).join(', ');
+                form.querySelector('[data-fid="desc"]').value = (p.points || []).join('\n');
+            },
         });
     };
 
@@ -897,6 +927,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 institution: v.institution,
                 year: v.year || '',
             }),
+            populateForm: (e, form) => {
+                // Reverse the buildEntry GPA merge: "B.Tech CS (3.8/4.0)" → degree="B.Tech CS", gpa="3.8/4.0"
+                let deg = e.degree || '';
+                let gpa = '';
+                const gpaMatch = deg.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+                if (gpaMatch) { deg = gpaMatch[1]; gpa = gpaMatch[2]; }
+                form.querySelector('[data-fid="degree"]').value = deg;
+                form.querySelector('[data-fid="institution"]').value = e.institution || '';
+                form.querySelector('[data-fid="year"]').value = e.year || '';
+                form.querySelector('[data-fid="gpa"]').value = gpa;
+            },
         });
 
         // Certifications sub-section
@@ -923,6 +964,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (v.org) s += ` — ${v.org}`;
                 if (v.date) s += ` (${v.date})`;
                 return s;
+            },
+            populateForm: (c, form) => {
+                // Parse "Name — Org (Date)" string back into fields
+                let name = '', org = '', date = '';
+                if (typeof c === 'string') {
+                    let rest = c;
+                    // Extract trailing (date)
+                    const dateMatch = rest.match(/\s*\(([^)]+)\)\s*$/);
+                    if (dateMatch) { date = dateMatch[1]; rest = rest.slice(0, dateMatch.index); }
+                    // Split on " — " for name vs org
+                    const dashIdx = rest.indexOf(' — ');
+                    if (dashIdx !== -1) { name = rest.slice(0, dashIdx); org = rest.slice(dashIdx + 3); }
+                    else { name = rest; }
+                } else {
+                    name = c.name || '';
+                    org = c.org || '';
+                    date = c.date || '';
+                }
+                form.querySelector('[data-fid="name"]').value = name.trim();
+                form.querySelector('[data-fid="org"]').value = org.trim();
+                form.querySelector('[data-fid="date"]').value = date.trim();
             },
         });
     };
