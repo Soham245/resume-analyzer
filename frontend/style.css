@@ -1956,6 +1956,11 @@ body.stage-analyzed .app-header {
     position: sticky;
     top: 10px;
     align-self: flex-start;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.builder-sidebar::-webkit-scrollbar {
+    display: none;
 }
 
 .builder-sidebar__title {
