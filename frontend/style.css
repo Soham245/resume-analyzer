@@ -2489,33 +2489,72 @@ body.stage-analyzed .app-header {
 }
 
 /* Category tabs */
-/* ── Multi-filter chip bar (Linear / Notion style) ────────────────── */
-.tpl-filter-bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 20px;
+/* ── Multi-filter system (Linear / Notion style) ─────────────────── */
+/* Two-row layout: pinned header row + wrapping chip row below */
+.tpl-filter-section {
     border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
-    min-height: 44px;
+    padding: 10px 20px;
 }
-.tpl-filter-bar__label {
+
+/* Row 1: pinned "FILTERS" left, "Clear all" + count right — never moves */
+.tpl-filter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+.tpl-filter-header__left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.tpl-filter-header__label {
     font-size: 0.625rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--color-text-faint);
-    margin-right: 2px;
     user-select: none;
+}
+.tpl-filter-header__count {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--color-text-faint);
+}
+.tpl-clear-all {
+    border: none;
+    background: none;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--color-text-faint);
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.12s ease;
+    white-space: nowrap;
+}
+.tpl-clear-all:hover {
+    color: var(--color-primary);
+}
+.tpl-clear-all.is-hidden {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Row 2: chips + Add Filter button — wraps naturally */
+.tpl-filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
 }
 
 /* Active filter chips */
 .tpl-chip {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 6px 4px 10px;
+    gap: 3px;
+    padding: 4px 5px 4px 9px;
     border: 1.5px solid var(--color-primary);
     border-radius: 100px;
     background: rgba(139, 111, 71, 0.08);
@@ -2525,7 +2564,7 @@ body.stage-analyzed .app-header {
     line-height: 1;
     white-space: nowrap;
     cursor: default;
-    transition: background 0.12s ease, border-color 0.12s ease;
+    transition: background 0.12s ease;
 }
 .tpl-chip:hover {
     background: rgba(139, 111, 71, 0.14);
@@ -2660,35 +2699,6 @@ body.stage-analyzed .app-header {
     background: var(--color-surface-strong);
     padding: 1px 5px;
     border-radius: 3px;
-}
-
-/* Clear all link */
-.tpl-clear-all {
-    border: none;
-    background: none;
-    font-size: 0.6875rem;
-    font-weight: 600;
-    color: var(--color-text-faint);
-    cursor: pointer;
-    padding: 4px 2px;
-    transition: color 0.12s ease;
-    white-space: nowrap;
-}
-.tpl-clear-all:hover {
-    color: var(--color-primary);
-}
-
-/* Result count bar */
-.tpl-result-bar {
-    display: flex;
-    align-items: center;
-    padding: 6px 20px;
-    flex-shrink: 0;
-}
-.tpl-result-bar__count {
-    font-size: 0.6875rem;
-    font-weight: 600;
-    color: var(--color-text-faint);
 }
 
 /* Template grid body */

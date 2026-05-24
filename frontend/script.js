@@ -1443,46 +1443,59 @@ document.addEventListener('DOMContentLoaded', () => {
     const templateDrawer     = document.getElementById('template-drawer');
     const templateBackdrop   = document.getElementById('template-backdrop');
     const templateDrawerBody = document.getElementById('template-drawer-body');
-    const tplFilterBar       = document.getElementById('tpl-filter-bar');
-    const tplResultBar       = document.getElementById('tpl-result-bar');
+    const tplFilterSection   = document.getElementById('tpl-filter-section');
     const changeTemplateBtn  = document.getElementById('change-template-btn');
     const templateCloseBtn   = document.getElementById('template-drawer-close');
 
     // ── Extensible multi-filter system ───────────────────────────────────
-    // Filter groups: each has a key, display label, options, and a matcher.
-    // `active` is a Set of selected option values (multi-select within group).
-    // Between groups the logic is AND; within a group it's OR.
-    // To add a new filter group later, add an entry and tag TEMPLATE_META.
+    // Each group: key, label, chip (short label for chips), enabled, options, active Set, match fn.
+    // Between groups → AND; within a group → OR.
     const FILTER_GROUPS = [
         {
             key: 'category',
             label: 'Category',
             enabled: true,
-            options: TEMPLATE_CATEGORIES.filter(c => c.key !== 'all').map(c => ({ value: c.key, label: c.label })),
+            options: [
+                { value: 'engineering', label: 'Software & Engineering', chip: 'Software' },
+                { value: 'business',    label: 'Business & Consulting',  chip: 'Business' },
+                { value: 'executive',   label: 'Executive & Leadership', chip: 'Executive' },
+            ],
             active: new Set(),
             match(tpl) { return this.active.size === 0 || this.active.has(tpl.category); },
         },
         {
             key: 'layout',
             label: 'Layout',
-            enabled: false,   // future
-            options: [{ value: 'single', label: 'Single Column' }, { value: 'two', label: 'Two Column' }, { value: 'sidebar', label: 'Sidebar' }],
+            enabled: false,
+            options: [
+                { value: 'single',  label: 'Single Column', chip: 'Single Column' },
+                { value: 'two',     label: 'Two Column',    chip: 'Two Column' },
+                { value: 'sidebar', label: 'Sidebar',       chip: 'Sidebar' },
+            ],
             active: new Set(),
             match(tpl) { return this.active.size === 0 || this.active.has(tpl.layout); },
         },
         {
             key: 'style',
             label: 'Style',
-            enabled: false,   // future
-            options: [{ value: 'serif', label: 'Serif' }, { value: 'sans', label: 'Sans-Serif' }, { value: 'modern', label: 'Modern' }],
+            enabled: false,
+            options: [
+                { value: 'serif',  label: 'Serif',      chip: 'Serif' },
+                { value: 'sans',   label: 'Sans-Serif',  chip: 'Sans-Serif' },
+                { value: 'modern', label: 'Modern',      chip: 'Modern' },
+            ],
             active: new Set(),
             match(tpl) { return this.active.size === 0 || this.active.has(tpl.style); },
         },
         {
             key: 'level',
             label: 'Experience Level',
-            enabled: false,   // future
-            options: [{ value: 'entry', label: 'Entry Level' }, { value: 'mid', label: 'Mid Career' }, { value: 'senior', label: 'Senior / Executive' }],
+            enabled: false,
+            options: [
+                { value: 'entry',  label: 'Entry Level',       chip: 'Entry' },
+                { value: 'mid',    label: 'Mid Career',        chip: 'Mid Career' },
+                { value: 'senior', label: 'Senior / Executive', chip: 'Senior' },
+            ],
             active: new Set(),
             match(tpl) { return this.active.size === 0 || this.active.has(tpl.level); },
         },
@@ -1493,7 +1506,7 @@ document.addEventListener('DOMContentLoaded', () => {
         FILTER_GROUPS.forEach(g => {
             g.active.forEach(val => {
                 const opt = g.options.find(o => o.value === val);
-                if (opt) chips.push({ group: g, value: val, label: opt.label });
+                if (opt) chips.push({ group: g, value: val, chipLabel: opt.chip || opt.label });
             });
         });
         return chips;
@@ -1508,11 +1521,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function toggleFilter(group, value) {
-        if (group.active.has(value)) {
-            group.active.delete(value);
-        } else {
-            group.active.add(value);
-        }
+        if (group.active.has(value)) group.active.delete(value);
+        else group.active.add(value);
         renderTemplateDrawer();
     }
 
@@ -1531,26 +1541,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closePopover() {
         popoverOpen = false;
-        const el = tplFilterBar.querySelector('.tpl-filter-popover');
+        const el = tplFilterSection.querySelector('.tpl-filter-popover');
         if (el) el.classList.remove('is-open');
     }
 
     function openPopover() {
         popoverOpen = true;
-        renderFilterBar();
-        const el = tplFilterBar.querySelector('.tpl-filter-popover');
-        if (el) {
-            // Force reflow then open for CSS transition
-            void el.offsetWidth;
-            el.classList.add('is-open');
-        }
+        renderFilterSection();
+        const el = tplFilterSection.querySelector('.tpl-filter-popover');
+        if (el) { void el.offsetWidth; el.classList.add('is-open'); }
     }
 
-    // Close popover on outside click
     document.addEventListener('click', (e) => {
-        if (popoverOpen && !e.target.closest('.tpl-add-filter')) {
-            closePopover();
-        }
+        if (popoverOpen && !e.target.closest('.tpl-add-filter')) closePopover();
     });
 
     // ── Drawer open / close ──────────────────────────────────────────────
@@ -1571,56 +1574,70 @@ document.addEventListener('DOMContentLoaded', () => {
         closePopover();
     }
 
-    // ── Render filter bar ────────────────────────────────────────────────
-    function renderFilterBar() {
-        tplFilterBar.innerHTML = '';
+    // ── Render filter section (header row + chip row) ────────────────────
+    function renderFilterSection() {
+        const filtered = getFilteredTemplates();
+        const active = hasActiveFilters();
+        tplFilterSection.innerHTML = '';
 
-        // Label
+        // Row 1: pinned header — "FILTERS  Showing N"  ...  "Clear all"
+        const header = document.createElement('div');
+        header.className = 'tpl-filter-header';
+
+        const left = document.createElement('div');
+        left.className = 'tpl-filter-header__left';
         const label = document.createElement('span');
-        label.className = 'tpl-filter-bar__label';
+        label.className = 'tpl-filter-header__label';
         label.textContent = 'Filters';
-        tplFilterBar.appendChild(label);
+        left.appendChild(label);
+        const count = document.createElement('span');
+        count.className = 'tpl-filter-header__count';
+        count.textContent = `Showing ${filtered.length} template${filtered.length !== 1 ? 's' : ''}`;
+        left.appendChild(count);
+        header.appendChild(left);
 
-        // Active chips
+        const clear = document.createElement('button');
+        clear.type = 'button';
+        clear.className = 'tpl-clear-all' + (active ? '' : ' is-hidden');
+        clear.textContent = 'Clear all';
+        clear.addEventListener('click', clearAllFilters);
+        header.appendChild(clear);
+        tplFilterSection.appendChild(header);
+
+        // Row 2: chips + Add Filter (wrapping flex)
+        const chipRow = document.createElement('div');
+        chipRow.className = 'tpl-filter-chips';
+
         getActiveChips().forEach(chip => {
             const el = document.createElement('span');
             el.className = 'tpl-chip';
-            el.innerHTML = `<span>${chip.label}</span>`;
+            el.innerHTML = `<span>${chip.chipLabel}</span>`;
             const rm = document.createElement('button');
             rm.type = 'button';
             rm.className = 'tpl-chip__remove';
             rm.innerHTML = '×';
-            rm.setAttribute('aria-label', `Remove ${chip.label} filter`);
-            rm.addEventListener('click', (e) => {
-                e.stopPropagation();
-                removeFilter(chip.group, chip.value);
-            });
+            rm.setAttribute('aria-label', `Remove ${chip.chipLabel} filter`);
+            rm.addEventListener('click', (e) => { e.stopPropagation(); removeFilter(chip.group, chip.value); });
             el.appendChild(rm);
-            tplFilterBar.appendChild(el);
+            chipRow.appendChild(el);
         });
 
-        // + Add Filter button + popover
+        // + Add Filter with popover
         const addWrap = document.createElement('div');
         addWrap.className = 'tpl-add-filter';
-
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'tpl-add-filter__btn';
         addBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add Filter`;
-        addBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (popoverOpen) closePopover(); else openPopover();
-        });
+        addBtn.addEventListener('click', (e) => { e.stopPropagation(); popoverOpen ? closePopover() : openPopover(); });
         addWrap.appendChild(addBtn);
 
         // Popover
         const pop = document.createElement('div');
         pop.className = 'tpl-filter-popover';
-
         FILTER_GROUPS.forEach(group => {
             const section = document.createElement('div');
             section.className = 'tpl-filter-popover__group';
-
             const gLabel = document.createElement('div');
             gLabel.className = 'tpl-filter-popover__group-label';
             gLabel.textContent = group.label;
@@ -1634,58 +1651,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.className = 'tpl-filter-popover__option'
                     + (isActive ? ' tpl-filter-popover__option--active' : '')
                     + (isDisabled ? ' tpl-filter-popover__option--disabled' : '');
-
-                const check = document.createElement('span');
-                check.className = 'tpl-filter-popover__check';
-                check.textContent = isActive ? '✓' : '';
-
-                const text = document.createElement('span');
-                text.textContent = opt.label;
-
-                btn.appendChild(check);
-                btn.appendChild(text);
-
-                if (isDisabled) {
-                    const soon = document.createElement('span');
-                    soon.className = 'tpl-filter-popover__soon';
-                    soon.textContent = 'Soon';
-                    btn.appendChild(soon);
-                }
-
-                if (!isDisabled) {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        toggleFilter(group, opt.value);
-                        // Re-render popover in-place
-                        openPopover();
-                    });
-                }
+                btn.innerHTML = `<span class="tpl-filter-popover__check">${isActive ? '✓' : ''}</span><span>${opt.label}</span>`;
+                if (isDisabled) btn.innerHTML += `<span class="tpl-filter-popover__soon">Soon</span>`;
+                if (!isDisabled) btn.addEventListener('click', (e) => { e.stopPropagation(); toggleFilter(group, opt.value); openPopover(); });
                 section.appendChild(btn);
             });
             pop.appendChild(section);
         });
-
         addWrap.appendChild(pop);
-        tplFilterBar.appendChild(addWrap);
-
-        // Clear all (only if filters active)
-        if (hasActiveFilters()) {
-            const clear = document.createElement('button');
-            clear.type = 'button';
-            clear.className = 'tpl-clear-all';
-            clear.textContent = 'Clear all';
-            clear.addEventListener('click', clearAllFilters);
-            tplFilterBar.appendChild(clear);
-        }
-    }
-
-    // ── Render result bar ────────────────────────────────────────────────
-    function renderResultBar(count) {
-        tplResultBar.innerHTML = '';
-        const el = document.createElement('span');
-        el.className = 'tpl-result-bar__count';
-        el.textContent = `Showing ${count} template${count !== 1 ? 's' : ''}`;
-        tplResultBar.appendChild(el);
+        chipRow.appendChild(addWrap);
+        tplFilterSection.appendChild(chipRow);
     }
 
     // ── Render template cards ────────────────────────────────────────────
@@ -1732,10 +1707,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Main render ──────────────────────────────────────────────────────
     function renderTemplateDrawer() {
-        renderFilterBar();
+        renderFilterSection();
         templateDrawerBody.innerHTML = '';
         const filtered = getFilteredTemplates();
-        renderResultBar(filtered.length);
         templateDrawerBody.appendChild(renderTemplateCards(filtered));
     }
 
