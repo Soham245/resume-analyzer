@@ -154,17 +154,17 @@ def _fallback_resume(skills=None, base=None):
 
     fallback["technical_skills"] = _coerce_string_list(
         skill_data.get("technical") or base_technical,
-        max_items=16,
+        max_items=50,
         item_max_chars=60,
     )
     fallback["soft_skills"] = _coerce_string_list(
         skill_data.get("soft") or base_soft,
-        max_items=12,
+        max_items=30,
         item_max_chars=60,
     )
     fallback["languages"] = _coerce_string_list(
         skill_data.get("languages") or base_languages,
-        max_items=8,
+        max_items=20,
         item_max_chars=40,
     )
     return fallback
@@ -246,17 +246,17 @@ def _finalize_resume(result, fallback, project_limit=None):
 
     final["technical_skills"] = _coerce_string_list(
         result.get("technical_skills") or fallback["technical_skills"],
-        max_items=16,
+        max_items=50,
         item_max_chars=60,
     )
     final["soft_skills"] = _coerce_string_list(
         result.get("soft_skills") or fallback["soft_skills"],
-        max_items=12,
+        max_items=30,
         item_max_chars=60,
     )
     final["languages"] = _coerce_string_list(
         result.get("languages") or fallback["languages"],
-        max_items=8,
+        max_items=20,
         item_max_chars=40,
     )
     final["experience"] = _coerce_experience(result.get("experience") or fallback["experience"])
