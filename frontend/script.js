@@ -1443,10 +1443,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const templateDrawer     = document.getElementById('template-drawer');
     const templateBackdrop   = document.getElementById('template-backdrop');
     const templateDrawerBody = document.getElementById('template-drawer-body');
-    const templateFiltersBar = document.getElementById('template-filters');
+    const templateFilterBar  = document.getElementById('template-filter-bar');
+    const templateResultBar  = document.getElementById('template-result-bar');
     const changeTemplateBtn  = document.getElementById('change-template-btn');
     const templateCloseBtn   = document.getElementById('template-drawer-close');
-    let activeFilterKey = 'all';   // 'all' | category key
+
+    // ── Extensible filter system ─────────────────────────────────────────
+    // Each filter: { key, label, allLabel, options: [{value, label}], value }
+    // Add new filters here to extend (e.g. layout, ats_level).
+    const TEMPLATE_FILTERS = [
+        {
+            key: 'category',
+            label: 'Category',
+            allLabel: 'All Categories',
+            options: TEMPLATE_CATEGORIES.filter(c => c.key !== 'all').map(c => ({ value: c.key, label: c.label })),
+            value: 'all',
+            match: (tpl, val) => val === 'all' || tpl.category === val,
+        },
+        // Future filters — uncomment and add metadata to TEMPLATE_META:
+        // { key: 'layout', label: 'Layout', allLabel: 'All Layouts',
+        //   options: [{value:'single',label:'Single Column'},{value:'two',label:'Two Column'}],
+        //   value: 'all', match: (tpl,val) => val==='all' || tpl.layout===val },
+        // { key: 'ats_level', label: 'ATS Level', allLabel: 'All Levels',
+        //   options: [{value:'high',label:'High'},{value:'medium',label:'Medium'}],
+        //   value: 'all', match: (tpl,val) => val==='all' || tpl.ats_level===val },
+    ];
+
+    function hasActiveFilters() {
+        return TEMPLATE_FILTERS.some(f => f.value !== 'all');
+    }
+
+    function getFilteredTemplates() {
+        return TEMPLATE_META.filter(tpl =>
+            TEMPLATE_FILTERS.every(f => f.match(tpl, f.value))
+        );
+    }
+
+    function resetAllFilters() {
+        TEMPLATE_FILTERS.forEach(f => { f.value = 'all'; });
+        renderTemplateDrawer();
+    }
 
     function openTemplateDrawer() {
         templateDrawer.classList.add('is-open');
@@ -1463,29 +1499,60 @@ document.addEventListener('DOMContentLoaded', () => {
         templateBackdrop.setAttribute('aria-hidden', 'true');
     }
 
-    function renderFilterChips() {
-        templateFiltersBar.innerHTML = '';
-        TEMPLATE_CATEGORIES.forEach(cat => {
-            const chip = document.createElement('button');
-            chip.type = 'button';
-            chip.className = 'template-filter-chip' + (activeFilterKey === cat.key ? ' template-filter-chip--active' : '');
-            chip.textContent = cat.label;
-            chip.addEventListener('click', () => {
-                // Toggle: clicking the active filter resets to "All"
-                activeFilterKey = (activeFilterKey === cat.key && cat.key !== 'all') ? 'all' : cat.key;
+    function renderFilterBar() {
+        templateFilterBar.innerHTML = '';
+        TEMPLATE_FILTERS.forEach(filter => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'template-filter';
+
+            const label = document.createElement('label');
+            label.className = 'template-filter__label';
+            label.textContent = filter.label;
+
+            const select = document.createElement('select');
+            select.className = 'template-filter__select' + (filter.value !== 'all' ? ' template-filter__select--active' : '');
+
+            // "All" option
+            const allOpt = document.createElement('option');
+            allOpt.value = 'all';
+            allOpt.textContent = filter.allLabel;
+            select.appendChild(allOpt);
+
+            filter.options.forEach(opt => {
+                const o = document.createElement('option');
+                o.value = opt.value;
+                o.textContent = opt.label;
+                select.appendChild(o);
+            });
+
+            select.value = filter.value;
+            select.addEventListener('change', () => {
+                filter.value = select.value;
                 renderTemplateDrawer();
             });
-            templateFiltersBar.appendChild(chip);
-        });
 
-        // Show count
-        const filtered = activeFilterKey === 'all'
-            ? TEMPLATE_META
-            : TEMPLATE_META.filter(t => t.category === activeFilterKey);
-        const count = document.createElement('span');
-        count.className = 'template-drawer__filter-count';
-        count.textContent = `${filtered.length} template${filtered.length !== 1 ? 's' : ''}`;
-        templateFiltersBar.appendChild(count);
+            label.setAttribute('for', '');
+            wrapper.appendChild(label);
+            wrapper.appendChild(select);
+            templateFilterBar.appendChild(wrapper);
+        });
+    }
+
+    function renderResultBar(count) {
+        templateResultBar.innerHTML = '';
+        const countEl = document.createElement('span');
+        countEl.className = 'template-drawer__result-count';
+        countEl.textContent = `Showing ${count} template${count !== 1 ? 's' : ''}`;
+        templateResultBar.appendChild(countEl);
+
+        if (hasActiveFilters()) {
+            const clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.className = 'template-drawer__clear-filters';
+            clearBtn.textContent = 'Clear filters';
+            clearBtn.addEventListener('click', resetAllFilters);
+            templateResultBar.appendChild(clearBtn);
+        }
     }
 
     function renderTemplateCards(templates) {
@@ -1503,8 +1570,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tmplFn = ResumeTemplates[tpl.id];
                 if (tmplFn) previewHtml = tmplFn(_sampleData, {});
             } catch (e) { /* fallback */ }
-
-            const catLabel = TEMPLATE_CATEGORIES.find(c => c.key === tpl.category)?.label || '';
 
             card.innerHTML = `
                 <div class="template-card__preview">
@@ -1532,31 +1597,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderTemplateDrawer() {
-        renderFilterChips();
+        renderFilterBar();
         templateDrawerBody.innerHTML = '';
 
-        const isFiltered = activeFilterKey !== 'all';
-        const filtered = isFiltered
-            ? TEMPLATE_META.filter(t => t.category === activeFilterKey)
-            : TEMPLATE_META;
+        const filtered = getFilteredTemplates();
+        renderResultBar(filtered.length);
 
-        if (isFiltered) {
-            // Flat unified grid when a filter is active
-            templateDrawerBody.appendChild(renderTemplateCards(filtered));
-        } else {
-            // Grouped by category when showing all
-            const seen = [];
-            TEMPLATE_CATEGORIES.forEach(cat => {
-                if (cat.key === 'all') return;
-                const group = filtered.filter(t => t.category === cat.key);
-                if (!group.length) return;
-                const title = document.createElement('h3');
-                title.className = 'template-drawer__group-title';
-                title.textContent = cat.label;
-                templateDrawerBody.appendChild(title);
-                templateDrawerBody.appendChild(renderTemplateCards(group));
-            });
-        }
+        // Always flat grid — no category headers
+        templateDrawerBody.appendChild(renderTemplateCards(filtered));
     }
 
     if (changeTemplateBtn) changeTemplateBtn.addEventListener('click', openTemplateDrawer);

@@ -2489,48 +2489,88 @@ body.stage-analyzed .app-header {
 }
 
 /* Category tabs */
-/* Filter chips */
-.template-drawer__filters {
+/* Filter bar — extensible row of dropdown controls */
+.template-drawer__filter-bar {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
     padding: 12px 20px;
     border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
+    align-items: flex-end;
 }
-.template-filter-chip {
-    padding: 5px 12px;
-    border: 1.5px solid var(--color-border);
-    border-radius: 100px;
+.template-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    min-width: 0;
+}
+.template-filter__label {
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-faint);
+    line-height: 1;
+}
+.template-filter__select {
+    appearance: none;
+    -webkit-appearance: none;
     background: var(--color-surface);
-    color: var(--color-text-muted);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 7px 28px 7px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text);
+    cursor: pointer;
+    width: 100%;
+    line-height: 1.3;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 10px 6px;
+}
+.template-filter__select:hover {
+    border-color: var(--color-border-strong);
+}
+.template-filter__select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(139, 111, 71, 0.15);
+}
+.template-filter__select--active {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+/* Result count */
+.template-drawer__result-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px;
+    flex-shrink: 0;
+}
+.template-drawer__result-count {
     font-size: 0.6875rem;
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-    line-height: 1.3;
+    color: var(--color-text-muted);
 }
-.template-filter-chip:hover {
-    border-color: var(--color-border-strong);
-    color: var(--color-text);
-    background: var(--color-surface-strong);
-}
-.template-filter-chip--active {
-    background: var(--color-primary);
-    border-color: var(--color-primary);
-    color: white;
-}
-.template-filter-chip--active:hover {
-    background: var(--color-primary-hover);
-    border-color: var(--color-primary-hover);
-    color: white;
-}
-.template-drawer__filter-count {
+.template-drawer__clear-filters {
+    border: none;
+    background: none;
     font-size: 0.6875rem;
-    color: var(--color-text-faint);
-    padding-left: 2px;
-    align-self: center;
+    font-weight: 600;
+    color: var(--color-primary);
+    cursor: pointer;
+    padding: 0;
+    transition: opacity 0.15s ease;
+}
+.template-drawer__clear-filters:hover {
+    opacity: 0.7;
 }
 
 /* Template grid body */
@@ -2541,18 +2581,6 @@ body.stage-analyzed .app-header {
     scrollbar-width: none;
 }
 .template-drawer__body::-webkit-scrollbar { display: none; }
-
-.template-drawer__group-title {
-    margin: 0 0 10px;
-    font-size: 0.6875rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--color-text-muted);
-}
-.template-drawer__group-title:not(:first-child) {
-    margin-top: 20px;
-}
 
 /* Template cards — larger in drawer */
 .template-drawer__grid {
