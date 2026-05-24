@@ -1443,52 +1443,123 @@ document.addEventListener('DOMContentLoaded', () => {
     const templateDrawer     = document.getElementById('template-drawer');
     const templateBackdrop   = document.getElementById('template-backdrop');
     const templateDrawerBody = document.getElementById('template-drawer-body');
-    const templateFilterBar  = document.getElementById('template-filter-bar');
-    const templateResultBar  = document.getElementById('template-result-bar');
+    const tplFilterBar       = document.getElementById('tpl-filter-bar');
+    const tplResultBar       = document.getElementById('tpl-result-bar');
     const changeTemplateBtn  = document.getElementById('change-template-btn');
     const templateCloseBtn   = document.getElementById('template-drawer-close');
 
-    // ── Extensible filter system ─────────────────────────────────────────
-    // Each filter: { key, label, allLabel, options: [{value, label}], value }
-    // Add new filters here to extend (e.g. layout, ats_level).
-    const TEMPLATE_FILTERS = [
+    // ── Extensible multi-filter system ───────────────────────────────────
+    // Filter groups: each has a key, display label, options, and a matcher.
+    // `active` is a Set of selected option values (multi-select within group).
+    // Between groups the logic is AND; within a group it's OR.
+    // To add a new filter group later, add an entry and tag TEMPLATE_META.
+    const FILTER_GROUPS = [
         {
             key: 'category',
             label: 'Category',
-            allLabel: 'All Categories',
+            enabled: true,
             options: TEMPLATE_CATEGORIES.filter(c => c.key !== 'all').map(c => ({ value: c.key, label: c.label })),
-            value: 'all',
-            match: (tpl, val) => val === 'all' || tpl.category === val,
+            active: new Set(),
+            match(tpl) { return this.active.size === 0 || this.active.has(tpl.category); },
         },
-        // Future filters — uncomment and add metadata to TEMPLATE_META:
-        // { key: 'layout', label: 'Layout', allLabel: 'All Layouts',
-        //   options: [{value:'single',label:'Single Column'},{value:'two',label:'Two Column'}],
-        //   value: 'all', match: (tpl,val) => val==='all' || tpl.layout===val },
-        // { key: 'ats_level', label: 'ATS Level', allLabel: 'All Levels',
-        //   options: [{value:'high',label:'High'},{value:'medium',label:'Medium'}],
-        //   value: 'all', match: (tpl,val) => val==='all' || tpl.ats_level===val },
+        {
+            key: 'layout',
+            label: 'Layout',
+            enabled: false,   // future
+            options: [{ value: 'single', label: 'Single Column' }, { value: 'two', label: 'Two Column' }, { value: 'sidebar', label: 'Sidebar' }],
+            active: new Set(),
+            match(tpl) { return this.active.size === 0 || this.active.has(tpl.layout); },
+        },
+        {
+            key: 'style',
+            label: 'Style',
+            enabled: false,   // future
+            options: [{ value: 'serif', label: 'Serif' }, { value: 'sans', label: 'Sans-Serif' }, { value: 'modern', label: 'Modern' }],
+            active: new Set(),
+            match(tpl) { return this.active.size === 0 || this.active.has(tpl.style); },
+        },
+        {
+            key: 'level',
+            label: 'Experience Level',
+            enabled: false,   // future
+            options: [{ value: 'entry', label: 'Entry Level' }, { value: 'mid', label: 'Mid Career' }, { value: 'senior', label: 'Senior / Executive' }],
+            active: new Set(),
+            match(tpl) { return this.active.size === 0 || this.active.has(tpl.level); },
+        },
     ];
 
+    function getActiveChips() {
+        const chips = [];
+        FILTER_GROUPS.forEach(g => {
+            g.active.forEach(val => {
+                const opt = g.options.find(o => o.value === val);
+                if (opt) chips.push({ group: g, value: val, label: opt.label });
+            });
+        });
+        return chips;
+    }
+
     function hasActiveFilters() {
-        return TEMPLATE_FILTERS.some(f => f.value !== 'all');
+        return FILTER_GROUPS.some(g => g.active.size > 0);
     }
 
     function getFilteredTemplates() {
-        return TEMPLATE_META.filter(tpl =>
-            TEMPLATE_FILTERS.every(f => f.match(tpl, f.value))
-        );
+        return TEMPLATE_META.filter(tpl => FILTER_GROUPS.every(g => g.match(tpl)));
     }
 
-    function resetAllFilters() {
-        TEMPLATE_FILTERS.forEach(f => { f.value = 'all'; });
+    function toggleFilter(group, value) {
+        if (group.active.has(value)) {
+            group.active.delete(value);
+        } else {
+            group.active.add(value);
+        }
         renderTemplateDrawer();
     }
 
+    function removeFilter(group, value) {
+        group.active.delete(value);
+        renderTemplateDrawer();
+    }
+
+    function clearAllFilters() {
+        FILTER_GROUPS.forEach(g => g.active.clear());
+        renderTemplateDrawer();
+    }
+
+    // ── Popover state ────────────────────────────────────────────────────
+    let popoverOpen = false;
+
+    function closePopover() {
+        popoverOpen = false;
+        const el = tplFilterBar.querySelector('.tpl-filter-popover');
+        if (el) el.classList.remove('is-open');
+    }
+
+    function openPopover() {
+        popoverOpen = true;
+        renderFilterBar();
+        const el = tplFilterBar.querySelector('.tpl-filter-popover');
+        if (el) {
+            // Force reflow then open for CSS transition
+            void el.offsetWidth;
+            el.classList.add('is-open');
+        }
+    }
+
+    // Close popover on outside click
+    document.addEventListener('click', (e) => {
+        if (popoverOpen && !e.target.closest('.tpl-add-filter')) {
+            closePopover();
+        }
+    });
+
+    // ── Drawer open / close ──────────────────────────────────────────────
     function openTemplateDrawer() {
         templateDrawer.classList.add('is-open');
         templateDrawer.setAttribute('aria-hidden', 'false');
         templateBackdrop.classList.add('is-visible');
         templateBackdrop.setAttribute('aria-hidden', 'false');
+        popoverOpen = false;
         renderTemplateDrawer();
     }
 
@@ -1497,64 +1568,127 @@ document.addEventListener('DOMContentLoaded', () => {
         templateDrawer.setAttribute('aria-hidden', 'true');
         templateBackdrop.classList.remove('is-visible');
         templateBackdrop.setAttribute('aria-hidden', 'true');
+        closePopover();
     }
 
+    // ── Render filter bar ────────────────────────────────────────────────
     function renderFilterBar() {
-        templateFilterBar.innerHTML = '';
-        TEMPLATE_FILTERS.forEach(filter => {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'template-filter';
+        tplFilterBar.innerHTML = '';
 
-            const label = document.createElement('label');
-            label.className = 'template-filter__label';
-            label.textContent = filter.label;
+        // Label
+        const label = document.createElement('span');
+        label.className = 'tpl-filter-bar__label';
+        label.textContent = 'Filters';
+        tplFilterBar.appendChild(label);
 
-            const select = document.createElement('select');
-            select.className = 'template-filter__select' + (filter.value !== 'all' ? ' template-filter__select--active' : '');
-
-            // "All" option
-            const allOpt = document.createElement('option');
-            allOpt.value = 'all';
-            allOpt.textContent = filter.allLabel;
-            select.appendChild(allOpt);
-
-            filter.options.forEach(opt => {
-                const o = document.createElement('option');
-                o.value = opt.value;
-                o.textContent = opt.label;
-                select.appendChild(o);
+        // Active chips
+        getActiveChips().forEach(chip => {
+            const el = document.createElement('span');
+            el.className = 'tpl-chip';
+            el.innerHTML = `<span>${chip.label}</span>`;
+            const rm = document.createElement('button');
+            rm.type = 'button';
+            rm.className = 'tpl-chip__remove';
+            rm.innerHTML = '×';
+            rm.setAttribute('aria-label', `Remove ${chip.label} filter`);
+            rm.addEventListener('click', (e) => {
+                e.stopPropagation();
+                removeFilter(chip.group, chip.value);
             });
-
-            select.value = filter.value;
-            select.addEventListener('change', () => {
-                filter.value = select.value;
-                renderTemplateDrawer();
-            });
-
-            label.setAttribute('for', '');
-            wrapper.appendChild(label);
-            wrapper.appendChild(select);
-            templateFilterBar.appendChild(wrapper);
+            el.appendChild(rm);
+            tplFilterBar.appendChild(el);
         });
-    }
 
-    function renderResultBar(count) {
-        templateResultBar.innerHTML = '';
-        const countEl = document.createElement('span');
-        countEl.className = 'template-drawer__result-count';
-        countEl.textContent = `Showing ${count} template${count !== 1 ? 's' : ''}`;
-        templateResultBar.appendChild(countEl);
+        // + Add Filter button + popover
+        const addWrap = document.createElement('div');
+        addWrap.className = 'tpl-add-filter';
 
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'tpl-add-filter__btn';
+        addBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add Filter`;
+        addBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (popoverOpen) closePopover(); else openPopover();
+        });
+        addWrap.appendChild(addBtn);
+
+        // Popover
+        const pop = document.createElement('div');
+        pop.className = 'tpl-filter-popover';
+
+        FILTER_GROUPS.forEach(group => {
+            const section = document.createElement('div');
+            section.className = 'tpl-filter-popover__group';
+
+            const gLabel = document.createElement('div');
+            gLabel.className = 'tpl-filter-popover__group-label';
+            gLabel.textContent = group.label;
+            section.appendChild(gLabel);
+
+            group.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                const isActive = group.active.has(opt.value);
+                const isDisabled = !group.enabled;
+                btn.className = 'tpl-filter-popover__option'
+                    + (isActive ? ' tpl-filter-popover__option--active' : '')
+                    + (isDisabled ? ' tpl-filter-popover__option--disabled' : '');
+
+                const check = document.createElement('span');
+                check.className = 'tpl-filter-popover__check';
+                check.textContent = isActive ? '✓' : '';
+
+                const text = document.createElement('span');
+                text.textContent = opt.label;
+
+                btn.appendChild(check);
+                btn.appendChild(text);
+
+                if (isDisabled) {
+                    const soon = document.createElement('span');
+                    soon.className = 'tpl-filter-popover__soon';
+                    soon.textContent = 'Soon';
+                    btn.appendChild(soon);
+                }
+
+                if (!isDisabled) {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        toggleFilter(group, opt.value);
+                        // Re-render popover in-place
+                        openPopover();
+                    });
+                }
+                section.appendChild(btn);
+            });
+            pop.appendChild(section);
+        });
+
+        addWrap.appendChild(pop);
+        tplFilterBar.appendChild(addWrap);
+
+        // Clear all (only if filters active)
         if (hasActiveFilters()) {
-            const clearBtn = document.createElement('button');
-            clearBtn.type = 'button';
-            clearBtn.className = 'template-drawer__clear-filters';
-            clearBtn.textContent = 'Clear filters';
-            clearBtn.addEventListener('click', resetAllFilters);
-            templateResultBar.appendChild(clearBtn);
+            const clear = document.createElement('button');
+            clear.type = 'button';
+            clear.className = 'tpl-clear-all';
+            clear.textContent = 'Clear all';
+            clear.addEventListener('click', clearAllFilters);
+            tplFilterBar.appendChild(clear);
         }
     }
 
+    // ── Render result bar ────────────────────────────────────────────────
+    function renderResultBar(count) {
+        tplResultBar.innerHTML = '';
+        const el = document.createElement('span');
+        el.className = 'tpl-result-bar__count';
+        el.textContent = `Showing ${count} template${count !== 1 ? 's' : ''}`;
+        tplResultBar.appendChild(el);
+    }
+
+    // ── Render template cards ────────────────────────────────────────────
     function renderTemplateCards(templates) {
         const grid = document.createElement('div');
         grid.className = 'template-drawer__grid';
@@ -1596,14 +1730,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return grid;
     }
 
+    // ── Main render ──────────────────────────────────────────────────────
     function renderTemplateDrawer() {
         renderFilterBar();
         templateDrawerBody.innerHTML = '';
-
         const filtered = getFilteredTemplates();
         renderResultBar(filtered.length);
-
-        // Always flat grid — no category headers
         templateDrawerBody.appendChild(renderTemplateCards(filtered));
     }
 
