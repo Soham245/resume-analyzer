@@ -2496,9 +2496,12 @@ body.stage-analyzed .app-header {
     border-bottom: 1px solid var(--color-border);
     overflow-x: auto;
     flex-shrink: 0;
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
 }
-.template-drawer__categories::-webkit-scrollbar { display: none; }
+.template-drawer__categories::-webkit-scrollbar { height: 4px; }
+.template-drawer__categories::-webkit-scrollbar-track { background: transparent; }
+.template-drawer__categories::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
 
 .template-cat-tab {
     padding: 10px 14px;
