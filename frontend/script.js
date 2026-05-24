@@ -1440,13 +1440,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ── Template drawer logic ────────────────────────────────────────────────
-    const templateDrawer    = document.getElementById('template-drawer');
-    const templateBackdrop  = document.getElementById('template-backdrop');
+    const templateDrawer     = document.getElementById('template-drawer');
+    const templateBackdrop   = document.getElementById('template-backdrop');
     const templateDrawerBody = document.getElementById('template-drawer-body');
-    const templateCatsNav   = document.getElementById('template-categories');
-    const changeTemplateBtn = document.getElementById('change-template-btn');
-    const templateCloseBtn  = document.getElementById('template-drawer-close');
-    let activeTemplateCategory = 'all';
+    const templateFiltersBar = document.getElementById('template-filters');
+    const changeTemplateBtn  = document.getElementById('change-template-btn');
+    const templateCloseBtn   = document.getElementById('template-drawer-close');
+    let activeFilterKey = 'all';   // 'all' | category key
 
     function openTemplateDrawer() {
         templateDrawer.classList.add('is-open');
@@ -1463,83 +1463,100 @@ document.addEventListener('DOMContentLoaded', () => {
         templateBackdrop.setAttribute('aria-hidden', 'true');
     }
 
-    function renderTemplateDrawer() {
-        // Render category tabs
-        templateCatsNav.innerHTML = '';
+    function renderFilterChips() {
+        templateFiltersBar.innerHTML = '';
         TEMPLATE_CATEGORIES.forEach(cat => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'template-cat-tab' + (activeTemplateCategory === cat.key ? ' template-cat-tab--active' : '');
-            btn.textContent = cat.label;
-            btn.addEventListener('click', () => {
-                activeTemplateCategory = cat.key;
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'template-filter-chip' + (activeFilterKey === cat.key ? ' template-filter-chip--active' : '');
+            chip.textContent = cat.label;
+            chip.addEventListener('click', () => {
+                // Toggle: clicking the active filter resets to "All"
+                activeFilterKey = (activeFilterKey === cat.key && cat.key !== 'all') ? 'all' : cat.key;
                 renderTemplateDrawer();
             });
-            templateCatsNav.appendChild(btn);
+            templateFiltersBar.appendChild(chip);
         });
 
-        // Render template cards
-        templateDrawerBody.innerHTML = '';
-        const filtered = activeTemplateCategory === 'all'
+        // Show count
+        const filtered = activeFilterKey === 'all'
             ? TEMPLATE_META
-            : TEMPLATE_META.filter(t => t.category === activeTemplateCategory);
+            : TEMPLATE_META.filter(t => t.category === activeFilterKey);
+        const count = document.createElement('span');
+        count.className = 'template-drawer__filter-count';
+        count.textContent = `${filtered.length} template${filtered.length !== 1 ? 's' : ''}`;
+        templateFiltersBar.appendChild(count);
+    }
 
-        // Group by category
-        const groups = {};
-        filtered.forEach(tpl => {
-            const catLabel = TEMPLATE_CATEGORIES.find(c => c.key === tpl.category)?.label || tpl.category;
-            if (!groups[catLabel]) groups[catLabel] = [];
-            groups[catLabel].push(tpl);
+    function renderTemplateCards(templates) {
+        const grid = document.createElement('div');
+        grid.className = 'template-drawer__grid';
+
+        templates.forEach(tpl => {
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'template-card' + (templateSelect.value === tpl.id ? ' template-card--active' : '');
+            card.dataset.templateId = tpl.id;
+
+            let previewHtml = '';
+            try {
+                const tmplFn = ResumeTemplates[tpl.id];
+                if (tmplFn) previewHtml = tmplFn(_sampleData, {});
+            } catch (e) { /* fallback */ }
+
+            const catLabel = TEMPLATE_CATEGORIES.find(c => c.key === tpl.category)?.label || '';
+
+            card.innerHTML = `
+                <div class="template-card__preview">
+                    ${previewHtml
+                        ? `<div class="template-card__preview-actual">${previewHtml}</div>`
+                        : ``}
+                </div>
+                <div class="template-card__info">
+                    <span class="template-card__name">${tpl.name}</span>
+                    <span class="template-card__tag">${tpl.tag}</span>
+                </div>`;
+
+            card.addEventListener('click', () => {
+                templateSelect.value = tpl.id;
+                templateSelect.dispatchEvent(new Event('change'));
+                templateDrawerBody.querySelectorAll('.template-card').forEach(c => {
+                    c.classList.remove('template-card--active');
+                });
+                card.classList.add('template-card--active');
+                setTimeout(closeTemplateDrawer, 250);
+            });
+            grid.appendChild(card);
         });
+        return grid;
+    }
 
-        Object.entries(groups).forEach(([groupLabel, templates]) => {
-            if (activeTemplateCategory === 'all') {
+    function renderTemplateDrawer() {
+        renderFilterChips();
+        templateDrawerBody.innerHTML = '';
+
+        const isFiltered = activeFilterKey !== 'all';
+        const filtered = isFiltered
+            ? TEMPLATE_META.filter(t => t.category === activeFilterKey)
+            : TEMPLATE_META;
+
+        if (isFiltered) {
+            // Flat unified grid when a filter is active
+            templateDrawerBody.appendChild(renderTemplateCards(filtered));
+        } else {
+            // Grouped by category when showing all
+            const seen = [];
+            TEMPLATE_CATEGORIES.forEach(cat => {
+                if (cat.key === 'all') return;
+                const group = filtered.filter(t => t.category === cat.key);
+                if (!group.length) return;
                 const title = document.createElement('h3');
                 title.className = 'template-drawer__group-title';
-                title.textContent = groupLabel;
+                title.textContent = cat.label;
                 templateDrawerBody.appendChild(title);
-            }
-            const grid = document.createElement('div');
-            grid.className = 'template-drawer__grid';
-
-            templates.forEach(tpl => {
-                const card = document.createElement('button');
-                card.type = 'button';
-                card.className = 'template-card' + (templateSelect.value === tpl.id ? ' template-card--active' : '');
-                card.dataset.templateId = tpl.id;
-
-                let previewHtml = '';
-                try {
-                    const tmplFn = ResumeTemplates[tpl.id];
-                    if (tmplFn) previewHtml = tmplFn(_sampleData, {});
-                } catch (e) { /* fallback */ }
-
-                card.innerHTML = `
-                    <div class="template-card__preview">
-                        ${previewHtml
-                            ? `<div class="template-card__preview-actual">${previewHtml}</div>`
-                            : ``}
-                    </div>
-                    <div class="template-card__info">
-                        <span class="template-card__name">${tpl.name}</span>
-                        <span class="template-card__tag">${tpl.tag}</span>
-                    </div>`;
-
-                card.addEventListener('click', () => {
-                    templateSelect.value = tpl.id;
-                    templateSelect.dispatchEvent(new Event('change'));
-                    // Update active state in drawer
-                    templateDrawerBody.querySelectorAll('.template-card').forEach(c => {
-                        c.classList.remove('template-card--active');
-                    });
-                    card.classList.add('template-card--active');
-                    // Close drawer after selection
-                    setTimeout(closeTemplateDrawer, 250);
-                });
-                grid.appendChild(card);
+                templateDrawerBody.appendChild(renderTemplateCards(group));
             });
-            templateDrawerBody.appendChild(grid);
-        });
+        }
     }
 
     if (changeTemplateBtn) changeTemplateBtn.addEventListener('click', openTemplateDrawer);
