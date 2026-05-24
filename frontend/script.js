@@ -173,7 +173,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const manualSuggestionsList = document.getElementById('manual-suggestions-list');
     const resumeDocument  = document.getElementById('resume-document');
     const downloadPdfBtn  = document.getElementById('download-pdf-btn');
-    const templateSelect  = document.getElementById('templateSelect');
+    // Virtual template selector (the visible <select> was removed; drawer handles UI)
+    const templateSelect = {
+        _value: 'ats_classic',
+        _listeners: [],
+        get value() { return this._value; },
+        set value(v) { this._value = v; },
+        addEventListener(evt, fn) { this._listeners.push({ evt, fn }); },
+        dispatchEvent(e) {
+            this._listeners.forEach(l => { if (l.evt === e.type) l.fn(e); });
+        },
+    };
 
     // File upload
     const fileInput         = document.getElementById('resume-file');
@@ -1380,126 +1390,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── 3. TEMPLATE SWITCHING + VISUAL GALLERY ─────────────────────────────
     templateSelect.addEventListener('change', () => renderResume());
 
-    // Phase 4: visual template gallery
-    const TEMPLATE_META = [
-        { id: 'ats_classic',  name: 'Classic ATS',   tag: 'Best for portals',
-          mini: `<div style="padding:6px 8px;font-family:sans-serif;">
-            <div style="text-align:center;margin-bottom:4px;">
-              <div style="background:#333;height:5px;width:60%;margin:0 auto 2px;border-radius:1px;"></div>
-              <div style="background:#888;height:3px;width:40%;margin:0 auto;border-radius:1px;"></div>
-            </div>
-            <div style="border-top:1px solid #bfa;margin-bottom:3px;"></div>
-            <div style="background:#e8e0d4;height:3px;width:90%;margin-bottom:2px;border-radius:1px;"></div>
-            <div style="background:#e8e0d4;height:3px;width:75%;margin-bottom:4px;border-radius:1px;"></div>
-            <div style="background:#8b6f47;height:2px;width:50%;margin-bottom:2px;border-radius:1px;"></div>
-            <div style="background:#ddd;height:2px;width:85%;margin-bottom:1px;border-radius:1px;"></div>
-            <div style="background:#ddd;height:2px;width:70%;border-radius:1px;"></div>
-          </div>` },
-        { id: 'executive',    name: 'Executive',     tag: 'Boardroom Elegant',
-          mini: `<div style="font-family:sans-serif;">
-            <div style="background:#2d2d2d;height:4px;margin-bottom:0;"></div>
-            <div style="padding:5px 8px;">
-              <div style="text-align:center;margin-bottom:3px;">
-                <div style="background:#2d2d2d;height:4px;width:55%;margin:0 auto 2px;border-radius:1px;"></div>
-                <div style="width:20px;height:1px;background:#999;margin:2px auto;"></div>
-                <div style="background:#888;height:2px;width:35%;margin:0 auto;border-radius:1px;"></div>
-              </div>
-              <div style="border-top:1px solid #d0d0d0;margin-bottom:3px;"></div>
-              <div style="background:#ddd;height:2px;width:90%;margin-bottom:2px;border-radius:1px;"></div>
-              <div style="background:#2d2d2d;height:2px;width:40%;margin-bottom:2px;border-radius:1px;"></div>
-              <div style="background:#ddd;height:2px;width:80%;border-radius:1px;"></div>
-            </div>
-          </div>` },
-        { id: 'tech_modern',  name: 'Bold Modern',   tag: 'Startup / Creative',
-          mini: `<div style="font-family:sans-serif;">
-            <div style="display:flex;">
-              <div style="background:#e8553d;width:55%;padding:5px 6px;">
-                <div style="background:#fff;height:4px;width:65%;margin-bottom:2px;border-radius:1px;"></div>
-                <div style="background:rgba(255,255,255,.6);height:2px;width:45%;border-radius:1px;"></div>
-              </div>
-              <div style="background:#fafafa;width:45%;padding:5px 4px;">
-                <div style="background:#ccc;height:2px;width:80%;margin-bottom:2px;border-radius:1px;"></div>
-                <div style="background:#ccc;height:2px;width:60%;border-radius:1px;"></div>
-              </div>
-            </div>
-            <div style="padding:3px 6px;">
-              <div style="background:#e8553d;height:2px;width:35%;margin-bottom:2px;border-radius:1px;"></div>
-              <div style="background:#ddd;height:2px;width:85%;margin-bottom:1px;border-radius:1px;"></div>
-              <div style="background:#ddd;height:2px;width:70%;border-radius:1px;"></div>
-            </div>
-          </div>` },
-        { id: 'sidebar_pro',  name: 'Sidebar Pro',   tag: 'Two-Column Creative',
-          mini: `<div style="display:flex;height:100%;font-family:sans-serif;">
-            <div style="width:35%;background:#2c3e50;padding:5px;">
-              <div style="background:rgba(255,255,255,.7);height:4px;width:80%;margin-bottom:3px;border-radius:1px;"></div>
-              <div style="background:rgba(255,255,255,.4);height:2px;width:60%;margin-bottom:4px;border-radius:1px;"></div>
-              <div style="background:rgba(255,255,255,.3);height:2px;width:70%;margin-bottom:1px;border-radius:1px;"></div>
-              <div style="background:rgba(255,255,255,.3);height:2px;width:55%;border-radius:1px;"></div>
-            </div>
-            <div style="flex:1;padding:5px;">
-              <div style="background:#333;height:4px;width:70%;margin-bottom:2px;border-radius:1px;"></div>
-              <div style="background:#ddd;height:2px;width:90%;margin-bottom:1px;border-radius:1px;"></div>
-              <div style="background:#ddd;height:2px;width:75%;margin-bottom:3px;border-radius:1px;"></div>
-              <div style="background:#8b6f47;height:2px;width:45%;margin-bottom:2px;border-radius:1px;"></div>
-              <div style="background:#ddd;height:2px;width:80%;border-radius:1px;"></div>
-            </div>
-          </div>` },
-        { id: 'modern_corporate', name: 'Corporate', tag: 'Consulting Style',
-          mini: `<div style="font-family:sans-serif;">
-            <div style="padding:5px 6px;">
-              <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
-                <div><div style="background:#1a1a1a;height:4px;width:40px;margin-bottom:2px;border-radius:1px;"></div><div style="background:#0d7377;height:2px;width:30px;border-radius:1px;"></div></div>
-                <div><div style="background:#ccc;height:2px;width:25px;margin-bottom:1px;border-radius:1px;"></div><div style="background:#ccc;height:2px;width:20px;border-radius:1px;"></div></div>
-              </div>
-              <div style="height:2px;background:#0d7377;margin-bottom:3px;"></div>
-              <div style="background:#ddd;height:2px;width:90%;margin-bottom:2px;border-radius:1px;"></div>
-              <div style="background:#0d7377;height:2px;width:35%;margin-bottom:2px;border-radius:1px;"></div>
-              <div style="background:#ddd;height:2px;width:80%;margin-bottom:1px;border-radius:1px;"></div>
-              <div style="background:#ddd;height:2px;width:65%;border-radius:1px;"></div>
-            </div>
-          </div>` },
-        { id: 'minimal_pro', name: 'Minimal Professional', tag: 'Clean Serif',
-          mini: `<div style="padding:6px 8px;font-family:sans-serif;">
-            <div style="margin-bottom:3px;">
-              <div style="background:#222;height:5px;width:50%;margin-bottom:2px;border-radius:1px;"></div>
-              <div style="background:#ccc;height:2px;width:35%;margin-bottom:2px;border-radius:1px;"></div>
-              <div style="border-top:1px solid #ddd;margin-top:3px;"></div>
-            </div>
-            <div style="background:#f0f0f0;height:2px;width:90%;margin-bottom:3px;border-radius:1px;"></div>
-            <div style="background:#888;height:2px;width:30%;margin-bottom:2px;border-radius:1px;"></div>
-            <div style="background:#ddd;height:2px;width:85%;margin-bottom:1px;border-radius:1px;"></div>
-            <div style="background:#ddd;height:2px;width:70%;border-radius:1px;"></div>
-          </div>` },
-        { id: 'tech_pro', name: 'Tech Professional', tag: 'Code-Inspired',
-          mini: `<div style="padding:5px 7px;font-family:sans-serif;">
-            <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
-              <div style="background:#333;height:4px;width:40%;border-radius:1px;"></div>
-              <div style="background:#0ea5e9;height:2px;width:30%;border-radius:1px;"></div>
-            </div>
-            <div style="border-top:2px dashed #0ea5e9;margin-bottom:3px;"></div>
-            <div style="background:#f1f5f9;height:3px;width:90%;margin-bottom:3px;border-radius:1px;border-left:2px solid #0ea5e9;"></div>
-            <div style="background:#0ea5e9;height:2px;width:35%;margin-bottom:2px;border-radius:1px;"></div>
-            <div style="background:#ddd;height:2px;width:80%;margin-bottom:1px;border-radius:1px;"></div>
-            <div style="background:#ddd;height:2px;width:65%;border-radius:1px;"></div>
-          </div>` },
-        { id: 'premium_exec', name: 'Editorial', tag: 'Luxury Magazine',
-          mini: `<div style="font-family:sans-serif;background:#fdfcf8;">
-            <div style="padding:5px 8px;text-align:center;">
-              <div style="background:#2a2a2a;height:4px;width:55%;margin:0 auto 2px;border-radius:1px;"></div>
-              <div style="width:18px;height:1px;background:#b8860b;margin:2px auto;"></div>
-              <div style="background:#aaa;height:2px;width:30%;margin:0 auto 2px;border-radius:1px;"></div>
-              <div style="background:#e8e4d9;height:2px;width:70%;margin:0 auto 3px;border-radius:1px;"></div>
-              <div style="border-top:1px solid #e0ddd5;margin-bottom:3px;"></div>
-            </div>
-            <div style="padding:0 8px 4px;">
-              <div style="background:#b8860b;height:2px;width:30%;margin-bottom:2px;border-radius:1px;"></div>
-              <div style="background:#ddd;height:2px;width:85%;margin-bottom:1px;border-radius:1px;"></div>
-              <div style="background:#ddd;height:2px;width:70%;border-radius:1px;"></div>
-            </div>
-          </div>` },
+    // ── Template drawer with categories ─────────────────────────────────────
+    const TEMPLATE_CATEGORIES = [
+        { key: 'all',          label: 'All' },
+        { key: 'engineering',  label: 'Software & Engineering' },
+        { key: 'business',     label: 'Business & Consulting' },
+        { key: 'executive',    label: 'Executive & Leadership' },
     ];
 
-    const templateGallery = document.getElementById('template-gallery');
+    const TEMPLATE_META = [
+        { id: 'ats_classic',       name: 'ATS Classic',           tag: 'Maximum ATS compatibility — clean, scannable, portal-safe',
+          category: 'engineering' },
+        { id: 'tech_pro',          name: 'Big Tech',              tag: 'Experience-first layout inspired by top tech companies',
+          category: 'engineering' },
+        { id: 'tech_modern',       name: 'Modern Engineer',       tag: 'Bold header with skills showcase — startup and creative roles',
+          category: 'engineering' },
+        { id: 'sidebar_pro',       name: 'Technical Sidebar',     tag: 'Two-column with skills sidebar — high information density',
+          category: 'engineering' },
+        { id: 'modern_corporate',  name: 'Consulting',            tag: 'Achievement-focused with structured hierarchy — MBB and Big 4',
+          category: 'business' },
+        { id: 'minimal_pro',       name: 'Corporate Professional', tag: 'Clean serif typography — balanced enterprise style',
+          category: 'business' },
+        { id: 'executive',         name: 'Executive',             tag: 'Leadership and impact focused — senior roles and board-level',
+          category: 'executive' },
+        { id: 'premium_exec',      name: 'Senior Professional',   tag: 'Refined hierarchy with emphasis on career progression',
+          category: 'executive' },
+    ];
 
     // Sample data for template preview thumbnails
     const _sampleData = {
@@ -1523,48 +1439,112 @@ document.addEventListener('DOMContentLoaded', () => {
         certifications: ['AWS Solutions Architect'],
     };
 
-    if (templateGallery) {
-        TEMPLATE_META.forEach(tpl => {
-            const card = document.createElement('button');
-            card.type = 'button';
-            card.className = 'template-card' + (templateSelect.value === tpl.id ? ' template-card--active' : '');
-            card.dataset.templateId = tpl.id;
-            card.setAttribute('role', 'radio');
-            card.setAttribute('aria-checked', templateSelect.value === tpl.id ? 'true' : 'false');
+    // ── Template drawer logic ────────────────────────────────────────────────
+    const templateDrawer    = document.getElementById('template-drawer');
+    const templateBackdrop  = document.getElementById('template-backdrop');
+    const templateDrawerBody = document.getElementById('template-drawer-body');
+    const templateCatsNav   = document.getElementById('template-categories');
+    const changeTemplateBtn = document.getElementById('change-template-btn');
+    const templateCloseBtn  = document.getElementById('template-drawer-close');
+    let activeTemplateCategory = 'all';
 
-            // Render actual template at thumbnail scale
-            let previewHtml = '';
-            try {
-                const tmplFn = ResumeTemplates[tpl.id];
-                if (tmplFn) {
-                    previewHtml = tmplFn(_sampleData, {});
-                }
-            } catch (e) { /* fallback to mini schematic */ }
+    function openTemplateDrawer() {
+        templateDrawer.classList.add('is-open');
+        templateDrawer.setAttribute('aria-hidden', 'false');
+        templateBackdrop.classList.add('is-visible');
+        templateBackdrop.setAttribute('aria-hidden', 'false');
+        renderTemplateDrawer();
+    }
 
-            card.innerHTML = `
-                <div class="template-card__preview">
-                    ${previewHtml
-                        ? `<div class="template-card__preview-actual">${previewHtml}</div>`
-                        : `<div class="template-card__preview-mini">${tpl.mini}</div>`}
-                </div>
-                <div class="template-card__info">
-                    <span class="template-card__name">${tpl.name}</span>
-                    <span class="template-card__tag">${tpl.tag}</span>
-                </div>`;
-            card.addEventListener('click', () => {
-                templateSelect.value = tpl.id;
-                templateSelect.dispatchEvent(new Event('change'));
-                // Update active state
-                templateGallery.querySelectorAll('.template-card').forEach(c => {
-                    c.classList.remove('template-card--active');
-                    c.setAttribute('aria-checked', 'false');
-                });
-                card.classList.add('template-card--active');
-                card.setAttribute('aria-checked', 'true');
+    function closeTemplateDrawer() {
+        templateDrawer.classList.remove('is-open');
+        templateDrawer.setAttribute('aria-hidden', 'true');
+        templateBackdrop.classList.remove('is-visible');
+        templateBackdrop.setAttribute('aria-hidden', 'true');
+    }
+
+    function renderTemplateDrawer() {
+        // Render category tabs
+        templateCatsNav.innerHTML = '';
+        TEMPLATE_CATEGORIES.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'template-cat-tab' + (activeTemplateCategory === cat.key ? ' template-cat-tab--active' : '');
+            btn.textContent = cat.label;
+            btn.addEventListener('click', () => {
+                activeTemplateCategory = cat.key;
+                renderTemplateDrawer();
             });
-            templateGallery.appendChild(card);
+            templateCatsNav.appendChild(btn);
+        });
+
+        // Render template cards
+        templateDrawerBody.innerHTML = '';
+        const filtered = activeTemplateCategory === 'all'
+            ? TEMPLATE_META
+            : TEMPLATE_META.filter(t => t.category === activeTemplateCategory);
+
+        // Group by category
+        const groups = {};
+        filtered.forEach(tpl => {
+            const catLabel = TEMPLATE_CATEGORIES.find(c => c.key === tpl.category)?.label || tpl.category;
+            if (!groups[catLabel]) groups[catLabel] = [];
+            groups[catLabel].push(tpl);
+        });
+
+        Object.entries(groups).forEach(([groupLabel, templates]) => {
+            if (activeTemplateCategory === 'all') {
+                const title = document.createElement('h3');
+                title.className = 'template-drawer__group-title';
+                title.textContent = groupLabel;
+                templateDrawerBody.appendChild(title);
+            }
+            const grid = document.createElement('div');
+            grid.className = 'template-drawer__grid';
+
+            templates.forEach(tpl => {
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.className = 'template-card' + (templateSelect.value === tpl.id ? ' template-card--active' : '');
+                card.dataset.templateId = tpl.id;
+
+                let previewHtml = '';
+                try {
+                    const tmplFn = ResumeTemplates[tpl.id];
+                    if (tmplFn) previewHtml = tmplFn(_sampleData, {});
+                } catch (e) { /* fallback */ }
+
+                card.innerHTML = `
+                    <div class="template-card__preview">
+                        ${previewHtml
+                            ? `<div class="template-card__preview-actual">${previewHtml}</div>`
+                            : ``}
+                    </div>
+                    <div class="template-card__info">
+                        <span class="template-card__name">${tpl.name}</span>
+                        <span class="template-card__tag">${tpl.tag}</span>
+                    </div>`;
+
+                card.addEventListener('click', () => {
+                    templateSelect.value = tpl.id;
+                    templateSelect.dispatchEvent(new Event('change'));
+                    // Update active state in drawer
+                    templateDrawerBody.querySelectorAll('.template-card').forEach(c => {
+                        c.classList.remove('template-card--active');
+                    });
+                    card.classList.add('template-card--active');
+                    // Close drawer after selection
+                    setTimeout(closeTemplateDrawer, 250);
+                });
+                grid.appendChild(card);
+            });
+            templateDrawerBody.appendChild(grid);
         });
     }
+
+    if (changeTemplateBtn) changeTemplateBtn.addEventListener('click', openTemplateDrawer);
+    if (templateCloseBtn)  templateCloseBtn.addEventListener('click', closeTemplateDrawer);
+    if (templateBackdrop)  templateBackdrop.addEventListener('click', closeTemplateDrawer);
 
     // ── Recommendation banner (removed — HTML deleted) ─────────────────────
     function updateRecommendation() { /* no-op: banner removed */ }

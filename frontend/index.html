@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <title>AI Resume Analyzer</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20260524">
 </head>
 
 <body class="app-body">
@@ -497,6 +497,13 @@
                             <button class="sec-pill" data-section="soft">Soft Skills</button>
                             <button class="sec-pill" data-section="languages">Languages</button>
                         </div>
+                        <button id="change-template-btn" class="change-template-btn" type="button">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                                <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                            </svg>
+                            <span>Templates</span>
+                        </button>
                         <button id="download-pdf-btn" class="download-pdf-btn">
                             <svg class="download-pdf-btn__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -508,15 +515,8 @@
                     </div>
                 </div>
 
-                <!-- Three-column layout: Templates | Resume | (Editor drawer) -->
+                <!-- Resume preview (full width) -->
                 <div class="builder-layout">
-                    <!-- Template sidebar -->
-                    <aside class="builder-sidebar" id="template-sidebar">
-                        <h3 class="builder-sidebar__title">Templates</h3>
-                        <div id="template-gallery" class="template-gallery" role="radiogroup" aria-label="Resume template"></div>
-                    </aside>
-
-                    <!-- Resume preview -->
                     <div id="builder-preview" class="builder-layout__preview">
                         <div class="resume-frame">
                             <div id="resume-document"></div>
@@ -539,10 +539,31 @@
                 <p style="color:var(--color-text-muted);font-size:0.85rem;margin:0;">Hover any section in the resume and click the pencil icon to edit it here. Consolidated editors arrive in the next phase.</p>
             </div>
         </aside>
+
+        <!-- ─────────────────────────────────────────────────────────────
+             TEMPLATE DRAWER (slide-out from left)
+             ───────────────────────────────────────────────────────────── -->
+        <div id="template-backdrop" class="drawer-backdrop" aria-hidden="true"></div>
+        <aside id="template-drawer" class="template-drawer" aria-hidden="true" role="dialog" aria-label="Choose template">
+            <header class="template-drawer__header">
+                <h2 class="template-drawer__title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                    </svg>
+                    Choose Template
+                </h2>
+                <button type="button" id="template-drawer-close" class="editor-drawer__close" aria-label="Close template drawer">×</button>
+            </header>
+            <!-- Category tabs -->
+            <nav class="template-drawer__categories" id="template-categories"></nav>
+            <!-- Template grid -->
+            <div class="template-drawer__body" id="template-drawer-body"></div>
+        </aside>
     </main>
 
-    <script src="templates.js"></script>
-    <script src="script.js"></script>
+    <script src="templates.js?v=20260524b"></script>
+    <script src="script.js?v=20260524b"></script>
 </body>
 
 </html>
