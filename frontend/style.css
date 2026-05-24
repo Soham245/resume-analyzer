@@ -187,9 +187,14 @@ h1, h2, h3, h4, h5, h6 {
 
 .results-card__header,
 .builder-header {
-    padding: var(--space-3);
+    padding: 10px var(--space-2);
     border-bottom: 1px solid var(--color-border);
     background: rgba(255, 255, 255, 0.6);
+}
+
+.results-card__header h2 {
+    font-size: 0.95rem;
+    margin: 0;
 }
 
 .empty-state {
@@ -600,10 +605,10 @@ select.field-input {
     background: var(--color-surface-strong);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    padding: var(--space-2);
+    padding: 10px 12px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 .skill-panel__title {
@@ -618,7 +623,7 @@ select.field-input {
 .skill-panel__section {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
 }
 
 .skill-panel__section-title {
@@ -643,7 +648,7 @@ select.field-input {
 .chip-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
     min-height: 22px;
 }
 
@@ -679,12 +684,12 @@ select.field-input {
 }
 
 .results-card--insights__body {
-    padding: var(--space-3);
+    padding: 12px;
     overflow-y: auto;
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: 10px;
     scrollbar-width: none;          /* Firefox */
     -ms-overflow-style: none;       /* IE/Edge */
 }

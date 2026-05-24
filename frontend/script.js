@@ -498,6 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderTipList(container, tips) {
+        if (!container) return;
         container.innerHTML = '';
         (tips || []).forEach(tip => {
             const li = document.createElement('li');
