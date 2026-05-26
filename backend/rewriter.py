@@ -39,6 +39,17 @@ def _extract_json(raw_output):
     return raw_output
 
 
+def _repair_json(text):
+    """Fix common Gemini JSON quirks that cause json.loads to fail."""
+    if not text:
+        return text
+    # Strip trailing commas before } or ]
+    text = re.sub(r",\s*([}\]])", r"\1", text)
+    # Strip single-line // comments
+    text = re.sub(r"//[^\n]*", "", text)
+    return text
+
+
 def _cap_text(text, max_chars=MAX_TEXT_CHARS):
     return re.sub(r"\s+", " ", str(text or "")).strip()[:max_chars]
 
@@ -217,10 +228,36 @@ def _generate_json(prompt, api_key, label):
             contents=prompt,
             config=types.GenerateContentConfig(temperature=0.0),
         )
-        cleaned = _extract_json(getattr(response, "text", "") or "")
+        raw_text = getattr(response, "text", "") or ""
+        cleaned = _extract_json(raw_text)
         if not cleaned:
+            logger.warning("[%s] Empty response from Gemini. Raw (first 500): %s",
+                           label, raw_text[:500])
             return None
-        return json.loads(cleaned)
+
+        # First attempt: parse as-is
+        try:
+            parsed = json.loads(cleaned)
+        except json.JSONDecodeError:
+            # Second attempt: repair common Gemini quirks (trailing commas, comments)
+            repaired = _repair_json(cleaned)
+            try:
+                parsed = json.loads(repaired)
+                logger.info("[%s] JSON parse succeeded after repair", label)
+            except json.JSONDecodeError as je:
+                logger.warning("[%s] JSON parse failed even after repair. Error: %s. "
+                               "Raw (first 800): %s", label, je, cleaned[:800])
+                return None
+
+        # Log which top-level keys are present and which sections have data
+        if isinstance(parsed, dict):
+            section_summary = {
+                k: len(v) if isinstance(v, list) else ("present" if v else "empty")
+                for k, v in parsed.items()
+            }
+            logger.info("[%s] Gemini returned keys: %s", label, section_summary)
+
+        return parsed
     except AITimeoutException:
         logger.warning("[%s] AI request timed out after %s seconds", label, AI_TIMEOUT_SECONDS)
         return None
@@ -231,8 +268,23 @@ def _generate_json(prompt, api_key, label):
         _clear_timeout(old_handler)
 
 
+def _pick(result, fallback, key):
+    """Return result[key] if it's a non-empty list, else fallback[key].
+
+    Unlike the `or` pattern, this only falls back when the AI truly
+    didn't return the field (None) — an explicit empty list from the AI
+    is still overridden by the fallback so the user never sees blanks.
+    """
+    val = result.get(key)
+    if isinstance(val, list) and len(val) > 0:
+        return val
+    return fallback.get(key) or []
+
+
 def _finalize_resume(result, fallback, project_limit=None):
     if not isinstance(result, dict):
+        logger.warning("[finalize] AI returned non-dict result (%s), using fallback entirely",
+                       type(result).__name__)
         result = {}
 
     final = _schema_template()
@@ -245,31 +297,39 @@ def _finalize_resume(result, fallback, project_limit=None):
     final["summary"] = _coerce_text(result.get("summary"), fallback["summary"], max_chars=500)
 
     final["technical_skills"] = _coerce_string_list(
-        result.get("technical_skills") or fallback["technical_skills"],
+        _pick(result, fallback, "technical_skills"),
         max_items=50,
         item_max_chars=60,
     )
     final["soft_skills"] = _coerce_string_list(
-        result.get("soft_skills") or fallback["soft_skills"],
+        _pick(result, fallback, "soft_skills"),
         max_items=30,
         item_max_chars=60,
     )
     final["languages"] = _coerce_string_list(
-        result.get("languages") or fallback["languages"],
+        _pick(result, fallback, "languages"),
         max_items=20,
         item_max_chars=40,
     )
-    final["experience"] = _coerce_experience(result.get("experience") or fallback["experience"])
+    final["experience"] = _coerce_experience(_pick(result, fallback, "experience"))
     final["projects"] = _coerce_projects(
-        result.get("projects") or fallback["projects"],
+        _pick(result, fallback, "projects"),
         limit=project_limit,
     )
-    final["education"] = _coerce_education(result.get("education") or fallback["education"])
+    final["education"] = _coerce_education(_pick(result, fallback, "education"))
     final["certifications"] = _coerce_string_list(
-        result.get("certifications") or fallback["certifications"],
+        _pick(result, fallback, "certifications"),
         max_items=6,
         item_max_chars=120,
     )
+
+    # Log which sections ended up empty after finalization
+    empty_sections = [k for k in ("experience", "projects", "education", "certifications",
+                                   "technical_skills", "summary")
+                      if not final.get(k)]
+    if empty_sections:
+        logger.warning("[finalize] Empty sections after finalization: %s. "
+                       "AI keys present: %s", empty_sections, list(result.keys()))
 
     return final
 
@@ -338,6 +398,8 @@ Authoritative Skills:
 """
 
     result = _generate_json(prompt, api_key, "optimize")
+    if result is None:
+        logger.warning("[optimize] Gemini returned no usable JSON — using fallback resume")
     finalized = _finalize_resume(result, fallback, project_limit=project_limit)
 
     if fallback["projects"] and not finalized["projects"]:
@@ -414,6 +476,8 @@ User Input:
 """
 
     result = _generate_json(prompt, api_key, "generate_from_inputs")
+    if result is None:
+        logger.warning("[generate_from_inputs] Gemini returned no usable JSON — using fallback resume")
     return _finalize_resume(result, fallback)
 
 
@@ -451,4 +515,6 @@ Resume:
 """
 
     result = _generate_json(prompt, api_key, "rewrite")
+    if result is None:
+        logger.warning("[rewrite] Gemini returned no usable JSON — using fallback resume")
     return _finalize_resume(result, fallback)

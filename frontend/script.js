@@ -435,6 +435,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentStructuredData.skill_groups || !Object.keys(currentStructuredData.skill_groups).length) {
             currentStructuredData.skill_groups = filterAndGroupSkills(currentStructuredData.technical_skills);
         }
+
+        // Diagnostic: warn about empty sections so we can catch pipeline issues
+        const _sections = ['experience', 'projects', 'education', 'summary', 'technical_skills'];
+        const _empty = _sections.filter(k => {
+            const v = currentStructuredData[k];
+            return !v || (Array.isArray(v) && v.length === 0);
+        });
+        if (_empty.length) {
+            console.warn('[setCurrentData] ⚠ Empty sections received from backend:', _empty,
+                         '| All keys:', Object.keys(currentStructuredData));
+        }
         console.log('[setCurrentData] skill_groups:', JSON.stringify(currentStructuredData.skill_groups));
     }
 
