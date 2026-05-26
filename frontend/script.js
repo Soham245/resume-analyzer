@@ -853,9 +853,43 @@ document.addEventListener('DOMContentLoaded', () => {
             visListEl.classList.remove('is-drop-target');
             hidListEl.classList.remove('is-drop-target');
 
-            // Settle animation
+            const dragSlot = allSlots.find(s => s.el === dragCard);
+            const fromLocalIdx = dragSlot?.localIdx ?? 0;
+            const toGroup = currentTarget.group;
+            const toLocalIdx = currentTarget.localIdx;
+            const shiftAmount = cardH + listGap;
+
+            // ── Calculate landing position ──────────────────────────────
+            let settleY = 0;
+            if (fromGroup === toGroup) {
+                // Same group: slide to the reorder target
+                settleY = (toLocalIdx - fromLocalIdx) * shiftAmount;
+            } else {
+                // Cross-group: calculate the pixel offset to the target slot
+                const targetSlots = allSlots.filter(s => s.group === toGroup && s.el !== dragCard);
+                let landingTop;
+                if (targetSlots.length === 0) {
+                    // Empty group — land at the group's top
+                    landingTop = listFor(toGroup).getBoundingClientRect().top + 4;
+                } else if (toLocalIdx >= targetSlots.length) {
+                    // Append after last card
+                    const last = targetSlots[targetSlots.length - 1];
+                    landingTop = last.top + last.h + listGap;
+                } else {
+                    landingTop = targetSlots[toLocalIdx].top;
+                }
+                settleY = landingTop - cardOrigTop;
+            }
+
+            // ── Animate card to landing spot ────────────────────────────
             dragCard.classList.add('is-settling');
-            dragCard.style.transform = 'translateY(0) scale(1)';
+            dragCard.style.transform = `translateY(${settleY}px) scale(1)`;
+
+            // Animate siblings smoothly during settle
+            allSlots.forEach(s => {
+                if (s.el === dragCard) return;
+                s.el.classList.add('is-settling');
+            });
 
             let settled = false;
             const finish = () => {
@@ -869,10 +903,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 visListEl.classList.remove('is-drag-active');
                 hidListEl.classList.remove('is-drag-active');
 
-                const fromLocalIdx = allSlots.find(s => s.el === dragCard)?.localIdx ?? 0;
-                const toGroup = currentTarget.group;
-                const toLocalIdx = currentTarget.localIdx;
-
                 dragCard = null;
                 allSlots = [];
 
@@ -880,7 +910,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             dragCard.addEventListener('transitionend', finish);
-            setTimeout(finish, 350);
+            setTimeout(finish, 380);
         }
 
         // Bind to both lists
