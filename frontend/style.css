@@ -2408,6 +2408,58 @@ body.stage-analyzed .app-header {
     border-color: rgba(197, 90, 74, 0.3);
 }
 
+/* ─── Drag handle ─────────────────────────────────────────────────────── */
+.drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 28px;
+    flex-shrink: 0;
+    cursor: grab;
+    color: var(--color-text-muted);
+    opacity: 0.45;
+    transition: opacity 0.15s ease, color 0.15s ease;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.drag-handle:hover {
+    opacity: 1;
+    color: var(--color-text);
+}
+.drag-handle:active {
+    cursor: grabbing;
+}
+.drag-handle svg {
+    pointer-events: none;
+}
+
+/* Drag-and-drop states */
+.editor-entry-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.editor-entry-card.is-dragging {
+    position: fixed;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0.92;
+    box-shadow: 0 8px 24px rgba(69, 48, 28, 0.14);
+    transform: scale(1.02);
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.drag-placeholder {
+    border: 2px dashed var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: rgba(139, 111, 71, 0.04);
+    transition: height 0.15s ease;
+}
+.is-drag-active .editor-entry-card:not(.is-dragging) {
+    transition: transform 0.15s ease;
+}
+
 /* Add entry button inside drawer */
 .editor-add-btn {
     width: 100%;

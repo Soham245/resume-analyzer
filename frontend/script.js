@@ -721,28 +721,159 @@ document.addEventListener('DOMContentLoaded', () => {
             renderEntryList(container, opts);
         }
 
-        // Entry cards
+        // Entry cards with drag handle
+        const cardList = document.createElement('div');
+        cardList.className = 'editor-entry-list';
+
         entries.forEach((entry, idx) => {
             const card = document.createElement('div');
             card.className = 'editor-entry-card';
+            card.dataset.idx = idx;
             card.innerHTML = `
                 <div class="editor-entry-card__header">
-                    <div style="min-width:0;">
+                    <span class="drag-handle" title="Drag to reorder" aria-label="Drag to reorder">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>
+                    </span>
+                    <div style="min-width:0;flex:1;">
                         <div class="editor-entry-card__title">${titleFn(entry)}</div>
                         ${subtitleFn ? `<div class="editor-entry-card__subtitle">${subtitleFn(entry)}</div>` : ''}
                     </div>
                     <div class="editor-entry-card__actions">
                         <button type="button" class="editor-entry-btn" data-act="edit" data-idx="${idx}" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>
-                        ${idx > 0 ? `<button type="button" class="editor-entry-btn" data-act="up" data-idx="${idx}" title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="m18 15-6-6-6 6"/></svg></button>` : ''}
-                        ${idx < entries.length - 1 ? `<button type="button" class="editor-entry-btn" data-act="down" data-idx="${idx}" title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="m6 9 6 6 6-6"/></svg></button>` : ''}
                         <button type="button" class="editor-entry-btn editor-entry-btn--danger" data-act="delete" data-idx="${idx}" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
                     </div>
                 </div>
             `;
-            container.appendChild(card);
+            cardList.appendChild(card);
         });
+        container.appendChild(cardList);
 
-        // Wire card actions via delegation
+        // ── Drag-and-drop reordering ───────────────────────────────────────
+        (function initDragDrop() {
+            let dragCard = null;
+            let placeholder = null;
+            let startY = 0;
+            let cardOffsetY = 0;
+            let cardRect = null;
+            let siblings = [];
+
+            function getY(e) {
+                return e.touches ? e.touches[0].clientY : e.clientY;
+            }
+
+            function onPointerDown(e) {
+                const handle = e.target.closest('.drag-handle');
+                if (!handle) return;
+                const card = handle.closest('.editor-entry-card');
+                if (!card) return;
+                e.preventDefault();
+
+                dragCard = card;
+                cardRect = card.getBoundingClientRect();
+                startY = getY(e);
+                cardOffsetY = startY - cardRect.top;
+
+                // Snapshot sibling positions before we disturb the DOM
+                siblings = [...cardList.querySelectorAll('.editor-entry-card')].map(c => ({
+                    el: c,
+                    top: c.getBoundingClientRect().top,
+                    height: c.getBoundingClientRect().height
+                }));
+
+                // Create placeholder
+                placeholder = document.createElement('div');
+                placeholder.className = 'drag-placeholder';
+                placeholder.style.height = cardRect.height + 'px';
+                card.parentNode.insertBefore(placeholder, card);
+
+                // Float the card
+                card.classList.add('is-dragging');
+                card.style.width = cardRect.width + 'px';
+                card.style.top = cardRect.top + 'px';
+                card.style.left = cardRect.left + 'px';
+
+                cardList.classList.add('is-drag-active');
+                document.addEventListener('mousemove', onPointerMove);
+                document.addEventListener('mouseup', onPointerUp);
+                document.addEventListener('touchmove', onPointerMove, { passive: false });
+                document.addEventListener('touchend', onPointerUp);
+            }
+
+            function onPointerMove(e) {
+                if (!dragCard) return;
+                e.preventDefault();
+                const currentY = getY(e);
+                const delta = currentY - startY;
+                dragCard.style.top = (cardRect.top + delta) + 'px';
+
+                // Determine which card we're hovering over
+                const dragMid = cardRect.top + delta + cardRect.height / 2;
+                const cards = [...cardList.querySelectorAll('.editor-entry-card:not(.is-dragging)')];
+                let insertBefore = null;
+                for (const c of cards) {
+                    const r = c.getBoundingClientRect();
+                    if (dragMid < r.top + r.height / 2) {
+                        insertBefore = c;
+                        break;
+                    }
+                }
+                // Move placeholder
+                if (insertBefore) {
+                    cardList.insertBefore(placeholder, insertBefore);
+                } else {
+                    // Append after last non-dragging card
+                    const last = cards[cards.length - 1];
+                    if (last && last.nextSibling !== placeholder) {
+                        cardList.insertBefore(placeholder, last.nextSibling);
+                    }
+                }
+            }
+
+            function onPointerUp(e) {
+                if (!dragCard) return;
+                document.removeEventListener('mousemove', onPointerMove);
+                document.removeEventListener('mouseup', onPointerUp);
+                document.removeEventListener('touchmove', onPointerMove);
+                document.removeEventListener('touchend', onPointerUp);
+
+                // Determine new order from placeholder position
+                const fromIdx = parseInt(dragCard.dataset.idx, 10);
+                const allSlots = [...cardList.children].filter(
+                    el => el.classList.contains('editor-entry-card') || el.classList.contains('drag-placeholder')
+                );
+                let toIdx = allSlots.indexOf(placeholder);
+                // Adjust: if placeholder is after the dragged card's original slot, subtract 1
+                // because the dragged card is still in the DOM
+                const dragSlot = allSlots.indexOf(dragCard);
+                if (dragSlot !== -1 && dragSlot < toIdx) toIdx--;
+
+                // Clean up DOM
+                dragCard.classList.remove('is-dragging');
+                dragCard.style.width = '';
+                dragCard.style.top = '';
+                dragCard.style.left = '';
+                cardList.classList.remove('is-drag-active');
+                if (placeholder && placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+
+                dragCard = null;
+                placeholder = null;
+
+                // Apply reorder if changed — single state update
+                if (fromIdx !== toIdx && toIdx >= 0) {
+                    const arr = currentStructuredData[dataKey];
+                    if (arr) {
+                        const [moved] = arr.splice(fromIdx, 1);
+                        arr.splice(toIdx, 0, moved);
+                        rerender();
+                    }
+                }
+            }
+
+            cardList.addEventListener('mousedown', onPointerDown);
+            cardList.addEventListener('touchstart', onPointerDown, { passive: false });
+        })();
+
+        // Wire card actions via delegation (edit + delete only)
         container.addEventListener('click', function handler(e) {
             const btn = e.target.closest('[data-act]');
             if (!btn) return;
@@ -752,12 +883,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!arr) return;
             if (act === 'delete') {
                 arr.splice(idx, 1);
-                rerender();
-            } else if (act === 'up' && idx > 0) {
-                [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
-                rerender();
-            } else if (act === 'down' && idx < arr.length - 1) {
-                [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
                 rerender();
             } else if (act === 'edit') {
                 editingIndex = idx;
