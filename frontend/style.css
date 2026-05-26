@@ -2550,6 +2550,7 @@ body.stage-analyzed .app-header {
     border: 1.5px dashed var(--color-border);
     border-radius: var(--radius-sm);
     margin-bottom: 8px;
+    transition: border-color 0.2s ease, background 0.2s ease;
 }
 
 /* Hidden entry card — muted appearance */
@@ -2561,11 +2562,22 @@ body.stage-analyzed .app-header {
     opacity: 0.8;
 }
 
-/* Eye toggle button inside card actions */
-.editor-entry-card__actions button[data-act="toggle"] svg {
-    width: 15px;
-    height: 15px;
-    stroke-width: 2;
+/* ── Drop zone highlighting during cross-group drag ───────────────── */
+.editor-entry-list {
+    min-height: 40px;
+    border-radius: var(--radius-sm);
+    border: 2px solid transparent;
+    padding: 2px;
+    transition: border-color 0.22s ease, background 0.22s ease;
+}
+.editor-entry-list.is-drop-target {
+    border-color: var(--color-primary);
+    background: rgba(161, 124, 67, 0.06);
+}
+.editor-entry-list.is-drop-target .entry-group-empty {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: rgba(161, 124, 67, 0.04);
 }
 
 /* Add entry button inside drawer */

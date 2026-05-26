@@ -721,20 +721,45 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Drag-and-drop helper (reusable for any card list) ────────────────
     // Attaches Notion-style transform-based drag to a .editor-entry-list.
     // onReorder(fromIdx, toIdx) is called once after drop.
-    function initDragDrop(cardList, onReorder) {
+    /**
+     * Cross-group drag-and-drop.
+     * Supports reordering within a single list AND dragging cards between
+     * the visible list and the hidden list to toggle visibility.
+     *
+     * @param {HTMLElement} visListEl  - container of visible entry cards
+     * @param {HTMLElement} hidListEl  - container of hidden entry cards
+     * @param {Function}    onDrop     - (fromGroup, fromLocalIdx, toGroup, toLocalIdx)
+     *                                   fromGroup/toGroup = 'visible' | 'hidden'
+     */
+    function initCrossGroupDrag(visListEl, hidListEl, onDrop) {
         let dragCard = null;
         let startY = 0;
         let dragTranslateY = 0;
         let cardOrigTop = 0;
         let cardH = 0;
         const listGap = 8;
-        let slots = [];
-        let currentSlotIdx = -1;
+        let allSlots = [];       // unified list of slots across both groups
+        let fromGroup = null;    // 'visible' | 'hidden'
+        let currentTarget = null; // { group, localIdx }
 
         function getY(e) { return e.touches ? e.touches[0].clientY : e.clientY; }
 
+        function getSlots() {
+            const vis = [...visListEl.querySelectorAll('.editor-entry-card')].map((c, i) => {
+                const r = c.getBoundingClientRect();
+                return { el: c, group: 'visible', localIdx: i, top: r.top, h: r.height };
+            });
+            const hid = [...hidListEl.querySelectorAll('.editor-entry-card')].map((c, i) => {
+                const r = c.getBoundingClientRect();
+                return { el: c, group: 'hidden', localIdx: i, top: r.top, h: r.height };
+            });
+            return [...vis, ...hid];
+        }
+
+        /** Return the list element + boundary rect for a group name */
+        function listFor(group) { return group === 'visible' ? visListEl : hidListEl; }
+
         function onPointerDown(e) {
-            // Entire card is draggable, but not buttons/inputs
             const card = e.target.closest('.editor-entry-card');
             if (!card || e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea')) return;
             e.preventDefault();
@@ -742,20 +767,18 @@ document.addEventListener('DOMContentLoaded', () => {
             dragCard = card;
             startY = getY(e);
             dragTranslateY = 0;
+            allSlots = getSlots();
 
-            const cards = [...cardList.querySelectorAll('.editor-entry-card')];
-            slots = cards.map((c, i) => {
-                const r = c.getBoundingClientRect();
-                return { el: c, origTop: r.top, h: r.height, idx: i };
-            });
-
-            const dragSlot = slots.find(s => s.el === card);
-            currentSlotIdx = dragSlot ? dragSlot.idx : 0;
-            cardOrigTop = dragSlot ? dragSlot.origTop : 0;
-            cardH = dragSlot ? dragSlot.h : 0;
+            const dragSlot = allSlots.find(s => s.el === card);
+            if (!dragSlot) return;
+            fromGroup = dragSlot.group;
+            cardOrigTop = dragSlot.top;
+            cardH = dragSlot.h;
+            currentTarget = { group: dragSlot.group, localIdx: dragSlot.localIdx };
 
             card.classList.add('is-dragging');
-            cardList.classList.add('is-drag-active');
+            visListEl.classList.add('is-drag-active');
+            hidListEl.classList.add('is-drag-active');
 
             document.addEventListener('mousemove', onPointerMove);
             document.addEventListener('mouseup', onPointerUp);
@@ -771,26 +794,51 @@ document.addEventListener('DOMContentLoaded', () => {
             dragCard.style.transform = `translateY(${dragTranslateY}px) scale(1.025)`;
 
             const dragMid = cardOrigTop + dragTranslateY + cardH / 2;
-            const dragIdx = slots.findIndex(s => s.el === dragCard);
 
-            let targetIdx = slots.length - 1;
-            for (let i = 0; i < slots.length; i++) {
-                if (i === dragIdx) continue;
-                const slotMid = slots[i].origTop + slots[i].h / 2;
-                if (dragMid < slotMid) {
-                    targetIdx = i > dragIdx ? i - 1 : i;
+            // Determine which group the cursor is over
+            const visRect = visListEl.getBoundingClientRect();
+            const hidRect = hidListEl.getBoundingClientRect();
+            const overHidden = dragMid > hidRect.top;
+            const targetGroup = overHidden ? 'hidden' : 'visible';
+
+            // Highlight the target drop zone
+            visListEl.classList.toggle('is-drop-target', targetGroup === 'visible' && fromGroup !== 'visible');
+            hidListEl.classList.toggle('is-drop-target', targetGroup === 'hidden' && fromGroup !== 'hidden');
+
+            // Find insertion index within the target group's cards
+            const groupSlots = allSlots.filter(s => s.group === targetGroup && s.el !== dragCard);
+            let localIdx = groupSlots.length; // default: append
+            for (let i = 0; i < groupSlots.length; i++) {
+                if (dragMid < groupSlots[i].top + groupSlots[i].h / 2) {
+                    localIdx = i;
                     break;
                 }
             }
-            targetIdx = Math.max(0, Math.min(targetIdx, slots.length - 1));
-            currentSlotIdx = targetIdx;
+            currentTarget = { group: targetGroup, localIdx };
 
+            // Shift sibling cards in both groups
             const shiftAmount = cardH + listGap;
-            slots.forEach((slot, i) => {
+            allSlots.forEach(slot => {
                 if (slot.el === dragCard) return;
                 let offset = 0;
-                if (dragIdx < targetIdx && i > dragIdx && i <= targetIdx) offset = -shiftAmount;
-                else if (dragIdx > targetIdx && i >= targetIdx && i < dragIdx) offset = shiftAmount;
+                if (slot.group === targetGroup) {
+                    // Cards in the target group shift to make room
+                    if (slot.group === fromGroup) {
+                        // Same group: standard reorder shift
+                        const dragIdx = allSlots.find(s => s.el === dragCard)?.localIdx ?? 0;
+                        if (fromGroup === targetGroup) {
+                            if (dragIdx < localIdx && slot.localIdx > dragIdx && slot.localIdx <= localIdx) offset = -shiftAmount;
+                            else if (dragIdx > localIdx && slot.localIdx >= localIdx && slot.localIdx < dragIdx) offset = shiftAmount;
+                        }
+                    } else {
+                        // Different group: cards at/after insertion shift down
+                        if (slot.localIdx >= localIdx) offset = shiftAmount;
+                    }
+                } else if (slot.group === fromGroup && slot.group !== targetGroup) {
+                    // Source group (cross-move): cards after the dragged card shift up
+                    const dragIdx = allSlots.find(s => s.el === dragCard)?.localIdx ?? 0;
+                    if (slot.localIdx > dragIdx) offset = -shiftAmount;
+                }
                 slot.el.style.transform = offset ? `translateY(${offset}px)` : '';
             });
         }
@@ -802,42 +850,49 @@ document.addEventListener('DOMContentLoaded', () => {
             document.removeEventListener('touchmove', onPointerMove);
             document.removeEventListener('touchend', onPointerUp);
 
-            const fromIdx = slots.findIndex(s => s.el === dragCard);
-            const toIdx = currentSlotIdx;
+            visListEl.classList.remove('is-drop-target');
+            hidListEl.classList.remove('is-drop-target');
 
+            // Settle animation
             dragCard.classList.add('is-settling');
-            const shiftAmount = cardH + listGap;
-            const settleY = (toIdx - fromIdx) * shiftAmount;
-            dragCard.style.transform = `translateY(${settleY}px) scale(1)`;
+            dragCard.style.transform = 'translateY(0) scale(1)';
 
             let settled = false;
-            const onSettle = () => {
+            const finish = () => {
                 if (settled) return;
                 settled = true;
-                dragCard.removeEventListener('transitionend', onSettle);
-                slots.forEach(s => {
+                dragCard.removeEventListener('transitionend', finish);
+                allSlots.forEach(s => {
                     s.el.style.transform = '';
                     s.el.classList.remove('is-dragging', 'is-settling');
                 });
-                cardList.classList.remove('is-drag-active');
+                visListEl.classList.remove('is-drag-active');
+                hidListEl.classList.remove('is-drag-active');
+
+                const fromLocalIdx = allSlots.find(s => s.el === dragCard)?.localIdx ?? 0;
+                const toGroup = currentTarget.group;
+                const toLocalIdx = currentTarget.localIdx;
+
                 dragCard = null;
-                slots = [];
-                if (fromIdx !== toIdx && toIdx >= 0) onReorder(fromIdx, toIdx);
+                allSlots = [];
+
+                onDrop(fromGroup, fromLocalIdx, toGroup, toLocalIdx);
             };
 
-            dragCard.addEventListener('transitionend', onSettle);
-            setTimeout(onSettle, 350);
+            dragCard.addEventListener('transitionend', finish);
+            setTimeout(finish, 350);
         }
 
-        cardList.addEventListener('mousedown', onPointerDown);
-        cardList.addEventListener('touchstart', onPointerDown, { passive: false });
+        // Bind to both lists
+        visListEl.addEventListener('mousedown', onPointerDown);
+        visListEl.addEventListener('touchstart', onPointerDown, { passive: false });
+        hidListEl.addEventListener('mousedown', onPointerDown);
+        hidListEl.addEventListener('touchstart', onPointerDown, { passive: false });
     }
 
     // SVG icons for entry card actions
     const _ICON_PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>';
     const _ICON_TRASH  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>';
-    const _ICON_EYE    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-    const _ICON_EYEOFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
     const _ICON_GRIP   = '<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>';
 
     // Shared: render an entry list with visible/hidden groups, drag-and-drop, and edit form.
@@ -882,7 +937,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${subtitleFn ? `<div class="editor-entry-card__subtitle">${subtitleFn(entry)}</div>` : ''}
                     </div>
                     <div class="editor-entry-card__actions">
-                        <button type="button" class="editor-entry-btn" data-act="toggle" data-idx="${idx}" title="${isHidden ? 'Show on resume' : 'Hide from resume'}">${isHidden ? _ICON_EYEOFF : _ICON_EYE}</button>
                         <button type="button" class="editor-entry-btn" data-act="edit" data-idx="${idx}" title="Edit">${_ICON_PENCIL}</button>
                         <button type="button" class="editor-entry-btn editor-entry-btn--danger" data-act="delete" data-idx="${idx}" title="Delete">${_ICON_TRASH}</button>
                     </div>
@@ -903,7 +957,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!visibleEntries.length) {
             const empty = document.createElement('div');
             empty.className = 'entry-group-empty';
-            empty.textContent = 'No visible entries. Drag items here or click the eye icon.';
+            empty.textContent = 'No visible entries. Drag items here from Hidden.';
             visList.appendChild(empty);
         }
         container.appendChild(visList);
@@ -920,34 +974,45 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!hiddenEntries.length) {
             const empty = document.createElement('div');
             empty.className = 'entry-group-empty';
-            empty.textContent = 'Hidden entries are stored but not shown on the resume.';
+            empty.textContent = 'Drag entries here to hide them from the resume.';
             hidList.appendChild(empty);
         }
         container.appendChild(hidList);
 
-        // ── Init drag-and-drop on each group ───────────────────────────────
-        function reorderInGroup(list, isHiddenGroup) {
-            initDragDrop(list, (fromLocalIdx, toLocalIdx) => {
-                // Map local card indices back to global entry indices
-                const cards = [...list.querySelectorAll('.editor-entry-card')];
-                const fromGlobalIdx = parseInt(cards[fromLocalIdx]?.dataset.idx, 10);
-                const toGlobalIdx   = parseInt(cards[toLocalIdx]?.dataset.idx, 10);
-                if (isNaN(fromGlobalIdx) || isNaN(toGlobalIdx)) return;
-                // Reorder within the full entries array
-                const arr = currentStructuredData[dataKey];
-                if (!arr) return;
-                const [moved] = arr.splice(fromGlobalIdx, 1);
-                // Recalculate toGlobalIdx after removal
-                const remaining = isHiddenGroup
-                    ? arr.map((e,i) => ({e,i})).filter(x => x.e._hidden)
-                    : arr.map((e,i) => ({e,i})).filter(x => !x.e._hidden);
-                const insertAt = toLocalIdx < remaining.length ? remaining[toLocalIdx].i : arr.length;
+        // ── Cross-group drag-and-drop ──────────────────────────────────────
+        initCrossGroupDrag(visList, hidList, (srcGroup, srcLocalIdx, dstGroup, dstLocalIdx) => {
+            const arr = currentStructuredData[dataKey];
+            if (!arr) return;
+
+            // Map local index → global index in the entries array
+            const srcEntries = srcGroup === 'visible' ? visibleEntries : hiddenEntries;
+            const globalIdx = srcEntries[srcLocalIdx]?.idx;
+            if (globalIdx == null) return;
+
+            if (srcGroup === dstGroup) {
+                // Same group — reorder
+                if (srcLocalIdx === dstLocalIdx) return; // no-op
+                const [moved] = arr.splice(globalIdx, 1);
+                // Recalculate insertion point after removal
+                const remaining = arr
+                    .map((e, i) => ({ e, i }))
+                    .filter(x => dstGroup === 'hidden' ? x.e._hidden : !x.e._hidden);
+                const insertAt = dstLocalIdx < remaining.length ? remaining[dstLocalIdx].i : arr.length;
                 arr.splice(insertAt, 0, moved);
-                rerender();
-            });
-        }
-        if (visibleEntries.length > 1) reorderInGroup(visList, false);
-        if (hiddenEntries.length > 1) reorderInGroup(hidList, true);
+            } else {
+                // Cross-group — toggle visibility + insert at position
+                const entry = arr[globalIdx];
+                entry._hidden = dstGroup === 'hidden';
+                // Remove from old position, reinsert at target position
+                const [moved] = arr.splice(globalIdx, 1);
+                const remaining = arr
+                    .map((e, i) => ({ e, i }))
+                    .filter(x => dstGroup === 'hidden' ? x.e._hidden : !x.e._hidden);
+                const insertAt = dstLocalIdx < remaining.length ? remaining[dstLocalIdx].i : arr.length;
+                arr.splice(insertAt, 0, moved);
+            }
+            rerender();
+        });
 
         // ── Wire card actions via delegation ───────────────────────────────
         container.addEventListener('click', function handler(e) {
@@ -959,9 +1024,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!arr) return;
             if (act === 'delete') {
                 arr.splice(idx, 1);
-                rerender();
-            } else if (act === 'toggle') {
-                arr[idx]._hidden = !arr[idx]._hidden;
                 rerender();
             } else if (act === 'edit') {
                 editingIndex = idx;
