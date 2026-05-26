@@ -102,7 +102,7 @@ function filterAndGroupSkills(technicalList) {
         const key = _normalizeKey(raw);
         const rule = _BUCKET_RULES.find(r => r.test(key));
         const bucket = rule ? rule.bucket : 'tools';
-        if (groups[bucket].length < 4) groups[bucket].push(display);
+        groups[bucket].push(display);
     }
     return Object.fromEntries(Object.entries(groups).filter(([, v]) => v.length));
 }
