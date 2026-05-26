@@ -50,7 +50,7 @@ _SKILL_KEYS = ("technical", "soft", "languages")
 _SKILL_MODELS = (
     "gemini-2.5-flash-lite",
     "gemini-2.5-flash",
-    "gemini-3.1-flash-lite-preview",
+    "gemini-3.1-flash-lite",
 )
 _EMPTY_SKILL_STRUCTURE = {key: [] for key in _SKILL_KEYS}
 

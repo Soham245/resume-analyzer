@@ -30,7 +30,7 @@ def get_improvement_suggestions(resume_text, missing_skills, api_key):
     
     # NEW SYNTAX: Call generate_content on the client
     response = client.models.generate_content(
-        model='gemini-3.1-flash-lite-preview',
+        model='gemini-3.1-flash-lite',
         contents=prompt
     )
     return response.text
