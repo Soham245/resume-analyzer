@@ -248,17 +248,46 @@ h1, h2, h3, h4, h5, h6 {
 /* ─── Inline SVG icon utilities ────────────────────────────────────────── */
 
 .mode-tab__icon {
-    width: 16px;
-    height: 16px;
-    vertical-align: -2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 3px;
+    border-radius: 5px;
+    background: rgba(139, 111, 71, 0.10);
+    color: var(--color-primary);
+    vertical-align: -5px;
     flex-shrink: 0;
 }
+.mode-tab--active .mode-tab__icon {
+    background: rgba(139, 111, 71, 0.18);
+}
+
+/* Icon badge: small colored container for section-level icons */
+.icon-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 4px;
+    border-radius: 6px;
+    vertical-align: -6px;
+    flex-shrink: 0;
+}
+.icon-badge svg {
+    width: 100%;
+    height: 100%;
+}
+.icon-badge--primary   { background: rgba(139, 111, 71, 0.10); color: var(--color-primary); }
+.icon-badge--blue      { background: rgba(59, 130, 246, 0.10); color: #3b82f6; }
+.icon-badge--violet    { background: rgba(124, 58, 237, 0.10); color: #7c3aed; }
+.icon-badge--amber     { background: rgba(217, 119, 6, 0.10);  color: #d97706; }
 
 .section-icon {
-    width: 18px;
-    height: 18px;
-    vertical-align: -3px;
-    color: var(--color-text-muted);
+    width: 16px;
+    height: 16px;
 }
 
 .btn-icon {
@@ -802,7 +831,7 @@ select.field-input {
     align-items: center;
     gap: 10px;
 }
-.results-collapse-toggle__icon {
+.results-collapse-toggle__icon {  /* legacy — replaced by .icon-badge */
     width: 22px;
     height: 22px;
     flex-shrink: 0;
