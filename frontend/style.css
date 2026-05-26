@@ -248,20 +248,10 @@ h1, h2, h3, h4, h5, h6 {
 /* ─── Inline SVG icon utilities ────────────────────────────────────────── */
 
 .mode-tab__icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    padding: 3px;
-    border-radius: 5px;
-    background: rgba(139, 111, 71, 0.10);
-    color: var(--color-primary);
-    vertical-align: -5px;
+    width: 16px;
+    height: 16px;
+    vertical-align: -3px;
     flex-shrink: 0;
-}
-.mode-tab--active .mode-tab__icon {
-    background: rgba(139, 111, 71, 0.18);
 }
 
 /* Icon badge: small colored container for section-level icons */
