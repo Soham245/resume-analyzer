@@ -20,7 +20,7 @@
     --color-warning: #c5935a;
     --color-danger: #c55a4a;
     --color-danger-soft: #f5e8e5;
-    --color-shadow: 0 20px 50px rgba(69, 48, 28, 0.08);
+    --color-shadow: 0 4px 16px rgba(69, 48, 28, 0.04);
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 18px;
@@ -238,7 +238,7 @@ h1, h2, h3, h4, h5, h6 {
 .mode-tab--active {
     background: var(--color-surface-strong);
     color: var(--color-primary);
-    box-shadow: 0 8px 20px rgba(139, 111, 71, 0.14);
+    box-shadow: 0 2px 8px rgba(139, 111, 71, 0.10);
 }
 
 .mode-tab:hover:not(.mode-tab--active) {
@@ -531,7 +531,7 @@ select.field-input {
     justify-content: center;
     padding: 0 20px;
     min-height: 52px;
-    box-shadow: 0 14px 24px rgba(139, 111, 71, 0.2);
+    box-shadow: 0 4px 12px rgba(139, 111, 71, 0.12);
 }
 
 .primary-button:hover:not(:disabled),
@@ -1627,7 +1627,7 @@ select.field-input {
 
 .hover-lift:hover {
     transform: translateY(-2px);
-    box-shadow: 0 24px 55px rgba(69, 48, 28, 0.12);
+    box-shadow: 0 6px 20px rgba(69, 48, 28, 0.06);
 }
 
 .smooth-ui {
@@ -1892,7 +1892,7 @@ body.stage-analyzed .app-header {
     background: var(--color-surface-strong);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-xl);
-    box-shadow: 0 30px 80px rgba(69, 48, 28, 0.18);
+    box-shadow: 0 8px 24px rgba(69, 48, 28, 0.10);
     text-align: center;
     animation: processingPop 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
