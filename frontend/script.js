@@ -453,8 +453,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Render helpers ───────────────────────────────────────────────────────
     function makeBadge(text, style, onRemove) {
         const badge = document.createElement('div');
-        badge.style.cssText = `display:inline-flex;align-items:center;gap:6px;padding:6px 10px;
-            border-radius:999px;font-size:13.5px;font-weight:500;
+        badge.style.cssText = `display:inline-flex;align-items:center;gap:4px;padding:2px 8px;
+            border-radius:999px;font-size:12px;font-weight:500;line-height:1.5;
             background:${style.bg};color:${style.color};border:1px solid ${style.border};`;
 
         const label = document.createElement('span');
@@ -464,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (onRemove) {
             const x = document.createElement('button');
             x.textContent = '×';
-            x.style.cssText = 'background:none;border:none;cursor:pointer;padding:0;font-size:14px;line-height:1;color:inherit;opacity:0.7;';
+            x.style.cssText = 'background:none;border:none;cursor:pointer;padding:0;font-size:13px;line-height:1;color:inherit;opacity:0.7;';
             x.addEventListener('click', onRemove);
             badge.appendChild(x);
         }
@@ -1367,6 +1367,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             renderMissingSkills(payload.missing_skills, payload.matched_skills);
             setCurrentData(payload.resume || payload);
+            // Auto-collapse the analysis panel — user is now in editing mode
+            resultsSection.classList.add('hidden');
             builderSection.classList.remove('hidden');
             renderResume();
             requestAnimationFrame(() => autoFitPage()); // re-measure now section is visible
@@ -1924,7 +1926,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const sec = btn.dataset.section;
             activeSections[sec] = !activeSections[sec];
             btn.classList.toggle('sec-pill--off', !activeSections[sec]);
+            // Lock the preview container height to prevent layout jumping
+            const frame = document.querySelector('.resume-frame');
+            if (frame) frame.style.minHeight = frame.offsetHeight + 'px';
             renderResume();
+            // Release the lock after layout settles
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    if (frame) frame.style.minHeight = '';
+                });
+            });
         });
     });
 
