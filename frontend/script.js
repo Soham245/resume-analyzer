@@ -527,7 +527,7 @@ document.addEventListener('DOMContentLoaded', () => {
         (tips || []).forEach(tip => {
             const li = document.createElement('li');
             li.className = 'skill-panel__suggestion-item';
-            li.innerHTML = `<span class="skill-panel__suggestion-marker">›</span><span>${tip}</span>`;
+            li.innerHTML = `<svg class="skill-panel__suggestion-marker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="m9 18 6-6-6-6"/></svg><span>${tip}</span>`;
             container.appendChild(li);
         });
     }
@@ -732,10 +732,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${subtitleFn ? `<div class="editor-entry-card__subtitle">${subtitleFn(entry)}</div>` : ''}
                     </div>
                     <div class="editor-entry-card__actions">
-                        <button type="button" class="editor-entry-btn" data-act="edit" data-idx="${idx}" title="Edit">✎</button>
-                        ${idx > 0 ? `<button type="button" class="editor-entry-btn" data-act="up" data-idx="${idx}" title="Move up">↑</button>` : ''}
-                        ${idx < entries.length - 1 ? `<button type="button" class="editor-entry-btn" data-act="down" data-idx="${idx}" title="Move down">↓</button>` : ''}
-                        <button type="button" class="editor-entry-btn editor-entry-btn--danger" data-act="delete" data-idx="${idx}" title="Delete">×</button>
+                        <button type="button" class="editor-entry-btn" data-act="edit" data-idx="${idx}" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>
+                        ${idx > 0 ? `<button type="button" class="editor-entry-btn" data-act="up" data-idx="${idx}" title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="m18 15-6-6-6 6"/></svg></button>` : ''}
+                        ${idx < entries.length - 1 ? `<button type="button" class="editor-entry-btn" data-act="down" data-idx="${idx}" title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="m6 9 6 6 6-6"/></svg></button>` : ''}
+                        <button type="button" class="editor-entry-btn editor-entry-btn--danger" data-act="delete" data-idx="${idx}" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
                     </div>
                 </div>
             `;
@@ -1692,7 +1692,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.className = 'tpl-filter-popover__option'
                     + (isActive ? ' tpl-filter-popover__option--active' : '')
                     + (isDisabled ? ' tpl-filter-popover__option--disabled' : '');
-                btn.innerHTML = `<span class="tpl-filter-popover__check">${isActive ? '✓' : ''}</span><span>${opt.label}</span>`;
+                btn.innerHTML = `<span class="tpl-filter-popover__check">${isActive ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</span><span>${opt.label}</span>`;
                 if (isDisabled) btn.innerHTML += `<span class="tpl-filter-popover__soon">Soon</span>`;
                 if (!isDisabled) btn.addEventListener('click', (e) => { e.stopPropagation(); toggleFilter(group, opt.value); openPopover(); });
                 section.appendChild(btn);
@@ -1949,7 +1949,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setStage('idle');
         } finally {
             if (requestId === latestRequestIds.manual) {
-                genBtnText.textContent = '✨ Generate Resume from Inputs';
+                genBtnText.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg> Generate Resume from Inputs';
                 genSpinner.classList.add('hidden');
                 generateManualBtn.disabled = false;
             }

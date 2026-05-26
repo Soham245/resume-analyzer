@@ -245,6 +245,28 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--color-text);
 }
 
+/* ─── Inline SVG icon utilities ────────────────────────────────────────── */
+
+.mode-tab__icon {
+    width: 16px;
+    height: 16px;
+    vertical-align: -2px;
+    flex-shrink: 0;
+}
+
+.section-icon {
+    width: 18px;
+    height: 18px;
+    vertical-align: -3px;
+    color: var(--color-text-muted);
+}
+
+.btn-icon {
+    width: 16px;
+    height: 16px;
+    vertical-align: -3px;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    7. UPLOAD / JD INPUT GRID
    ───────────────────────────────────────────────────────────────────────── */
@@ -691,7 +713,9 @@ select.field-input {
 .skill-panel__suggestion-marker {
     color: var(--color-warning);
     flex-shrink: 0;
-    margin-top: 1px;
+    width: 14px;
+    height: 14px;
+    margin-top: 2px;
 }
 
 /* Manual mode result wrapper */
