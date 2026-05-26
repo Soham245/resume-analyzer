@@ -748,14 +748,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         container.appendChild(cardList);
 
-        // ── Drag-and-drop reordering ───────────────────────────────────────
+        // ── Drag-and-drop reordering (Notion-style) ──────────────────────────
+        // Uses transform-based movement so the dragged card stays visible
+        // inside the drawer's overflow context. Siblings animate smoothly.
         (function initDragDrop() {
             let dragCard = null;
-            let placeholder = null;
             let startY = 0;
-            let cardOffsetY = 0;
-            let cardRect = null;
-            let siblings = [];
+            let dragTranslateY = 0;
+            let cardOrigTop = 0;
+            let cardH = 0;
+            let listGap = 8; // matches .editor-entry-list gap
+            let slots = [];  // { el, origTop, h, idx } for each card
+            let currentSlotIdx = -1; // where the dragged card visually sits
 
             function getY(e) {
                 return e.touches ? e.touches[0].clientY : e.clientY;
@@ -769,30 +773,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
 
                 dragCard = card;
-                cardRect = card.getBoundingClientRect();
                 startY = getY(e);
-                cardOffsetY = startY - cardRect.top;
+                dragTranslateY = 0;
 
-                // Snapshot sibling positions before we disturb the DOM
-                siblings = [...cardList.querySelectorAll('.editor-entry-card')].map(c => ({
-                    el: c,
-                    top: c.getBoundingClientRect().top,
-                    height: c.getBoundingClientRect().height
-                }));
+                // Snapshot positions of ALL cards before any transforms
+                const cards = [...cardList.querySelectorAll('.editor-entry-card')];
+                slots = cards.map((c, i) => {
+                    const r = c.getBoundingClientRect();
+                    return { el: c, origTop: r.top, h: r.height, idx: i };
+                });
 
-                // Create placeholder
-                placeholder = document.createElement('div');
-                placeholder.className = 'drag-placeholder';
-                placeholder.style.height = cardRect.height + 'px';
-                card.parentNode.insertBefore(placeholder, card);
+                const dragSlot = slots.find(s => s.el === card);
+                currentSlotIdx = dragSlot ? dragSlot.idx : 0;
+                cardOrigTop = dragSlot ? dragSlot.origTop : 0;
+                cardH = dragSlot ? dragSlot.h : 0;
 
-                // Float the card
+                // Activate drag state — card lifts, gets shadow + scale
                 card.classList.add('is-dragging');
-                card.style.width = cardRect.width + 'px';
-                card.style.top = cardRect.top + 'px';
-                card.style.left = cardRect.left + 'px';
-
                 cardList.classList.add('is-drag-active');
+
                 document.addEventListener('mousemove', onPointerMove);
                 document.addEventListener('mouseup', onPointerUp);
                 document.addEventListener('touchmove', onPointerMove, { passive: false });
@@ -803,70 +802,95 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!dragCard) return;
                 e.preventDefault();
                 const currentY = getY(e);
-                const delta = currentY - startY;
-                dragCard.style.top = (cardRect.top + delta) + 'px';
+                dragTranslateY = currentY - startY;
 
-                // Determine which card we're hovering over
-                const dragMid = cardRect.top + delta + cardRect.height / 2;
-                const cards = [...cardList.querySelectorAll('.editor-entry-card:not(.is-dragging)')];
-                let insertBefore = null;
-                for (const c of cards) {
-                    const r = c.getBoundingClientRect();
-                    if (dragMid < r.top + r.height / 2) {
-                        insertBefore = c;
+                // Move the dragged card via transform
+                dragCard.style.transform = `translateY(${dragTranslateY}px) scale(1.025)`;
+
+                // Determine which slot the card is hovering over based on its midpoint
+                const dragMid = cardOrigTop + dragTranslateY + cardH / 2;
+                const dragIdx = slots.findIndex(s => s.el === dragCard);
+
+                // Find the target slot index
+                let targetIdx = slots.length - 1;
+                for (let i = 0; i < slots.length; i++) {
+                    if (i === dragIdx) continue;
+                    const slotMid = slots[i].origTop + slots[i].h / 2;
+                    if (dragMid < slotMid) {
+                        targetIdx = i > dragIdx ? i - 1 : i;
                         break;
                     }
                 }
-                // Move placeholder
-                if (insertBefore) {
-                    cardList.insertBefore(placeholder, insertBefore);
-                } else {
-                    // Append after last non-dragging card
-                    const last = cards[cards.length - 1];
-                    if (last && last.nextSibling !== placeholder) {
-                        cardList.insertBefore(placeholder, last.nextSibling);
-                    }
+                targetIdx = Math.max(0, Math.min(targetIdx, slots.length - 1));
+
+                if (targetIdx !== currentSlotIdx) {
+                    currentSlotIdx = targetIdx;
                 }
+
+                // Shift siblings to make room — each displaced card moves up or down
+                // by (cardH + gap) to simulate the dragged card occupying its target slot
+                const shiftAmount = cardH + listGap;
+                slots.forEach((slot, i) => {
+                    if (slot.el === dragCard) return;
+                    let offset = 0;
+                    if (dragIdx < targetIdx) {
+                        // Dragged downward: cards between (dragIdx, targetIdx] shift UP
+                        if (i > dragIdx && i <= targetIdx) offset = -shiftAmount;
+                    } else if (dragIdx > targetIdx) {
+                        // Dragged upward: cards between [targetIdx, dragIdx) shift DOWN
+                        if (i >= targetIdx && i < dragIdx) offset = shiftAmount;
+                    }
+                    slot.el.style.transform = offset ? `translateY(${offset}px)` : '';
+                });
             }
 
-            function onPointerUp(e) {
+            function onPointerUp() {
                 if (!dragCard) return;
                 document.removeEventListener('mousemove', onPointerMove);
                 document.removeEventListener('mouseup', onPointerUp);
                 document.removeEventListener('touchmove', onPointerMove);
                 document.removeEventListener('touchend', onPointerUp);
 
-                // Determine new order from placeholder position
                 const fromIdx = parseInt(dragCard.dataset.idx, 10);
-                const allSlots = [...cardList.children].filter(
-                    el => el.classList.contains('editor-entry-card') || el.classList.contains('drag-placeholder')
-                );
-                let toIdx = allSlots.indexOf(placeholder);
-                // Adjust: if placeholder is after the dragged card's original slot, subtract 1
-                // because the dragged card is still in the DOM
-                const dragSlot = allSlots.indexOf(dragCard);
-                if (dragSlot !== -1 && dragSlot < toIdx) toIdx--;
+                const toIdx = currentSlotIdx;
 
-                // Clean up DOM
-                dragCard.classList.remove('is-dragging');
-                dragCard.style.width = '';
-                dragCard.style.top = '';
-                dragCard.style.left = '';
-                cardList.classList.remove('is-drag-active');
-                if (placeholder && placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+                // Animate the dragged card settling into its new position
+                dragCard.classList.add('is-settling');
+                // Calculate where the card needs to land
+                const shiftAmount = cardH + listGap;
+                const settleY = (toIdx - fromIdx) * shiftAmount;
+                dragCard.style.transform = `translateY(${settleY}px) scale(1)`;
 
-                dragCard = null;
-                placeholder = null;
+                // After the settle transition completes, clean up and apply reorder
+                let settled = false;
+                const onSettle = () => {
+                    if (settled) return;
+                    settled = true;
+                    dragCard.removeEventListener('transitionend', onSettle);
 
-                // Apply reorder if changed — single state update
-                if (fromIdx !== toIdx && toIdx >= 0) {
-                    const arr = currentStructuredData[dataKey];
-                    if (arr) {
-                        const [moved] = arr.splice(fromIdx, 1);
-                        arr.splice(toIdx, 0, moved);
-                        rerender();
+                    // Clear all transforms
+                    slots.forEach(s => {
+                        s.el.style.transform = '';
+                        s.el.classList.remove('is-dragging', 'is-settling');
+                    });
+                    cardList.classList.remove('is-drag-active');
+                    dragCard = null;
+                    slots = [];
+
+                    // Apply reorder if changed — single state update
+                    if (fromIdx !== toIdx && toIdx >= 0) {
+                        const arr = currentStructuredData[dataKey];
+                        if (arr) {
+                            const [moved] = arr.splice(fromIdx, 1);
+                            arr.splice(toIdx, 0, moved);
+                            rerender();
+                        }
                     }
-                }
+                };
+
+                dragCard.addEventListener('transitionend', onSettle);
+                // Safety fallback if transitionend doesn't fire
+                setTimeout(onSettle, 350);
             }
 
             cardList.addEventListener('mousedown', onPointerDown);
