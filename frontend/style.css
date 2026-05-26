@@ -1387,6 +1387,46 @@ select.field-input {
     gap: 10px;
 }
 
+/* ── Length mode pills ────────────────────────────────────────────────── */
+.length-mode-strip {
+    display: flex;
+    gap: 0;
+    background: rgba(139, 111, 71, 0.06);
+    border-radius: 999px;
+    padding: 2px;
+    border: 1px solid rgba(139, 111, 71, 0.12);
+}
+.length-pill {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+    white-space: nowrap;
+}
+.length-pill:hover:not(.length-pill--active) {
+    color: var(--color-text);
+    background: rgba(139, 111, 71, 0.08);
+}
+.length-pill--active {
+    background: var(--color-surface-strong);
+    color: var(--color-primary);
+    box-shadow: 0 1px 3px rgba(69, 48, 28, 0.08);
+    font-weight: 700;
+}
+.builder-header__divider {
+    display: block;
+    width: 1px;
+    height: 20px;
+    background: var(--color-border);
+    flex-shrink: 0;
+    margin: 0 2px;
+}
+
 .sec-pill {
     padding: 5px 10px;
     border-radius: 999px;
@@ -2461,6 +2501,71 @@ body.stage-analyzed .app-header {
     transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
                 opacity 0.2s ease;
     opacity: 0.55;
+}
+
+/* ── Content Library: Entry group headers ──────────────────────────── */
+.entry-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 2px 8px;
+    margin-top: 4px;
+    user-select: none;
+}
+.entry-group-header:first-child {
+    margin-top: 0;
+}
+.entry-group-header--muted {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border);
+}
+.entry-group-header__label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+}
+.entry-group-header--muted .entry-group-header__label {
+    color: var(--color-text-faint);
+}
+.entry-group-header__count {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--color-text-faint);
+    background: var(--color-surface-sunken, rgba(0,0,0,0.04));
+    padding: 1px 7px;
+    border-radius: 9999px;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* Empty state inside a group */
+.entry-group-empty {
+    padding: 14px 12px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--color-text-faint);
+    border: 1.5px dashed var(--color-border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+}
+
+/* Hidden entry card — muted appearance */
+.editor-entry-card--hidden {
+    opacity: 0.55;
+    border-style: dashed;
+}
+.editor-entry-card--hidden:hover {
+    opacity: 0.8;
+}
+
+/* Eye toggle button inside card actions */
+.editor-entry-card__actions button[data-act="toggle"] svg {
+    width: 15px;
+    height: 15px;
+    stroke-width: 2;
 }
 
 /* Add entry button inside drawer */

@@ -203,6 +203,10 @@ document.addEventListener('DOMContentLoaded', () => {
         technical: true,  soft: true,     languages: true,
     };
 
+    // ── Resume length mode: '1page' | '2page' | 'auto' ──────────────────────
+    let resumeLengthMode = '1page';
+    let detectedPageCount = 1; // from uploaded PDF, used by 'auto' mode
+
     // ── Stage state machine: idle → processing → analyzed ──────────────────
     const idleStage       = document.getElementById('input-section');
     const processingStage = document.getElementById('processing-stage');
@@ -573,17 +577,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ── Render helper ────────────────────────────────────────────────────────
+    // Build a view of the data with only visible (non-hidden) entries for rendering.
+    function buildVisibleData() {
+        if (!currentStructuredData) return null;
+        const d = { ...currentStructuredData };
+        d.experience = (d.experience || []).filter(e => !e._hidden);
+        d.projects   = (d.projects || []).filter(p => !p._hidden);
+        return d;
+    }
+
     function renderResume() {
         if (!currentStructuredData) return;
+        const visibleData = buildVisibleData();
         // DIAGNOSTIC: log what we're about to render
         const _rCheck = ['experience','projects','education','summary','technical_skills'];
         const _rSizes = Object.fromEntries(
-            _rCheck.map(k => [k, Array.isArray(currentStructuredData[k]) ? currentStructuredData[k].length : (currentStructuredData[k] ? 'present' : 'EMPTY')])
+            _rCheck.map(k => [k, Array.isArray(visibleData[k]) ? visibleData[k].length : (visibleData[k] ? 'present' : 'EMPTY')])
         );
-        console.log('[renderResume] FRONTEND-STAGE-B template=%s, data:', templateSelect.value || 'ats_classic', _rSizes, 'activeSections:', {...activeSections});
+        console.log('[renderResume] FRONTEND-STAGE-B template=%s, data:', templateSelect.value || 'ats_classic', _rSizes, 'activeSections:', {...activeSections}, 'pages:', getEffectivePageCount());
         const tpl = templateSelect.value || 'ats_classic';
         resumeDocument.style.cssText = 'display:flex;flex-direction:column;align-items:center;width:100%;padding:0;background:transparent;';
-        resumeDocument.innerHTML = ResumeTemplates[tpl](currentStructuredData, activeSections);
+        resumeDocument.innerHTML = ResumeTemplates[tpl](visibleData, activeSections);
         decorateEditableSections();
         autoFitPage();
         updateRecommendation();
@@ -704,7 +718,129 @@ document.addEventListener('DOMContentLoaded', () => {
     // Each panel renderer receives the drawer body element and populates it.
     // Mutations go through currentStructuredData → renderResume() → scheduleRescore().
 
-    // Shared: render an entry list with edit/delete/reorder + add form.
+    // ── Drag-and-drop helper (reusable for any card list) ────────────────
+    // Attaches Notion-style transform-based drag to a .editor-entry-list.
+    // onReorder(fromIdx, toIdx) is called once after drop.
+    function initDragDrop(cardList, onReorder) {
+        let dragCard = null;
+        let startY = 0;
+        let dragTranslateY = 0;
+        let cardOrigTop = 0;
+        let cardH = 0;
+        const listGap = 8;
+        let slots = [];
+        let currentSlotIdx = -1;
+
+        function getY(e) { return e.touches ? e.touches[0].clientY : e.clientY; }
+
+        function onPointerDown(e) {
+            // Entire card is draggable, but not buttons/inputs
+            const card = e.target.closest('.editor-entry-card');
+            if (!card || e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea')) return;
+            e.preventDefault();
+
+            dragCard = card;
+            startY = getY(e);
+            dragTranslateY = 0;
+
+            const cards = [...cardList.querySelectorAll('.editor-entry-card')];
+            slots = cards.map((c, i) => {
+                const r = c.getBoundingClientRect();
+                return { el: c, origTop: r.top, h: r.height, idx: i };
+            });
+
+            const dragSlot = slots.find(s => s.el === card);
+            currentSlotIdx = dragSlot ? dragSlot.idx : 0;
+            cardOrigTop = dragSlot ? dragSlot.origTop : 0;
+            cardH = dragSlot ? dragSlot.h : 0;
+
+            card.classList.add('is-dragging');
+            cardList.classList.add('is-drag-active');
+
+            document.addEventListener('mousemove', onPointerMove);
+            document.addEventListener('mouseup', onPointerUp);
+            document.addEventListener('touchmove', onPointerMove, { passive: false });
+            document.addEventListener('touchend', onPointerUp);
+        }
+
+        function onPointerMove(e) {
+            if (!dragCard) return;
+            e.preventDefault();
+            const currentY = getY(e);
+            dragTranslateY = currentY - startY;
+            dragCard.style.transform = `translateY(${dragTranslateY}px) scale(1.025)`;
+
+            const dragMid = cardOrigTop + dragTranslateY + cardH / 2;
+            const dragIdx = slots.findIndex(s => s.el === dragCard);
+
+            let targetIdx = slots.length - 1;
+            for (let i = 0; i < slots.length; i++) {
+                if (i === dragIdx) continue;
+                const slotMid = slots[i].origTop + slots[i].h / 2;
+                if (dragMid < slotMid) {
+                    targetIdx = i > dragIdx ? i - 1 : i;
+                    break;
+                }
+            }
+            targetIdx = Math.max(0, Math.min(targetIdx, slots.length - 1));
+            currentSlotIdx = targetIdx;
+
+            const shiftAmount = cardH + listGap;
+            slots.forEach((slot, i) => {
+                if (slot.el === dragCard) return;
+                let offset = 0;
+                if (dragIdx < targetIdx && i > dragIdx && i <= targetIdx) offset = -shiftAmount;
+                else if (dragIdx > targetIdx && i >= targetIdx && i < dragIdx) offset = shiftAmount;
+                slot.el.style.transform = offset ? `translateY(${offset}px)` : '';
+            });
+        }
+
+        function onPointerUp() {
+            if (!dragCard) return;
+            document.removeEventListener('mousemove', onPointerMove);
+            document.removeEventListener('mouseup', onPointerUp);
+            document.removeEventListener('touchmove', onPointerMove);
+            document.removeEventListener('touchend', onPointerUp);
+
+            const fromIdx = slots.findIndex(s => s.el === dragCard);
+            const toIdx = currentSlotIdx;
+
+            dragCard.classList.add('is-settling');
+            const shiftAmount = cardH + listGap;
+            const settleY = (toIdx - fromIdx) * shiftAmount;
+            dragCard.style.transform = `translateY(${settleY}px) scale(1)`;
+
+            let settled = false;
+            const onSettle = () => {
+                if (settled) return;
+                settled = true;
+                dragCard.removeEventListener('transitionend', onSettle);
+                slots.forEach(s => {
+                    s.el.style.transform = '';
+                    s.el.classList.remove('is-dragging', 'is-settling');
+                });
+                cardList.classList.remove('is-drag-active');
+                dragCard = null;
+                slots = [];
+                if (fromIdx !== toIdx && toIdx >= 0) onReorder(fromIdx, toIdx);
+            };
+
+            dragCard.addEventListener('transitionend', onSettle);
+            setTimeout(onSettle, 350);
+        }
+
+        cardList.addEventListener('mousedown', onPointerDown);
+        cardList.addEventListener('touchstart', onPointerDown, { passive: false });
+    }
+
+    // SVG icons for entry card actions
+    const _ICON_PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>';
+    const _ICON_TRASH  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>';
+    const _ICON_EYE    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+    const _ICON_EYEOFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+    const _ICON_GRIP   = '<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>';
+
+    // Shared: render an entry list with visible/hidden groups, drag-and-drop, and edit form.
     function renderEntryList(container, opts) {
         const { dataKey, titleFn, subtitleFn, formFields, requiredFields, buildEntry, populateForm } = opts;
         if (!currentStructuredData) {
@@ -713,7 +849,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const entries = currentStructuredData[dataKey] || [];
         container.innerHTML = '';
-        let editingIndex = -1; // tracks which entry is being edited
+        let editingIndex = -1;
 
         function rerender() {
             renderResume();
@@ -721,183 +857,94 @@ document.addEventListener('DOMContentLoaded', () => {
             renderEntryList(container, opts);
         }
 
-        // Entry cards with drag handle
-        const cardList = document.createElement('div');
-        cardList.className = 'editor-entry-list';
-
+        // Split entries into visible and hidden
+        const visibleEntries = [];
+        const hiddenEntries  = [];
         entries.forEach((entry, idx) => {
+            (entry._hidden ? hiddenEntries : visibleEntries).push({ entry, idx });
+        });
+
+        // ── Build a card element for an entry ──────────────────────────────
+        function buildCard(entry, idx, isHidden) {
             const card = document.createElement('div');
-            card.className = 'editor-entry-card';
+            card.className = 'editor-entry-card' + (isHidden ? ' editor-entry-card--hidden' : '');
             card.dataset.idx = idx;
             card.innerHTML = `
                 <div class="editor-entry-card__header">
-                    <span class="drag-handle" title="Drag to reorder" aria-label="Drag to reorder">
-                        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>
-                    </span>
+                    <span class="drag-handle" title="Drag to reorder" aria-label="Drag to reorder">${_ICON_GRIP}</span>
                     <div style="min-width:0;flex:1;">
                         <div class="editor-entry-card__title">${titleFn(entry)}</div>
                         ${subtitleFn ? `<div class="editor-entry-card__subtitle">${subtitleFn(entry)}</div>` : ''}
                     </div>
                     <div class="editor-entry-card__actions">
-                        <button type="button" class="editor-entry-btn" data-act="edit" data-idx="${idx}" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>
-                        <button type="button" class="editor-entry-btn editor-entry-btn--danger" data-act="delete" data-idx="${idx}" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
+                        <button type="button" class="editor-entry-btn" data-act="toggle" data-idx="${idx}" title="${isHidden ? 'Show on resume' : 'Hide from resume'}">${isHidden ? _ICON_EYEOFF : _ICON_EYE}</button>
+                        <button type="button" class="editor-entry-btn" data-act="edit" data-idx="${idx}" title="Edit">${_ICON_PENCIL}</button>
+                        <button type="button" class="editor-entry-btn editor-entry-btn--danger" data-act="delete" data-idx="${idx}" title="Delete">${_ICON_TRASH}</button>
                     </div>
                 </div>
             `;
-            cardList.appendChild(card);
-        });
-        container.appendChild(cardList);
+            return card;
+        }
 
-        // ── Drag-and-drop reordering (Notion-style) ──────────────────────────
-        // Uses transform-based movement so the dragged card stays visible
-        // inside the drawer's overflow context. Siblings animate smoothly.
-        (function initDragDrop() {
-            let dragCard = null;
-            let startY = 0;
-            let dragTranslateY = 0;
-            let cardOrigTop = 0;
-            let cardH = 0;
-            let listGap = 8; // matches .editor-entry-list gap
-            let slots = [];  // { el, origTop, h, idx } for each card
-            let currentSlotIdx = -1; // where the dragged card visually sits
+        // ── Visible group ──────────────────────────────────────────────────
+        const visHeader = document.createElement('div');
+        visHeader.className = 'entry-group-header';
+        visHeader.innerHTML = `<span class="entry-group-header__label">Visible on Resume</span><span class="entry-group-header__count">${visibleEntries.length}</span>`;
+        container.appendChild(visHeader);
 
-            function getY(e) {
-                return e.touches ? e.touches[0].clientY : e.clientY;
-            }
+        const visList = document.createElement('div');
+        visList.className = 'editor-entry-list';
+        visibleEntries.forEach(({ entry, idx }) => visList.appendChild(buildCard(entry, idx, false)));
+        if (!visibleEntries.length) {
+            const empty = document.createElement('div');
+            empty.className = 'entry-group-empty';
+            empty.textContent = 'No visible entries. Drag items here or click the eye icon.';
+            visList.appendChild(empty);
+        }
+        container.appendChild(visList);
 
-            function onPointerDown(e) {
-                const handle = e.target.closest('.drag-handle');
-                if (!handle) return;
-                const card = handle.closest('.editor-entry-card');
-                if (!card) return;
-                e.preventDefault();
+        // ── Hidden group ───────────────────────────────────────────────────
+        const hidHeader = document.createElement('div');
+        hidHeader.className = 'entry-group-header entry-group-header--muted';
+        hidHeader.innerHTML = `<span class="entry-group-header__label">Hidden</span><span class="entry-group-header__count">${hiddenEntries.length}</span>`;
+        container.appendChild(hidHeader);
 
-                dragCard = card;
-                startY = getY(e);
-                dragTranslateY = 0;
+        const hidList = document.createElement('div');
+        hidList.className = 'editor-entry-list';
+        hiddenEntries.forEach(({ entry, idx }) => hidList.appendChild(buildCard(entry, idx, true)));
+        if (!hiddenEntries.length) {
+            const empty = document.createElement('div');
+            empty.className = 'entry-group-empty';
+            empty.textContent = 'Hidden entries are stored but not shown on the resume.';
+            hidList.appendChild(empty);
+        }
+        container.appendChild(hidList);
 
-                // Snapshot positions of ALL cards before any transforms
-                const cards = [...cardList.querySelectorAll('.editor-entry-card')];
-                slots = cards.map((c, i) => {
-                    const r = c.getBoundingClientRect();
-                    return { el: c, origTop: r.top, h: r.height, idx: i };
-                });
+        // ── Init drag-and-drop on each group ───────────────────────────────
+        function reorderInGroup(list, isHiddenGroup) {
+            initDragDrop(list, (fromLocalIdx, toLocalIdx) => {
+                // Map local card indices back to global entry indices
+                const cards = [...list.querySelectorAll('.editor-entry-card')];
+                const fromGlobalIdx = parseInt(cards[fromLocalIdx]?.dataset.idx, 10);
+                const toGlobalIdx   = parseInt(cards[toLocalIdx]?.dataset.idx, 10);
+                if (isNaN(fromGlobalIdx) || isNaN(toGlobalIdx)) return;
+                // Reorder within the full entries array
+                const arr = currentStructuredData[dataKey];
+                if (!arr) return;
+                const [moved] = arr.splice(fromGlobalIdx, 1);
+                // Recalculate toGlobalIdx after removal
+                const remaining = isHiddenGroup
+                    ? arr.map((e,i) => ({e,i})).filter(x => x.e._hidden)
+                    : arr.map((e,i) => ({e,i})).filter(x => !x.e._hidden);
+                const insertAt = toLocalIdx < remaining.length ? remaining[toLocalIdx].i : arr.length;
+                arr.splice(insertAt, 0, moved);
+                rerender();
+            });
+        }
+        if (visibleEntries.length > 1) reorderInGroup(visList, false);
+        if (hiddenEntries.length > 1) reorderInGroup(hidList, true);
 
-                const dragSlot = slots.find(s => s.el === card);
-                currentSlotIdx = dragSlot ? dragSlot.idx : 0;
-                cardOrigTop = dragSlot ? dragSlot.origTop : 0;
-                cardH = dragSlot ? dragSlot.h : 0;
-
-                // Activate drag state — card lifts, gets shadow + scale
-                card.classList.add('is-dragging');
-                cardList.classList.add('is-drag-active');
-
-                document.addEventListener('mousemove', onPointerMove);
-                document.addEventListener('mouseup', onPointerUp);
-                document.addEventListener('touchmove', onPointerMove, { passive: false });
-                document.addEventListener('touchend', onPointerUp);
-            }
-
-            function onPointerMove(e) {
-                if (!dragCard) return;
-                e.preventDefault();
-                const currentY = getY(e);
-                dragTranslateY = currentY - startY;
-
-                // Move the dragged card via transform
-                dragCard.style.transform = `translateY(${dragTranslateY}px) scale(1.025)`;
-
-                // Determine which slot the card is hovering over based on its midpoint
-                const dragMid = cardOrigTop + dragTranslateY + cardH / 2;
-                const dragIdx = slots.findIndex(s => s.el === dragCard);
-
-                // Find the target slot index
-                let targetIdx = slots.length - 1;
-                for (let i = 0; i < slots.length; i++) {
-                    if (i === dragIdx) continue;
-                    const slotMid = slots[i].origTop + slots[i].h / 2;
-                    if (dragMid < slotMid) {
-                        targetIdx = i > dragIdx ? i - 1 : i;
-                        break;
-                    }
-                }
-                targetIdx = Math.max(0, Math.min(targetIdx, slots.length - 1));
-
-                if (targetIdx !== currentSlotIdx) {
-                    currentSlotIdx = targetIdx;
-                }
-
-                // Shift siblings to make room — each displaced card moves up or down
-                // by (cardH + gap) to simulate the dragged card occupying its target slot
-                const shiftAmount = cardH + listGap;
-                slots.forEach((slot, i) => {
-                    if (slot.el === dragCard) return;
-                    let offset = 0;
-                    if (dragIdx < targetIdx) {
-                        // Dragged downward: cards between (dragIdx, targetIdx] shift UP
-                        if (i > dragIdx && i <= targetIdx) offset = -shiftAmount;
-                    } else if (dragIdx > targetIdx) {
-                        // Dragged upward: cards between [targetIdx, dragIdx) shift DOWN
-                        if (i >= targetIdx && i < dragIdx) offset = shiftAmount;
-                    }
-                    slot.el.style.transform = offset ? `translateY(${offset}px)` : '';
-                });
-            }
-
-            function onPointerUp() {
-                if (!dragCard) return;
-                document.removeEventListener('mousemove', onPointerMove);
-                document.removeEventListener('mouseup', onPointerUp);
-                document.removeEventListener('touchmove', onPointerMove);
-                document.removeEventListener('touchend', onPointerUp);
-
-                const fromIdx = parseInt(dragCard.dataset.idx, 10);
-                const toIdx = currentSlotIdx;
-
-                // Animate the dragged card settling into its new position
-                dragCard.classList.add('is-settling');
-                // Calculate where the card needs to land
-                const shiftAmount = cardH + listGap;
-                const settleY = (toIdx - fromIdx) * shiftAmount;
-                dragCard.style.transform = `translateY(${settleY}px) scale(1)`;
-
-                // After the settle transition completes, clean up and apply reorder
-                let settled = false;
-                const onSettle = () => {
-                    if (settled) return;
-                    settled = true;
-                    dragCard.removeEventListener('transitionend', onSettle);
-
-                    // Clear all transforms
-                    slots.forEach(s => {
-                        s.el.style.transform = '';
-                        s.el.classList.remove('is-dragging', 'is-settling');
-                    });
-                    cardList.classList.remove('is-drag-active');
-                    dragCard = null;
-                    slots = [];
-
-                    // Apply reorder if changed — single state update
-                    if (fromIdx !== toIdx && toIdx >= 0) {
-                        const arr = currentStructuredData[dataKey];
-                        if (arr) {
-                            const [moved] = arr.splice(fromIdx, 1);
-                            arr.splice(toIdx, 0, moved);
-                            rerender();
-                        }
-                    }
-                };
-
-                dragCard.addEventListener('transitionend', onSettle);
-                // Safety fallback if transitionend doesn't fire
-                setTimeout(onSettle, 350);
-            }
-
-            cardList.addEventListener('mousedown', onPointerDown);
-            cardList.addEventListener('touchstart', onPointerDown, { passive: false });
-        })();
-
-        // Wire card actions via delegation (edit + delete only)
+        // ── Wire card actions via delegation ───────────────────────────────
         container.addEventListener('click', function handler(e) {
             const btn = e.target.closest('[data-act]');
             if (!btn) return;
@@ -908,9 +955,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (act === 'delete') {
                 arr.splice(idx, 1);
                 rerender();
+            } else if (act === 'toggle') {
+                arr[idx]._hidden = !arr[idx]._hidden;
+                rerender();
             } else if (act === 'edit') {
                 editingIndex = idx;
-                // Populate form with existing entry data and show it
                 if (populateForm) populateForm(arr[idx], form);
                 form.classList.add('is-active');
                 addBtn.style.display = 'none';
@@ -918,7 +967,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Add-new / edit form
+        // ── Add-new / edit form ────────────────────────────────────────────
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'editor-add-btn';
@@ -975,10 +1024,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             currentStructuredData[dataKey] = currentStructuredData[dataKey] || [];
             if (editingIndex >= 0) {
-                // Update existing entry
                 currentStructuredData[dataKey][editingIndex] = buildEntry(vals);
             } else {
-                // Add new entry
                 currentStructuredData[dataKey].push(buildEntry(vals));
             }
 
@@ -2130,7 +2177,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── 7. BLOCK CONTROLS — removed (editing is now drawer-only) ──────────────
 
-    // ── 6. SECTION TOGGLE PILLS ──────────────────────────────────────────────
+    // ── 6a. RESUME LENGTH MODE PILLS ────────────────────────────────────────
+    function getEffectivePageCount() {
+        if (resumeLengthMode === 'auto') return detectedPageCount;
+        return resumeLengthMode === '2page' ? 2 : 1;
+    }
+
+    document.querySelectorAll('.length-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mode = btn.dataset.length;
+            if (mode === resumeLengthMode) return;
+            resumeLengthMode = mode;
+            document.querySelectorAll('.length-pill').forEach(b =>
+                b.classList.toggle('length-pill--active', b.dataset.length === mode));
+            renderResume();
+        });
+    });
+
+    // ── 6b. SECTION TOGGLE PILLS ─────────────────────────────────────────────
     document.querySelectorAll('.sec-pill').forEach(btn => {
         btn.addEventListener('click', () => {
             const sec = btn.dataset.section;
