@@ -848,6 +848,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const entries = currentStructuredData[dataKey] || [];
+        // Abort previous listeners bound to this container
+        if (container._entryListAC) container._entryListAC.abort();
+        container._entryListAC = new AbortController();
+        const listSignal = container._entryListAC.signal;
+
         container.innerHTML = '';
         let editingIndex = -1;
 
@@ -965,7 +970,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 addBtn.style.display = 'none';
                 saveBtn.textContent = 'Update';
             }
-        });
+        }, { signal: listSignal });
 
         // ── Add-new / edit form ────────────────────────────────────────────
         const addBtn = document.createElement('button');
