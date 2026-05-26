@@ -1368,7 +1368,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderMissingSkills(payload.missing_skills, payload.matched_skills);
             setCurrentData(payload.resume || payload);
             // Auto-collapse the analysis panel — user is now in editing mode
-            resultsSection.classList.add('hidden');
+            resultsSection.classList.add('results-collapsible--collapsed');
             builderSection.classList.remove('hidden');
             renderResume();
             requestAnimationFrame(() => autoFitPage()); // re-measure now section is visible
@@ -1913,6 +1913,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!card) return;
             const collapsed = card.classList.toggle('scorecard--collapsed');
             scorecardToggle.setAttribute('aria-expanded', !collapsed);
+        });
+    }
+
+    // ── 5d. Collapsible results section toggle ───────────────────────────────
+    const resultsCollapseToggle = document.getElementById('results-collapse-toggle');
+    if (resultsCollapseToggle) {
+        resultsCollapseToggle.addEventListener('click', () => {
+            resultsSection.classList.toggle('results-collapsible--collapsed');
         });
     }
 

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <title>AI Resume Analyzer</title>
-    <link rel="stylesheet" href="style.css?v=20260526a">
+    <link rel="stylesheet" href="style.css?v=20260526b">
 </head>
 
 <body class="app-body">
@@ -395,7 +395,12 @@
             </section>
 
             <!-- Upload-mode analysis results (PDF viewer + insights) -->
-            <section id="results-section" class="hidden">
+            <section id="results-section" class="hidden results-collapsible">
+                <button type="button" class="results-collapse-toggle" id="results-collapse-toggle">
+                    <span class="results-collapse-toggle__label">📄 Original Resume &amp; Optimizer</span>
+                    <svg class="results-collapse-toggle__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="results-collapsible__body" id="results-collapsible-body">
                 <div class="results-grid results-card">
 
                     <div class="results-card--viewer">
@@ -456,6 +461,7 @@
                     </div>
 
                 </div>
+                </div><!-- /results-collapsible__body -->
             </section>
 
             <!-- ─────────────────────────────────────────────────────────────
@@ -556,8 +562,8 @@
         </aside>
     </main>
 
-    <script src="templates.js?v=20260526a"></script>
-    <script src="script.js?v=20260526a"></script>
+    <script src="templates.js?v=20260526b"></script>
+    <script src="script.js?v=20260526b"></script>
 </body>
 
 </html>
