@@ -12,7 +12,7 @@ from . import scorer
 logger = logging.getLogger(__name__)
 
 MODEL_NAME = "gemini-2.5-flash-lite"
-AI_TIMEOUT_SECONDS = 25
+AI_TIMEOUT_SECONDS = 50          # Generous: Render cold-start + Gemini latency can exceed 25 s
 MAX_TEXT_CHARS = 3000
 
 
@@ -222,6 +222,7 @@ def _clear_timeout(old_handler):
 def _generate_json(prompt, api_key, label):
     old_handler = _start_timeout()
     try:
+        logger.info("[%s] STAGE-1 Calling Gemini model=%s", label, MODEL_NAME)
         client = genai.Client(api_key=api_key)
         response = client.models.generate_content(
             model=MODEL_NAME,
@@ -229,24 +230,30 @@ def _generate_json(prompt, api_key, label):
             config=types.GenerateContentConfig(temperature=0.0),
         )
         raw_text = getattr(response, "text", "") or ""
+        logger.info("[%s] STAGE-2 Gemini raw response length=%d chars, first 300: %.300s",
+                    label, len(raw_text), raw_text)
+
         cleaned = _extract_json(raw_text)
         if not cleaned:
-            logger.warning("[%s] Empty response from Gemini. Raw (first 500): %s",
+            logger.warning("[%s] STAGE-3 _extract_json returned empty. Raw (first 500): %s",
                            label, raw_text[:500])
             return None
+        logger.info("[%s] STAGE-3 _extract_json OK, cleaned length=%d", label, len(cleaned))
 
         # First attempt: parse as-is
         try:
             parsed = json.loads(cleaned)
-        except json.JSONDecodeError:
+            logger.info("[%s] STAGE-4 json.loads succeeded on first attempt", label)
+        except json.JSONDecodeError as first_err:
+            logger.info("[%s] STAGE-4 json.loads FAILED: %s — trying repair", label, first_err)
             # Second attempt: repair common Gemini quirks (trailing commas, comments)
             repaired = _repair_json(cleaned)
             try:
                 parsed = json.loads(repaired)
-                logger.info("[%s] JSON parse succeeded after repair", label)
+                logger.info("[%s] STAGE-4 json.loads succeeded after repair", label)
             except json.JSONDecodeError as je:
-                logger.warning("[%s] JSON parse failed even after repair. Error: %s. "
-                               "Raw (first 800): %s", label, je, cleaned[:800])
+                logger.warning("[%s] STAGE-4 json.loads FAILED even after repair: %s. "
+                               "Cleaned (first 800): %.800s", label, je, cleaned)
                 return None
 
         # Log which top-level keys are present and which sections have data
@@ -255,14 +262,16 @@ def _generate_json(prompt, api_key, label):
                 k: len(v) if isinstance(v, list) else ("present" if v else "empty")
                 for k, v in parsed.items()
             }
-            logger.info("[%s] Gemini returned keys: %s", label, section_summary)
+            logger.info("[%s] STAGE-5 parsed keys: %s", label, section_summary)
+        else:
+            logger.warning("[%s] STAGE-5 parsed is not a dict: type=%s", label, type(parsed).__name__)
 
         return parsed
     except AITimeoutException:
-        logger.warning("[%s] AI request timed out after %s seconds", label, AI_TIMEOUT_SECONDS)
+        logger.warning("[%s] STAGE-ERR AI request timed out after %s seconds", label, AI_TIMEOUT_SECONDS)
         return None
     except Exception as exc:
-        logger.warning("[%s] AI request failed: %s", label, exc)
+        logger.warning("[%s] STAGE-ERR AI request failed: %s", label, exc)
         return None
     finally:
         _clear_timeout(old_handler)
@@ -277,15 +286,23 @@ def _pick(result, fallback, key):
     """
     val = result.get(key)
     if isinstance(val, list) and len(val) > 0:
+        fb = fallback.get(key) or []
+        logger.info("[_pick] key=%s → using AI result (len=%d), fallback had len=%d",
+                    key, len(val), len(fb))
         return val
-    return fallback.get(key) or []
+    fb = fallback.get(key) or []
+    logger.info("[_pick] key=%s → AI value=%s, falling back (len=%d)",
+                key, type(val).__name__ if val is not None else "None", len(fb))
+    return fb
 
 
 def _finalize_resume(result, fallback, project_limit=None):
     if not isinstance(result, dict):
-        logger.warning("[finalize] AI returned non-dict result (%s), using fallback entirely",
+        logger.warning("[finalize] STAGE-6 AI returned non-dict result (%s), using fallback entirely",
                        type(result).__name__)
         result = {}
+    else:
+        logger.info("[finalize] STAGE-6 AI result has %d keys: %s", len(result), list(result.keys()))
 
     final = _schema_template()
     final["name"] = _coerce_text(result.get("name"), fallback["name"], max_chars=120)
@@ -323,13 +340,20 @@ def _finalize_resume(result, fallback, project_limit=None):
         item_max_chars=120,
     )
 
-    # Log which sections ended up empty after finalization
+    # STAGE-7: Log final result summary
+    final_summary = {
+        k: len(v) if isinstance(v, list) else ("present" if v else "empty")
+        for k, v in final.items()
+    }
+    logger.info("[finalize] STAGE-7 final result: %s", final_summary)
+
     empty_sections = [k for k in ("experience", "projects", "education", "certifications",
                                    "technical_skills", "summary")
                       if not final.get(k)]
     if empty_sections:
-        logger.warning("[finalize] Empty sections after finalization: %s. "
-                       "AI keys present: %s", empty_sections, list(result.keys()))
+        logger.warning("[finalize] STAGE-7 ⚠ EMPTY sections: %s. "
+                       "AI result keys: %s, fallback keys: %s",
+                       empty_sections, list(result.keys()), list(fallback.keys()))
 
     return final
 
@@ -407,6 +431,9 @@ Authoritative Skills:
     elif fallback["projects"] and not validate_resume(finalized, fallback["projects"]):
         finalized["projects"] = fallback["projects"]
 
+    # Signal to frontend whether AI generation succeeded or fell back
+    finalized["_generation_ok"] = result is not None and isinstance(result, dict)
+
     return finalized
 
 
@@ -478,7 +505,9 @@ User Input:
     result = _generate_json(prompt, api_key, "generate_from_inputs")
     if result is None:
         logger.warning("[generate_from_inputs] Gemini returned no usable JSON — using fallback resume")
-    return _finalize_resume(result, fallback)
+    finalized = _finalize_resume(result, fallback)
+    finalized["_generation_ok"] = result is not None and isinstance(result, dict)
+    return finalized
 
 
 def generate_structured_resume(resume_text, api_key):
@@ -517,4 +546,6 @@ Resume:
     result = _generate_json(prompt, api_key, "rewrite")
     if result is None:
         logger.warning("[rewrite] Gemini returned no usable JSON — using fallback resume")
-    return _finalize_resume(result, fallback)
+    finalized = _finalize_resume(result, fallback)
+    finalized["_generation_ok"] = result is not None and isinstance(result, dict)
+    return finalized

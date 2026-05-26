@@ -443,10 +443,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return !v || (Array.isArray(v) && v.length === 0);
         });
         if (_empty.length) {
-            console.warn('[setCurrentData] ⚠ Empty sections received from backend:', _empty,
+            console.warn('[setCurrentData] Empty sections received from backend:', _empty,
                          '| All keys:', Object.keys(currentStructuredData));
         }
         console.log('[setCurrentData] skill_groups:', JSON.stringify(currentStructuredData.skill_groups));
+
+        // Surface AI generation failure to user as a dismissible banner
+        if (data._generation_ok === false) {
+            console.error('[setCurrentData] Backend flagged _generation_ok=false — AI generation failed, using fallback');
+            const banner = document.createElement('div');
+            banner.className = 'generation-warning-banner';
+            banner.innerHTML = `
+                <span>Some resume sections may be incomplete — the AI model timed out. You can edit sections manually or try generating again.</span>
+                <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;color:inherit;padding:0 4px;">&times;</button>
+            `;
+            const builder = document.getElementById('builder-section');
+            if (builder) builder.prepend(banner);
+        }
     }
 
     // ── Badge style configs ──────────────────────────────────────────────────
@@ -562,6 +575,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Render helper ────────────────────────────────────────────────────────
     function renderResume() {
         if (!currentStructuredData) return;
+        // DIAGNOSTIC: log what we're about to render
+        const _rCheck = ['experience','projects','education','summary','technical_skills'];
+        const _rSizes = Object.fromEntries(
+            _rCheck.map(k => [k, Array.isArray(currentStructuredData[k]) ? currentStructuredData[k].length : (currentStructuredData[k] ? 'present' : 'EMPTY')])
+        );
+        console.log('[renderResume] FRONTEND-STAGE-B template=%s, data:', templateSelect.value || 'ats_classic', _rSizes, 'activeSections:', {...activeSections});
         const tpl = templateSelect.value || 'ats_classic';
         resumeDocument.style.cssText = 'display:flex;flex-direction:column;align-items:center;width:100%;padding:0;background:transparent;';
         resumeDocument.innerHTML = ResumeTemplates[tpl](currentStructuredData, activeSections);
@@ -1377,7 +1396,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 savedJdSkillsFlat = payload.jd_skills_flat;
             }
             renderMissingSkills(payload.missing_skills, payload.matched_skills);
-            setCurrentData(payload.resume || payload);
+            // DIAGNOSTIC: log raw backend payload before setCurrentData
+            const _resumeObj = payload.resume || payload;
+            const _sectionCheck = ['experience','projects','education','summary','technical_skills','certifications'];
+            console.log('[optimize] FRONTEND-STAGE-A backend payload.resume keys:',
+                        Object.keys(_resumeObj),
+                        'section sizes:', Object.fromEntries(
+                            _sectionCheck.map(k => [k, Array.isArray(_resumeObj[k]) ? _resumeObj[k].length : (_resumeObj[k] ? 'present' : 'EMPTY')])
+                        ));
+            setCurrentData(_resumeObj);
             // Auto-collapse the analysis panel — user is now in editing mode
             resultsSection.classList.add('results-collapsible--collapsed');
             builderSection.classList.remove('hidden');
@@ -1883,9 +1910,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     savedJdSkillsFlat = optimizePayload.jd_skills_flat;
                 }
                 renderMissingSkills(optimizePayload.missing_skills, optimizePayload.matched_skills);
-                setCurrentData(optimizePayload.resume || optimizePayload);
+                // DIAGNOSTIC: manual-JD path
+                const _mObj = optimizePayload.resume || optimizePayload;
+                const _mCheck = ['experience','projects','education','summary','technical_skills','certifications'];
+                console.log('[optimize-manual] FRONTEND-STAGE-A backend resume keys:',
+                            Object.keys(_mObj),
+                            'section sizes:', Object.fromEntries(
+                                _mCheck.map(k => [k, Array.isArray(_mObj[k]) ? _mObj[k].length : (_mObj[k] ? 'present' : 'EMPTY')])
+                            ));
+                setCurrentData(_mObj);
             } else {
                 const { payload } = outcome;
+                // DIAGNOSTIC: plain generate path
+                const _pCheck = ['experience','projects','education','summary','technical_skills','certifications'];
+                console.log('[generate-plain] FRONTEND-STAGE-A backend payload keys:',
+                            Object.keys(payload),
+                            'section sizes:', Object.fromEntries(
+                                _pCheck.map(k => [k, Array.isArray(payload[k]) ? payload[k].length : (payload[k] ? 'present' : 'EMPTY')])
+                            ));
                 setCurrentData(payload);
                 currentSkills = {
                     technical: payload.technical_skills || [],

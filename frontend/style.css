@@ -2973,3 +2973,22 @@ body.stage-analyzed .app-header {
         grid-template-columns: 1fr;
     }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   GENERATION WARNING BANNER
+   ───────────────────────────────────────────────────────────────────────── */
+
+.generation-warning-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: var(--radius-md, 8px);
+    color: #92400e;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
