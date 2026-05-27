@@ -153,6 +153,18 @@ h1, h2, h3, h4, h5, h6 {
     gap: 12px;
 }
 
+/* Card ordering: Original Resume & Optimizer first, then ATS Score */
+.results-shell > .workspace-toolbar    { order: 0; }
+.results-shell > .results-collapsible  { order: 1; }
+.results-shell > .scorecard            { order: 2; }
+.results-shell > .builder-surface      { order: 3; }
+
+/* Normalize toggle bar heights across all collapsible cards */
+.scorecard__toggle,
+.results-collapse-toggle {
+    min-height: 44px;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    5. SURFACES
    ───────────────────────────────────────────────────────────────────────── */
@@ -853,8 +865,17 @@ select.field-input {
     transform: rotate(180deg);
 }
 
-.results-collapsible--collapsed .results-collapsible__body {
-    display: none;
+/* Smooth collapse animation — grid-template-rows trick */
+.results-collapsible__body-wrap {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.results-collapsible--collapsed .results-collapsible__body-wrap {
+    grid-template-rows: 0fr;
+}
+.results-collapsible__body-wrap > .results-collapsible__body {
+    overflow: hidden;
 }
 
 .results-collapsible--collapsed .results-collapse-toggle {
@@ -1001,17 +1022,21 @@ select.field-input {
     flex-shrink: 0;
 }
 
-/* Collapsed state: hide body */
-.scorecard--collapsed .scorecard__body {
-    display: none;
+/* Smooth collapse animation — grid-template-rows trick */
+.scorecard__body-wrap {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.scorecard--collapsed .scorecard__chevron {
-    transform: rotate(0deg);
+.scorecard--collapsed .scorecard__body-wrap {
+    grid-template-rows: 0fr;
+}
+.scorecard__body-wrap > .scorecard__body {
+    overflow: hidden;
 }
 
-/* Expanded state */
-.scorecard:not(.scorecard--collapsed) .scorecard__body {
-    padding: 12px 16px 16px;
+.scorecard--collapsed .scorecard__chevron {
+    transform: rotate(0deg);
 }
 .scorecard:not(.scorecard--collapsed) .scorecard__chevron {
     transform: rotate(180deg);
@@ -1021,6 +1046,7 @@ select.field-input {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    padding: 12px 16px 16px;
 }
 
 /* Top row: donut + stats inline */
@@ -1424,7 +1450,7 @@ select.field-input {
     background: var(--color-surface-strong);
     color: var(--color-primary);
     box-shadow: 0 1px 3px rgba(69, 48, 28, 0.08);
-    font-weight: 700;
+    font-weight: 600;  /* same as inactive — prevents width shift on toggle */
 }
 .builder-header__divider {
     display: block;
@@ -1484,7 +1510,6 @@ select.field-input {
 .builder-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 10px;
     margin-bottom: 10px;
     padding: 8px 12px;
@@ -2774,6 +2799,12 @@ body.stage-analyzed .app-header {
 /* ─────────────────────────────────────────────────────────────────────────
    27. CHANGE TEMPLATE BUTTON
    ───────────────────────────────────────────────────────────────────────── */
+.builder-header__right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
 .change-template-btn {
     display: inline-flex;
     align-items: center;

@@ -2473,7 +2473,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             if (requestId === latestRequestIds.pdf) {
                 const lbl = downloadPdfBtn.querySelector('.download-pdf-btn__label');
-                if (lbl) lbl.textContent = 'Download PDF';
+                if (lbl) lbl.textContent = 'Download';
             }
         }
     });
