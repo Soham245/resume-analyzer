@@ -198,8 +198,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .results-card__header h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 0.95rem;
     margin: 0;
+}
+.results-card__header h2 .icon-badge {
+    vertical-align: baseline;  /* override the -6px offset in flex context */
 }
 
 .empty-state {
