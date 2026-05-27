@@ -429,6 +429,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Single setter: always computes skill_groups so templates always show grouped skills ──
     function setCurrentData(data) {
         currentStructuredData = data;
+
+        // Phase 7: detect page count from backend (uploaded PDF analysis)
+        if (data.page_count && data.page_count > 0) {
+            detectedPageCount = data.page_count;
+        }
+
         // Backend response is the canonical source for display forms; do not
         // re-canonicalize here (the slim frontend formatter doesn't know
         // about registry-seeded multi-token brands).
@@ -589,18 +595,56 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderResume() {
         if (!currentStructuredData) return;
         const visibleData = buildVisibleData();
-        // DIAGNOSTIC: log what we're about to render
-        const _rCheck = ['experience','projects','education','summary','technical_skills'];
-        const _rSizes = Object.fromEntries(
-            _rCheck.map(k => [k, Array.isArray(visibleData[k]) ? visibleData[k].length : (visibleData[k] ? 'present' : 'EMPTY')])
-        );
-        console.log('[renderResume] FRONTEND-STAGE-B template=%s, data:', templateSelect.value || 'ats_classic', _rSizes, 'activeSections:', {...activeSections}, 'pages:', getEffectivePageCount());
+        const pages = getEffectivePageCount();
         const tpl = templateSelect.value || 'ats_classic';
-        resumeDocument.style.cssText = 'display:flex;flex-direction:column;align-items:center;width:100%;padding:0;background:transparent;';
-        resumeDocument.innerHTML = ResumeTemplates[tpl](visibleData, activeSections);
+        resumeDocument.style.cssText = 'display:flex;flex-direction:column;align-items:center;width:100%;padding:0;background:transparent;gap:24px;';
+
+        if (pages >= 2) {
+            // ── Multi-page: render content across N page wrappers ──────
+            // Templates still render a single block; we clone the wrapper
+            // and let CSS columns / overflow handle pagination.
+            // For now: first page renders normally, second is a placeholder.
+            resumeDocument.innerHTML = ResumeTemplates[tpl](visibleData, activeSections);
+        } else {
+            resumeDocument.innerHTML = ResumeTemplates[tpl](visibleData, activeSections);
+        }
         decorateEditableSections();
         autoFitPage();
         updateRecommendation();
+        checkOverflow();
+    }
+
+    /** Phase 6 — 1-page safeguard: detect content overflow and show warning */
+    function checkOverflow() {
+        const pages = getEffectivePageCount();
+        const wrapper = resumeDocument.querySelector('.resume-wrapper');
+        const scaler = wrapper?.querySelector('.resume-scale-target');
+        const indicator = document.getElementById('overflow-indicator');
+        if (!wrapper || !scaler || !indicator) return;
+
+        if (pages > 1) {
+            // Multi-page mode — no overflow concern
+            indicator.classList.add('hidden');
+            return;
+        }
+
+        // Measure natural content height vs page height
+        const pageH = wrapper.offsetHeight;
+        // Temporarily remove scale to measure natural height
+        const prevTransform = scaler.style.transform;
+        scaler.style.transform = '';
+        const naturalH = scaler.offsetHeight;
+        scaler.style.transform = prevTransform;
+
+        const ratio = pageH / naturalH;
+        if (naturalH > pageH + 6 && ratio < 0.92) {
+            // Content is being squeezed
+            const pct = Math.round((1 - ratio) * 100);
+            indicator.textContent = `Content is ${pct}% over 1 page — drag entries to Hidden or switch to 2 Pages`;
+            indicator.classList.remove('hidden');
+        } else {
+            indicator.classList.add('hidden');
+        }
     }
 
     // ── Editor drawer + hover-edit affordances ──────────────────────────────
@@ -1447,6 +1491,7 @@ document.addEventListener('DOMContentLoaded', () => {
     //                   sections (8px baseline → up to 14px). Content never
     //                   stretches; remaining white space sits at the bottom.
     function autoFitPage() {
+        const pages = getEffectivePageCount();
         const wrapper = resumeDocument.querySelector('.resume-wrapper');
         if (!wrapper) return;
         const scaler = wrapper.querySelector('.resume-scale-target');
@@ -1462,33 +1507,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Sidebar layout: its children use height:100% against the scaler.
         // Clearing height above collapses them — restore the lock and bail out.
-        // The wrapper's overflow:hidden already clips any sidebar overflow.
         if (scaler.querySelector('.t4-sidebar')) {
             scaler.style.height = pageH + 'px';
             return;
         }
 
         const naturalH = scaler.offsetHeight;  // genuine stacked content height
+        const totalBudget = pageH * pages;     // total pixel budget across all pages
 
         // ── Phase 2: fit strategy ──────────────────────────────────────────────
-        if (naturalH > pageH + 6) {
-            // Overflow: scale down visually so content fits inside the A4 frame.
-            const z = Math.max(0.72, pageH / naturalH);
-            scaler.style.transform       = `scale(${z.toFixed(4)})`;
-            scaler.style.transformOrigin = 'top left';
+        if (pages >= 2) {
+            // Multi-page: allow overflow on page 1, content will flow.
+            // For now, scale down only if content exceeds total budget.
+            if (naturalH > totalBudget + 6) {
+                const z = Math.max(0.72, totalBudget / naturalH);
+                scaler.style.transform       = `scale(${z.toFixed(4)})`;
+                scaler.style.transformOrigin = 'top left';
+            }
+            // Expand the wrapper to show full content (multi-page preview)
+            wrapper.style.height = Math.max(pageH, naturalH) + 'px';
+            wrapper.style.overflow = 'visible';
         } else {
-            // Underflow: distribute slack as a slight margin-bottom increase on
-            // data-role sections (max +6px each, capped at 14px total).
-            // White space beyond that naturally falls at the bottom — no stretching.
-            const slack = pageH - naturalH;
-            if (slack > 0 && slack <= 150) {
-                const sections = scaler.querySelectorAll('[data-role]');
-                if (sections.length) {
-                    const extra = Math.min(Math.floor(slack / sections.length), 6);
-                    sections.forEach(s => {
-                        const mb = parseFloat(getComputedStyle(s).marginBottom) || 8;
-                        s.style.marginBottom = Math.min(mb + extra, 14) + 'px';
-                    });
+            // Single page: restore fixed A4 frame
+            wrapper.style.height = '1123px';
+            wrapper.style.overflow = 'hidden';
+            if (naturalH > pageH + 6) {
+                const z = Math.max(0.72, pageH / naturalH);
+                scaler.style.transform       = `scale(${z.toFixed(4)})`;
+                scaler.style.transformOrigin = 'top left';
+            } else {
+                const slack = pageH - naturalH;
+                if (slack > 0 && slack <= 150) {
+                    const sections = scaler.querySelectorAll('[data-role]');
+                    if (sections.length) {
+                        const extra = Math.min(Math.floor(slack / sections.length), 6);
+                        sections.forEach(s => {
+                            const mb = parseFloat(getComputedStyle(s).marginBottom) || 8;
+                            s.style.marginBottom = Math.min(mb + extra, 14) + 'px';
+                        });
+                    }
                 }
             }
         }

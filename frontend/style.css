@@ -1427,6 +1427,26 @@ select.field-input {
     margin: 0 2px;
 }
 
+/* ── Overflow indicator (Phase 6) ───────────────────────────────────── */
+.overflow-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    margin: 0 0 -4px;
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    border-radius: var(--radius-sm);
+    color: #92400e;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.35;
+    transition: opacity 0.25s ease, max-height 0.25s ease;
+}
+.overflow-indicator.hidden {
+    display: none;
+}
+
 .sec-pill {
     padding: 5px 10px;
     border-radius: 999px;
