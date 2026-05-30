@@ -1535,19 +1535,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const z = Math.max(0.72, pageH / naturalH);
                 scaler.style.transform       = `scale(${z.toFixed(4)})`;
                 scaler.style.transformOrigin = 'top left';
-            } else {
-                const slack = pageH - naturalH;
-                if (slack > 0 && slack <= 150) {
-                    const sections = scaler.querySelectorAll('[data-role]');
-                    if (sections.length) {
-                        const extra = Math.min(Math.floor(slack / sections.length), 6);
-                        sections.forEach(s => {
-                            const mb = parseFloat(getComputedStyle(s).marginBottom) || 8;
-                            s.style.marginBottom = Math.min(mb + extra, 14) + 'px';
-                        });
-                    }
-                }
             }
+            // When the resume is shorter than the page, leave it at its natural
+            // top-aligned spacing with whitespace at the bottom. (Earlier this
+            // branch distributed the leftover slack into per-section margins, but
+            // that made each section's position depend on the total content height
+            // and how many [data-role] sections were present — so toggling one
+            // section off re-padded the others and made categories jump up/down.
+            // Deterministic spacing matters more than filling the trailing gap.)
         }
     }
 
