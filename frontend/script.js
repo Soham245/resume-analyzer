@@ -1756,6 +1756,8 @@ document.addEventListener('DOMContentLoaded', () => {
             renderResume();
             requestAnimationFrame(() => autoFitPage()); // re-measure now section is visible
             builderSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Surface the template gallery immediately so users can explore looks.
+            openTemplateDrawer();
 
         } catch (error) {
             if (error.name === 'AbortError') return;
@@ -2078,13 +2080,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>`;
 
             card.addEventListener('click', () => {
+                // Apply the template + refresh the live preview, but keep the
+                // drawer open so users can click through templates like a
+                // gallery. The drawer only closes via the X / backdrop.
                 templateSelect.value = tpl.id;
                 templateSelect.dispatchEvent(new Event('change'));
                 templateDrawerBody.querySelectorAll('.template-card').forEach(c => {
                     c.classList.remove('template-card--active');
                 });
                 card.classList.add('template-card--active');
-                setTimeout(closeTemplateDrawer, 250);
             });
             grid.appendChild(card);
         });
@@ -2285,6 +2289,8 @@ document.addEventListener('DOMContentLoaded', () => {
             renderResume();
             requestAnimationFrame(() => autoFitPage());
             setStage('analyzed');
+            // Surface the template gallery immediately so users can explore looks.
+            openTemplateDrawer();
 
         } catch (error) {
             if (error.name === 'AbortError') return;
