@@ -1490,6 +1490,30 @@ document.addEventListener('DOMContentLoaded', () => {
     //     • Underflow → apply a small, controlled gap increase to [data-role]
     //                   sections (8px baseline → up to 14px). Content never
     //                   stretches; remaining white space sits at the bottom.
+    // Height the resume WOULD occupy with every section enabled, measured via an
+    // off-screen probe render. The fit-scale is derived from THIS height rather
+    // than from the currently-visible content, so toggling a section on/off does
+    // not change the scale factor. Without this, hiding any section shrinks the
+    // total height, nudges the global scale, and visibly resizes the gaps of
+    // every other (unrelated) section. Returns null when it can't measure.
+    function measureFitHeight() {
+        const tpl = templateSelect.value || 'ats_classic';
+        const data = buildVisibleData();
+        if (!data || !ResumeTemplates[tpl]) return null;
+        const ALL_ON = { experience: true, projects: true, certifications: true,
+                         education: true, technical: true, soft: true, languages: true };
+        const probe = document.createElement('div');
+        probe.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;pointer-events:none;';
+        probe.innerHTML = ResumeTemplates[tpl](data, ALL_ON);
+        document.body.appendChild(probe);
+        const sc = probe.querySelector('.resume-scale-target');
+        // Sidebar layout is height-locked (never scaled), so it has no meaningful
+        // natural height here — autoFitPage bails for it before using this.
+        const h = (sc && !sc.querySelector('.t4-sidebar')) ? sc.offsetHeight : null;
+        probe.remove();
+        return h;
+    }
+
     function autoFitPage() {
         const pages = getEffectivePageCount();
         const wrapper = resumeDocument.querySelector('.resume-wrapper');
@@ -1514,13 +1538,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const naturalH = scaler.offsetHeight;  // genuine stacked content height
         const totalBudget = pageH * pages;     // total pixel budget across all pages
+        // Scale is derived from the full-content height (all sections enabled) so
+        // it stays constant when sections are toggled — see measureFitHeight().
+        const fitH = measureFitHeight() || naturalH;
 
         // ── Phase 2: fit strategy ──────────────────────────────────────────────
         if (pages >= 2) {
             // Multi-page: allow overflow on page 1, content will flow.
             // For now, scale down only if content exceeds total budget.
-            if (naturalH > totalBudget + 6) {
-                const z = Math.max(0.72, totalBudget / naturalH);
+            if (fitH > totalBudget + 6) {
+                const z = Math.max(0.72, totalBudget / fitH);
                 scaler.style.transform       = `scale(${z.toFixed(4)})`;
                 scaler.style.transformOrigin = 'top left';
             }
@@ -1531,8 +1558,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Single page: restore fixed A4 frame
             wrapper.style.height = '1123px';
             wrapper.style.overflow = 'hidden';
-            if (naturalH > pageH + 6) {
-                const z = Math.max(0.72, pageH / naturalH);
+            if (fitH > pageH + 6) {
+                const z = Math.max(0.72, pageH / fitH);
                 scaler.style.transform       = `scale(${z.toFixed(4)})`;
                 scaler.style.transformOrigin = 'top left';
             }
