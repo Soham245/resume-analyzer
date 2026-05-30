@@ -3297,3 +3297,104 @@ body.stage-analyzed .app-header {
     font-size: 0.85rem;
     line-height: 1.4;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   32. MOBILE RESPONSIVENESS PASS  (≤768px — desktop rules above are untouched)
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    /* Hard guarantee: no whole-page horizontal scrolling (fixed drawers are
+       position:fixed and therefore unaffected by this). */
+    html,
+    body {
+        overflow-x: hidden;
+        max-width: 100%;
+    }
+
+    /* ── Builder header: stack vertically; pill strips scroll horizontally
+          within themselves instead of forcing the page wider. ── */
+    .builder-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    .builder-header__actions {
+        width: 100%;
+        gap: 8px;
+    }
+    .builder-header__divider {
+        display: none;
+    }
+    .length-mode-strip,
+    .section-toggle-strip__pills {
+        max-width: 100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .length-mode-strip::-webkit-scrollbar,
+    .section-toggle-strip__pills::-webkit-scrollbar {
+        display: none;
+    }
+    .length-pill,
+    .sec-pill {
+        flex: 0 0 auto;
+    }
+    .builder-header__right {
+        width: 100%;
+        margin-left: 0;
+    }
+    .builder-header__right .change-template-btn,
+    .builder-header__right .download-pdf-btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    /* ── Builder surface + preview ── */
+    .builder-surface {
+        max-width: 100%;
+    }
+    .builder-layout {
+        min-height: 0;
+    }
+    /* The 794px page is scaled to fit by fitPreviewToWidth(); clip the reserved
+       overflow box so the scaled-down page can't push the page sideways. */
+    .resume-frame {
+        padding: 10px;
+        overflow: hidden;
+    }
+    #resume-document {
+        overflow: hidden;
+    }
+
+    /* ── Drawers become full-screen sheets (width handled in §31 @768 block).
+          Make body scroll within and keep them above the backdrop. ── */
+    .editor-drawer,
+    .template-drawer {
+        max-width: 100%;
+    }
+
+    /* ── Touch drag-and-drop: stop the browser claiming the gesture for
+          scrolling so the Visible/Hidden reorder stays reliable. ── */
+    .editor-entry-card {
+        touch-action: none;
+    }
+
+    /* ── Upload page: keep the two mode tabs inside the viewport at 320px
+          without truncating their labels (size to content, not equal width). ── */
+    .mode-switch {
+        width: 100%;
+        justify-content: center;
+    }
+    .mode-tab {
+        flex: 0 1 auto;
+        min-width: 0;
+        padding: 9px 12px;
+        font-size: 0.78rem;
+        text-align: center;
+    }
+    .mode-tab__icon {
+        margin-right: 3px;
+    }
+}
+

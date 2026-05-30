@@ -706,6 +706,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openDrawer(sectionKey) {
+        // Only one drawer open at a time (matters most on mobile, where each
+        // drawer is full-screen and they would otherwise overlap).
+        closeTemplateDrawer();
         const label = SECTION_LABELS[sectionKey] || 'Edit section';
         editorDrawerTitle.textContent = label;
         // If a panel is registered for this section, let it own the body.
@@ -1514,6 +1517,37 @@ document.addEventListener('DOMContentLoaded', () => {
         return h;
     }
 
+    // Mobile (≤768px): scale the fixed 794px resume page down to fit the device
+    // width. Desktop is left completely untouched. This scales the OUTER
+    // .resume-wrapper, whereas autoFitPage scales the INNER .resume-scale-target
+    // for vertical fit — the two transforms compose, and because ancestor
+    // transforms don't affect offsetHeight, autoFitPage's measuring is unaffected.
+    function fitPreviewToWidth() {
+        const wrapper = resumeDocument.querySelector('.resume-wrapper');
+        if (!wrapper) return;
+        const frame = resumeDocument.closest('.resume-frame');
+        if (!frame || window.innerWidth > 768) {
+            // Desktop / no frame — clear any mobile scaling.
+            wrapper.style.transform       = '';
+            wrapper.style.transformOrigin = '';
+            resumeDocument.style.width  = '';
+            resumeDocument.style.height = '';
+            resumeDocument.style.margin = '';
+            return;
+        }
+        const PAGE_W = 794;
+        const cs = getComputedStyle(frame);
+        const avail = frame.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        const scale = Math.min(1, avail / PAGE_W);
+        const wrapperH = wrapper.offsetHeight || 1123;   // untransformed page height
+        wrapper.style.transformOrigin = 'top left';
+        wrapper.style.transform       = `scale(${scale.toFixed(4)})`;
+        // Reserve exactly the scaled box so there's no empty gap or overflow.
+        resumeDocument.style.width  = Math.round(PAGE_W * scale) + 'px';
+        resumeDocument.style.height = Math.round(wrapperH * scale) + 'px';
+        resumeDocument.style.margin = '0 auto';
+    }
+
     function autoFitPage() {
         const pages = getEffectivePageCount();
         const wrapper = resumeDocument.querySelector('.resume-wrapper');
@@ -1533,6 +1567,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Clearing height above collapses them — restore the lock and bail out.
         if (scaler.querySelector('.t4-sidebar')) {
             scaler.style.height = pageH + 'px';
+            fitPreviewToWidth();
             return;
         }
 
@@ -1571,7 +1606,22 @@ document.addEventListener('DOMContentLoaded', () => {
             // section off re-padded the others and made categories jump up/down.
             // Deterministic spacing matters more than filling the trailing gap.)
         }
+
+        // Mobile: fit the (now vertically-resolved) page to the device width.
+        fitPreviewToWidth();
     }
+
+    // Re-fit the preview on viewport changes (orientation flip, resize) so the
+    // mobile scale-to-fit and desktop layout stay correct as the width changes.
+    let _resizeFitRAF = 0;
+    window.addEventListener('resize', () => {
+        cancelAnimationFrame(_resizeFitRAF);
+        _resizeFitRAF = requestAnimationFrame(() => {
+            if (currentStructuredData && resumeDocument.querySelector('.resume-wrapper')) {
+                autoFitPage();
+            }
+        });
+    });
 
     // ── Mode toggle (Upload ↔ Manual Entry) ──────────────────────────────────
     const modeUploadBtn = document.getElementById('mode-upload');
@@ -1973,6 +2023,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Drawer open / close ──────────────────────────────────────────────
     function openTemplateDrawer() {
+        // Only one drawer open at a time — close the editor drawer if it's open.
+        closeDrawer();
         templateDrawer.classList.add('is-open');
         templateDrawer.setAttribute('aria-hidden', 'false');
         templateBackdrop.classList.add('is-visible');
