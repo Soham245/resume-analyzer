@@ -1573,6 +1573,13 @@ select.field-input {
    18. RESUME PAGE GLOBALS  (used by templates.js)
    ───────────────────────────────────────────────────────────────────────── */
 .resume-scale-target {
+    /* ── Spacing tokens (consumed by templates.js inline styles) ── */
+    --resume-section-gap: 10px;   /* between major sections                 */
+    --resume-entry-gap: 8px;      /* between entries within a section        */
+    --resume-bullet-gap: 3px;     /* between bullet-point <li>s             */
+    --resume-heading-gap: 6px;    /* heading → first content element         */
+    --resume-summary-gap: 12px;   /* after the summary paragraph             */
+
     font-size: 16px;
     line-height: 1.25;
     /* Force the renderer to honor exact font metrics + kerning instead of falling back
@@ -1603,21 +1610,21 @@ select.field-input {
 }
 
 .resume-scale-target .r-section {
-    margin-bottom: 8px;
+    margin-bottom: var(--resume-section-gap);
 }
 
 .resume-scale-target .r-section-title {
-    margin-bottom: 4px;
+    margin-bottom: var(--resume-heading-gap);
     font-weight: bold;
     border-bottom: 1px solid #ccc;
 }
 
 .resume-scale-target .r-entry {
-    margin-bottom: 6px;
+    margin-bottom: var(--resume-entry-gap);
 }
 
 .resume-scale-target li {
-    margin-bottom: 3px;
+    margin-bottom: var(--resume-bullet-gap);
 }
 
 /* Template 4: Sidebar Pro */
@@ -1648,7 +1655,7 @@ select.field-input {
 .t4-main {
     width: 72%;
     height: 100%;
-    padding: 20px 22px;
+    padding: 24px 22px;
     box-sizing: border-box;
     overflow: hidden;
     background: white;
@@ -1658,7 +1665,7 @@ select.field-input {
 }
 
 .t4-section {
-    margin-bottom: 10px;
+    margin-bottom: var(--resume-section-gap);
 }
 
 .t4-section-head {
@@ -1666,7 +1673,7 @@ select.field-input {
     font-size: 10.5pt;
     color: #0f172a;
     border-bottom: 2px solid #e2e8f0;
-    margin: 0 0 6px;
+    margin: 0 0 var(--resume-heading-gap);
     padding-bottom: 3px;
 }
 

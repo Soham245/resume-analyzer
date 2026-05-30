@@ -62,28 +62,28 @@ function skillSections(data, style, S) {
                 ).join('')}
             </div>` : `
             <ul style="list-style:none;padding:0;margin:0 0 18px;font-size:9.5pt;">
-                ${technical.map(s => `<li style="margin-bottom:3px;">${s}</li>`).join('')}
+                ${technical.map(s => `<li style="margin-bottom:var(--resume-bullet-gap);">${s}</li>`).join('')}
             </ul>`}` : ''}
             ${soft.length ? `
             <h4 style="${h4}">Soft Skills</h4>
             <ul style="list-style:none;padding:0;margin:0 0 18px;font-size:9.5pt;">
-                ${soft.map(s => `<li style="margin-bottom:3px;">${s}</li>`).join('')}
+                ${soft.map(s => `<li style="margin-bottom:var(--resume-bullet-gap);">${s}</li>`).join('')}
             </ul>` : ''}
             ${languages.length ? `
             <h4 style="${h4}">Languages</h4>
             <ul style="list-style:none;padding:0;margin:0 0 18px;font-size:9.5pt;">
-                ${languages.map(s => `<li style="margin-bottom:3px;">${s}</li>`).join('')}
+                ${languages.map(s => `<li style="margin-bottom:var(--resume-bullet-gap);">${s}</li>`).join('')}
             </ul>` : ''}`;
     }
 
-    const hStyle = style === 'ats'  ? 'text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 5px;'
-                 : style === 'exec' ? 'font-size:11pt;color:#1e293b;border-bottom:2px solid #e2e8f0;margin:0 0 5px;padding-bottom:2px;text-transform:uppercase;'
-                 :                   'color:#10b981;text-transform:uppercase;font-size:10pt;border-bottom:1px solid #e2e8f0;padding-bottom:2px;margin:0 0 5px;';
+    const hStyle = style === 'ats'  ? 'text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 var(--resume-heading-gap);'
+                 : style === 'exec' ? 'font-size:11pt;color:#1e293b;border-bottom:2px solid #e2e8f0;margin:0 0 var(--resume-heading-gap);padding-bottom:2px;text-transform:uppercase;'
+                 :                   'color:#10b981;text-transform:uppercase;font-size:10pt;border-bottom:1px solid #e2e8f0;padding-bottom:2px;margin:0 0 var(--resume-heading-gap);';
     const pStyle = style === 'ats'  ? 'margin:0;font-size:10pt;line-height:1.3;'
                  : style === 'exec' ? 'margin:0;font-size:9.5pt;color:#334155;line-height:1.3;'
                  :                   'margin:0;font-size:9.5pt;line-height:1.3;';
     const sep = style === 'ats' ? ' • ' : ', ';
-    const w   = 'margin-bottom:8px;break-inside:avoid;';
+    const w   = 'margin-bottom:var(--resume-section-gap);break-inside:avoid;';
 
     return `
         ${technical.length ? `
@@ -106,10 +106,10 @@ function projectsBlock(projects, style) {
     if (!projects || !projects.length) return '';
 
     if (style === 'ats') return `
-        <section data-role="projects" style="margin-bottom:8px;">
-            <h4 style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 5px;">Projects</h4>
+        <section data-role="projects" style="margin-bottom:var(--resume-section-gap);">
+            <h4 style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 var(--resume-heading-gap);">Projects</h4>
             ${projects.map((p,i) => `
-                <div style="margin-bottom:8px;break-inside:avoid;">
+                <div style="margin-bottom:var(--resume-entry-gap);break-inside:avoid;">
                     <div style="display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:10pt;">
                         <span>${p.title}</span>
                         <span style="display:flex;align-items:center;">
@@ -117,16 +117,16 @@ function projectsBlock(projects, style) {
                         </span>
                     </div>
                     <ul style="margin:0;padding-left:15px;font-size:9pt;">
-                        ${(p.points||[]).slice(0,3).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
+                        ${(p.points||[]).slice(0,3).map(pt=>`<li style="margin-bottom:var(--resume-bullet-gap);">${pt}</li>`).join('')}
                     </ul>
                 </div>`).join('')}
         </section>`;
 
     if (style === 'exec') return `
-        <section data-role="projects" style="margin-bottom:8px;">
-            <h4 style="font-size:11pt;color:#1e293b;border-bottom:2px solid #e2e8f0;margin:0 0 5px;padding-bottom:2px;text-transform:uppercase;">Projects</h4>
+        <section data-role="projects" style="margin-bottom:var(--resume-section-gap);">
+            <h4 style="font-size:11pt;color:#1e293b;border-bottom:2px solid #e2e8f0;margin:0 0 var(--resume-heading-gap);padding-bottom:2px;text-transform:uppercase;">Projects</h4>
             ${projects.map((p,i) => `
-                <div style="margin-bottom:8px;break-inside:avoid;">
+                <div style="margin-bottom:var(--resume-entry-gap);break-inside:avoid;">
                     <div style="display:flex;justify-content:space-between;align-items:center;">
                         <span style="font-weight:bold;font-size:10.5pt;">${p.title}</span>
                         <span style="display:flex;align-items:center;">
@@ -134,16 +134,16 @@ function projectsBlock(projects, style) {
                         </span>
                     </div>
                     <ul style="margin:0;padding-left:15px;font-size:9.5pt;color:#334155;">
-                        ${(p.points||[]).slice(0,3).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
+                        ${(p.points||[]).slice(0,3).map(pt=>`<li style="margin-bottom:var(--resume-bullet-gap);">${pt}</li>`).join('')}
                     </ul>
                 </div>`).join('')}
         </section>`;
 
     if (style === 'tech') return `
-        <div data-role="projects" style="margin-bottom:8px;">
-            <h4 style="color:#10b981;text-transform:uppercase;font-size:10pt;border-bottom:1px solid #e2e8f0;padding-bottom:2px;margin:0 0 5px;">Projects</h4>
+        <div data-role="projects" style="margin-bottom:var(--resume-section-gap);">
+            <h4 style="color:#10b981;text-transform:uppercase;font-size:10pt;border-bottom:1px solid #e2e8f0;padding-bottom:2px;margin:0 0 var(--resume-heading-gap);">Projects</h4>
             ${projects.map((p,i) => `
-                <div style="margin-bottom:8px;break-inside:avoid;">
+                <div style="margin-bottom:var(--resume-entry-gap);break-inside:avoid;">
                     <div style="display:flex;justify-content:space-between;align-items:center;">
                         <strong style="font-size:10.5pt;">${p.title}</strong>
                         <span style="display:flex;align-items:center;">
@@ -151,16 +151,16 @@ function projectsBlock(projects, style) {
                         </span>
                     </div>
                     <ul style="margin:0;padding-left:15px;font-size:9.5pt;">
-                        ${(p.points||[]).slice(0,3).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
+                        ${(p.points||[]).slice(0,3).map(pt=>`<li style="margin-bottom:var(--resume-bullet-gap);">${pt}</li>`).join('')}
                     </ul>
                 </div>`).join('')}
         </div>`;
 
     if (style === 'sidebar') return `
-        <div data-role="projects" style="margin-bottom:13px;">
-            <h4 style="text-transform:uppercase;font-size:10pt;color:#0f172a;border-bottom:2px solid #e2e8f0;margin:0 0 7px;padding-bottom:3px;">Projects</h4>
+        <div data-role="projects" style="margin-bottom:var(--resume-section-gap);">
+            <h4 style="text-transform:uppercase;font-size:10pt;color:#0f172a;border-bottom:2px solid #e2e8f0;margin:0 0 var(--resume-heading-gap);padding-bottom:3px;">Projects</h4>
             ${projects.map((p,i) => `
-                <div style="margin-bottom:11px;break-inside:avoid;">
+                <div style="margin-bottom:var(--resume-entry-gap);break-inside:avoid;">
                     <div style="display:flex;justify-content:space-between;align-items:center;">
                         <strong style="font-size:10pt;">${p.title}</strong>
                         <span style="display:flex;align-items:center;">
@@ -168,7 +168,7 @@ function projectsBlock(projects, style) {
                         </span>
                     </div>
                     <ul style="margin:0;padding-left:15px;font-size:9.5pt;">
-                        ${(p.points||[]).slice(0,3).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
+                        ${(p.points||[]).slice(0,3).map(pt=>`<li style="margin-bottom:var(--resume-bullet-gap);">${pt}</li>`).join('')}
                     </ul>
                 </div>`).join('')}
         </div>`;
@@ -196,7 +196,7 @@ const ResumeTemplates = {
                         <h3 style="margin:2px 0 0;font-size:12pt;font-weight:normal;line-height:1.2;">${data.title}</h3>
                         ${contactBlock(data, 'ats')}
                     </header>
-                    <section data-role="summary" style="margin-bottom:6px;">
+                    <section data-role="summary" style="margin-bottom:var(--resume-summary-gap);">
                         <p style="margin:0;text-align:justify;font-size:9.5pt;">${data.summary}</p>
                     </section>
                 </div>
@@ -204,10 +204,10 @@ const ResumeTemplates = {
                 <div data-section="skills">${skillSections(data, 'ats', S)}</div>
 
                 ${S.experience !== false ? `
-                <section data-role="experience" style="margin-bottom:8px;">
-                    <h4 style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 5px;">Professional Experience</h4>
+                <section data-role="experience" style="margin-bottom:var(--resume-section-gap);">
+                    <h4 style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 var(--resume-heading-gap);">Professional Experience</h4>
                     ${(data.experience||[]).map((exp,i) => `
-                        <div style="margin-bottom:8px;break-inside:avoid;">
+                        <div style="margin-bottom:var(--resume-entry-gap);break-inside:avoid;">
                             <div style="display:flex;justify-content:space-between;align-items:baseline;font-weight:bold;font-size:10pt;">
                                 <span>${exp.role}</span>
                                 <span style="display:flex;align-items:center;">
@@ -216,7 +216,7 @@ const ResumeTemplates = {
                             </div>
                             <div style="font-style:italic;font-size:9pt;margin-bottom:1px;">${exp.company}</div>
                             <ul style="margin:0;padding-left:14px;font-size:9pt;">
-                                ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
+                                ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:var(--resume-bullet-gap);">${pt}</li>`).join('')}
                             </ul>
                         </div>`).join('')}
                 </section>` : ''}
@@ -224,8 +224,8 @@ const ResumeTemplates = {
                 ${S.projects !== false ? projectsBlock(data.projects,'ats') : ''}
 
                 ${S.education !== false ? `
-                <section data-section="education-cert" style="margin-bottom:8px;break-inside:avoid;">
-                    <h4 style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 5px;">Education</h4>
+                <section data-section="education-cert" style="margin-bottom:var(--resume-section-gap);break-inside:avoid;">
+                    <h4 style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 var(--resume-heading-gap);">Education</h4>
                     ${(data.education||[]).map((ed,i) => `
                         <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:9.5pt;margin-bottom:1px;">
                             <strong>${ed.degree}</strong>
@@ -237,7 +237,7 @@ const ResumeTemplates = {
 
                 ${S.certifications !== false && (data.certifications||[]).length ? `
                 <section data-section="education-cert" style="break-inside:avoid;">
-                    <h4 style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 5px;">Certifications & Achievements</h4>
+                    <h4 style="text-transform:uppercase;font-size:11pt;border-bottom:1px solid #111;margin:0 0 var(--resume-heading-gap);">Certifications & Achievements</h4>
                     ${(data.certifications||[]).map((c,i) => `
                         <div style="display:flex;align-items:center;font-size:9pt;margin-bottom:1px;gap:3px;">
                             <span style="flex:1;display:flex;align-items:baseline;gap:3px;"><span style="flex-shrink:0;">•</span><span>${c}</span></span>
@@ -274,21 +274,21 @@ const ResumeTemplates = {
                             </div>
                         </header>
                         <hr style="border:none;border-top:1px solid #d0d0d0;margin:0 0 10px;">
-                        <p data-role="summary" style="margin:0 0 12px;text-align:justify;font-size:9.5pt;color:#444;line-height:1.5;">${data.summary}</p>
+                        <p data-role="summary" style="margin:0 0 var(--resume-summary-gap);text-align:justify;font-size:9.5pt;color:#444;line-height:1.5;">${data.summary}</p>
                     </div>
 
                     ${S.experience !== false ? `
-                    <section data-role="experience" style="margin-bottom:10px;">
-                        <h4 style="font-size:9.5pt;text-transform:uppercase;letter-spacing:2px;color:#2d2d2d;margin:0 0 6px;padding-bottom:3px;border-bottom:1px solid #d0d0d0;font-weight:600;">Professional Experience</h4>
+                    <section data-role="experience" style="margin-bottom:var(--resume-section-gap);">
+                        <h4 style="font-size:9.5pt;text-transform:uppercase;letter-spacing:2px;color:#2d2d2d;margin:0 0 var(--resume-heading-gap);padding-bottom:3px;border-bottom:1px solid #d0d0d0;font-weight:600;">Professional Experience</h4>
                         ${(data.experience||[]).map((exp,i) => `
-                            <div style="margin-bottom:10px;break-inside:avoid;">
+                            <div style="margin-bottom:var(--resume-entry-gap);break-inside:avoid;">
                                 <div style="display:flex;justify-content:space-between;align-items:baseline;">
                                     <strong style="font-size:10.5pt;color:#2d2d2d;">${exp.role}</strong>
                                     <span style="font-size:9pt;color:#888;font-style:italic;">${exp.duration}</span>
                                 </div>
                                 <div style="font-size:9pt;color:#666;margin-bottom:2px;">${exp.company}</div>
                                 <ul style="margin:0;padding-left:14px;font-size:9pt;color:#444;">
-                                    ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;line-height:1.4;">${pt}</li>`).join('')}
+                                    ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:var(--resume-bullet-gap);line-height:1.4;">${pt}</li>`).join('')}
                                 </ul>
                             </div>`).join('')}
                     </section>` : ''}
@@ -298,8 +298,8 @@ const ResumeTemplates = {
                     <div data-section="skills">${skillSections(data,'exec',S)}</div>
 
                     ${S.education !== false ? `
-                    <section data-section="education-cert" style="margin-bottom:8px;break-inside:avoid;">
-                        <h4 style="font-size:9.5pt;text-transform:uppercase;letter-spacing:2px;color:#2d2d2d;margin:0 0 5px;padding-bottom:3px;border-bottom:1px solid #d0d0d0;font-weight:600;">Education</h4>
+                    <section data-section="education-cert" style="margin-bottom:var(--resume-section-gap);break-inside:avoid;">
+                        <h4 style="font-size:9.5pt;text-transform:uppercase;letter-spacing:2px;color:#2d2d2d;margin:0 0 var(--resume-heading-gap);padding-bottom:3px;border-bottom:1px solid #d0d0d0;font-weight:600;">Education</h4>
                         ${(data.education||[]).map((ed,i) => `
                             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;font-size:9.5pt;">
                                 <strong>${ed.degree}</strong>
@@ -309,7 +309,7 @@ const ResumeTemplates = {
 
                     ${S.certifications !== false && (data.certifications||[]).length ? `
                     <section data-section="education-cert" style="break-inside:avoid;">
-                        <h4 style="font-size:9.5pt;text-transform:uppercase;letter-spacing:2px;color:#2d2d2d;margin:0 0 5px;padding-bottom:3px;border-bottom:1px solid #d0d0d0;font-weight:600;">Certifications</h4>
+                        <h4 style="font-size:9.5pt;text-transform:uppercase;letter-spacing:2px;color:#2d2d2d;margin:0 0 var(--resume-heading-gap);padding-bottom:3px;border-bottom:1px solid #d0d0d0;font-weight:600;">Certifications</h4>
                         ${(data.certifications||[]).map((c,i) => `
                             <div style="font-size:9pt;margin-bottom:2px;color:#444;padding-left:10px;border-left:2px solid #d0d0d0;">
                                 ${c}
@@ -334,11 +334,11 @@ const ResumeTemplates = {
                 <!-- Split header: name block + contact -->
                 <div data-section="profile">
                     <header style="display:flex;flex-shrink:0;">
-                        <div style="background:${accent};color:#fff;padding:28px 24px;width:55%;box-sizing:border-box;">
+                        <div style="background:${accent};color:#fff;padding:28px 32px;width:55%;box-sizing:border-box;">
                             <h1 style="margin:0;font-size:24pt;font-weight:800;line-height:1.1;letter-spacing:-0.5px;">${data.name}</h1>
                             <h3 style="margin:4px 0 0;font-size:11pt;font-weight:400;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:1px;line-height:1.2;">${data.title}</h3>
                         </div>
-                        <div style="background:#fafafa;padding:28px 20px;width:45%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:4px;font-size:9pt;color:#555;border-bottom:1px solid #eee;">
+                        <div style="background:#fafafa;padding:28px 32px;width:45%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:4px;font-size:9pt;color:#555;border-bottom:1px solid #eee;">
                             ${(data._contact||{}).email !== false && data.email ? `<span style="display:inline-flex;align-items:center;gap:4px;"><span style="opacity:0.5;">${ICONS.email}</span>${data.email}</span>` : ''}
                             ${(data._contact||{}).phone !== false && data.phone ? `<span style="display:inline-flex;align-items:center;gap:4px;"><span style="opacity:0.5;">${ICONS.phone}</span>${data.phone}</span>` : ''}
                             ${(data._contact||{}).linkedin !== false && data.linkedin ? `<span style="display:inline-flex;align-items:center;gap:4px;"><span style="opacity:0.5;">${ICONS.linkedin}</span>${data.linkedin}</span>` : ''}
@@ -346,24 +346,24 @@ const ResumeTemplates = {
                         </div>
                     </header>
                     <div style="padding:16px 32px 0;">
-                        <p data-role="summary" style="margin:0 0 12px;font-size:9.5pt;text-align:justify;color:#444;line-height:1.5;">${data.summary}</p>
+                        <p data-role="summary" style="margin:0 0 var(--resume-summary-gap);font-size:9.5pt;text-align:justify;color:#444;line-height:1.5;">${data.summary}</p>
                     </div>
                 </div>
 
                 <div style="padding:0 32px 30px;">
 
                     ${S.experience !== false ? `
-                    <div data-role="experience" style="margin-bottom:10px;">
-                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${accent};margin:0 0 6px;padding-bottom:3px;border-bottom:2px solid ${accent};">Experience</h4>
+                    <div data-role="experience" style="margin-bottom:var(--resume-section-gap);">
+                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${accent};margin:0 0 var(--resume-heading-gap);padding-bottom:3px;border-bottom:2px solid ${accent};">Experience</h4>
                         ${(data.experience||[]).map((exp,i) => `
-                            <div style="margin-bottom:9px;break-inside:avoid;padding-left:10px;border-left:3px solid ${accentLight};">
+                            <div style="margin-bottom:var(--resume-entry-gap);break-inside:avoid;padding-left:10px;border-left:3px solid ${accentLight};">
                                 <div style="display:flex;justify-content:space-between;align-items:baseline;">
                                     <strong style="font-size:10.5pt;">${exp.role}</strong>
                                     <span style="font-size:8.5pt;color:#888;">${exp.duration}</span>
                                 </div>
                                 <div style="font-size:9pt;color:${accent};font-weight:600;margin-bottom:2px;">${exp.company}</div>
                                 <ul style="margin:0;padding-left:14px;font-size:9pt;color:#444;">
-                                    ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;line-height:1.4;">${pt}</li>`).join('')}
+                                    ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:var(--resume-bullet-gap);line-height:1.4;">${pt}</li>`).join('')}
                                 </ul>
                             </div>`).join('')}
                     </div>` : ''}
@@ -373,8 +373,8 @@ const ResumeTemplates = {
                     <div data-section="skills">${skillSections(data,'tech',S)}</div>
 
                     ${S.education !== false ? `
-                    <div data-section="education-cert" style="margin-bottom:7px;">
-                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${accent};margin:0 0 5px;padding-bottom:3px;border-bottom:2px solid ${accent};">Education</h4>
+                    <div data-section="education-cert" style="margin-bottom:var(--resume-section-gap);">
+                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${accent};margin:0 0 var(--resume-heading-gap);padding-bottom:3px;border-bottom:2px solid ${accent};">Education</h4>
                         ${(data.education||[]).map((ed,i) => `
                             <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:9.5pt;margin-bottom:2px;">
                                 <strong>${ed.degree}</strong>
@@ -384,7 +384,7 @@ const ResumeTemplates = {
 
                     ${S.certifications !== false && (data.certifications||[]).length ? `
                     <section data-section="education-cert" style="break-inside:avoid;">
-                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${accent};margin:0 0 5px;padding-bottom:3px;border-bottom:2px solid ${accent};">Certifications</h4>
+                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${accent};margin:0 0 var(--resume-heading-gap);padding-bottom:3px;border-bottom:2px solid ${accent};">Certifications</h4>
                         ${(data.certifications||[]).map((c,i) => `
                             <div style="font-size:9pt;margin-bottom:3px;color:#444;display:flex;align-items:center;gap:5px;">
                                 <span style="width:5px;height:5px;border-radius:50%;background:${accent};flex-shrink:0;"></span>
@@ -433,7 +433,7 @@ const ResumeTemplates = {
                     <div data-role="experience" class="t4-section">
                         <h4 class="t4-section-head">Experience</h4>
                         ${(data.experience||[]).map((exp,i) => `
-                        <div style="margin-bottom:8px;">
+                        <div style="margin-bottom:var(--resume-entry-gap);">
                             <div style="display:flex;justify-content:space-between;align-items:baseline;">
                                 <strong style="font-size:11pt;">${exp.role}</strong>
                                 </div>
@@ -443,7 +443,7 @@ const ResumeTemplates = {
                                 <span>${exp.duration}</span>
                             </div>
                             <ul style="margin:0;padding-left:14px;font-size:10pt;">
-                                ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
+                                ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:var(--resume-bullet-gap);">${pt}</li>`).join('')}
                             </ul>
                         </div>`).join('')}
                     </div>` : ''}
@@ -454,7 +454,7 @@ const ResumeTemplates = {
                     <div class="t4-section" data-section="education-cert">
                         <h4 class="t4-section-head">Education</h4>
                         ${(data.education||[]).map((ed,i) => `
-                        <div style="margin-bottom:6px;">
+                        <div style="margin-bottom:var(--resume-entry-gap);">
                             <div style="display:flex;justify-content:space-between;align-items:baseline;">
                                 <strong style="font-size:10.5pt;">${ed.degree}</strong>
                                 </div>
@@ -507,24 +507,24 @@ const ResumeTemplates = {
                         <div style="height:3px;background:${accent};margin-top:12px;"></div>
                     </header>
                     <div style="padding:12px 40px 0;">
-                        <p data-role="summary" style="margin:0 0 12px;font-size:9.5pt;text-align:justify;color:#444;line-height:1.5;">${data.summary}</p>
+                        <p data-role="summary" style="margin:0 0 var(--resume-summary-gap);font-size:9.5pt;text-align:justify;color:#444;line-height:1.5;">${data.summary}</p>
                     </div>
                 </div>
 
                 <div style="padding:0 40px 30px;">
 
                     ${S.experience !== false ? `
-                    <section data-role="experience" style="margin-bottom:10px;">
-                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${accent};margin:0 0 6px;padding-bottom:3px;border-bottom:2px solid ${accent};">Experience</h4>
+                    <section data-role="experience" style="margin-bottom:var(--resume-section-gap);">
+                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${accent};margin:0 0 var(--resume-heading-gap);padding-bottom:3px;border-bottom:2px solid ${accent};">Experience</h4>
                         ${(data.experience||[]).map((exp,i) => `
-                            <div style="margin-bottom:9px;break-inside:avoid;">
+                            <div style="margin-bottom:var(--resume-entry-gap);break-inside:avoid;">
                                 <div style="display:flex;justify-content:space-between;align-items:baseline;">
                                     <strong style="font-size:10.5pt;">${exp.role}</strong>
                                     <span style="font-size:9pt;color:#888;">${exp.duration}</span>
                                 </div>
                                 <div style="font-size:9pt;color:${accent};font-weight:600;margin-bottom:2px;">${exp.company}</div>
                                 <ul style="margin:0;padding-left:14px;font-size:9pt;color:#444;">
-                                    ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;line-height:1.4;">${pt}</li>`).join('')}
+                                    ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:var(--resume-bullet-gap);line-height:1.4;">${pt}</li>`).join('')}
                                 </ul>
                             </div>`).join('')}
                     </section>` : ''}
@@ -534,8 +534,8 @@ const ResumeTemplates = {
                     <div data-section="skills">${skillSections(data,'exec',S)}</div>
 
                     ${S.education !== false ? `
-                    <section data-section="education-cert" style="margin-bottom:8px;break-inside:avoid;">
-                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${accent};margin:0 0 5px;padding-bottom:3px;border-bottom:2px solid ${accent};">Education</h4>
+                    <section data-section="education-cert" style="margin-bottom:var(--resume-section-gap);break-inside:avoid;">
+                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${accent};margin:0 0 var(--resume-heading-gap);padding-bottom:3px;border-bottom:2px solid ${accent};">Education</h4>
                         ${(data.education||[]).map((ed,i) => `
                             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;font-size:9.5pt;">
                                 <strong>${ed.degree}</strong>
@@ -545,7 +545,7 @@ const ResumeTemplates = {
 
                     ${S.certifications !== false && (data.certifications||[]).length ? `
                     <section data-section="education-cert" style="break-inside:avoid;">
-                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${accent};margin:0 0 5px;padding-bottom:3px;border-bottom:2px solid ${accent};">Certifications</h4>
+                        <h4 style="font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${accent};margin:0 0 var(--resume-heading-gap);padding-bottom:3px;border-bottom:2px solid ${accent};">Certifications</h4>
                         ${(data.certifications||[]).map((c,i) => `
                             <div style="font-size:9pt;margin-bottom:3px;color:#444;padding:3px 8px;background:${accentBg};border-radius:3px;">
                                 ${c}
@@ -571,14 +571,14 @@ const ResumeTemplates = {
                         ${contactBlock(data, 'ats')}
                         <hr style="border:none;border-top:1px solid #ccc;margin:8px 0 0;">
                     </header>
-                    <p data-role="summary" style="margin:0 0 10px;font-size:9.5pt;text-align:justify;color:#444;font-style:italic;">${data.summary}</p>
+                    <p data-role="summary" style="margin:0 0 var(--resume-summary-gap);font-size:9.5pt;text-align:justify;color:#444;font-style:italic;">${data.summary}</p>
                 </div>
 
                 ${S.experience !== false ? `
-                <section data-role="experience" style="margin-bottom:10px;">
-                    <h4 style="font-size:10pt;text-transform:uppercase;letter-spacing:2px;color:#888;margin:0 0 6px;font-weight:400;">Experience</h4>
+                <section data-role="experience" style="margin-bottom:var(--resume-section-gap);">
+                    <h4 style="font-size:10pt;text-transform:uppercase;letter-spacing:2px;color:#888;margin:0 0 var(--resume-heading-gap);font-weight:400;">Experience</h4>
                     ${(data.experience||[]).map((exp,i) => `
-                        <div style="margin-bottom:8px;break-inside:avoid;">
+                        <div style="margin-bottom:var(--resume-entry-gap);break-inside:avoid;">
                             <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:10pt;">
                                 <strong>${exp.role}</strong>
                                 <span style="display:flex;align-items:center;">
@@ -587,7 +587,7 @@ const ResumeTemplates = {
                             </div>
                             <div style="font-size:9pt;color:#666;margin-bottom:1px;">${exp.company}</div>
                             <ul style="margin:0;padding-left:14px;font-size:9pt;color:#444;">
-                                ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
+                                ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:var(--resume-bullet-gap);">${pt}</li>`).join('')}
                             </ul>
                         </div>`).join('')}
                 </section>` : ''}
@@ -597,8 +597,8 @@ const ResumeTemplates = {
                 <div data-section="skills">${skillSections(data,'ats',S)}</div>
 
                 ${S.education !== false ? `
-                <section data-section="education-cert" style="margin-bottom:7px;break-inside:avoid;">
-                    <h4 style="font-size:10pt;text-transform:uppercase;letter-spacing:2px;color:#888;margin:0 0 5px;font-weight:400;">Education</h4>
+                <section data-section="education-cert" style="margin-bottom:var(--resume-section-gap);break-inside:avoid;">
+                    <h4 style="font-size:10pt;text-transform:uppercase;letter-spacing:2px;color:#888;margin:0 0 var(--resume-heading-gap);font-weight:400;">Education</h4>
                     ${(data.education||[]).map((ed,i) => `
                         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1px;font-size:9.5pt;">
                             <strong>${ed.degree}</strong>
@@ -610,7 +610,7 @@ const ResumeTemplates = {
 
                 ${S.certifications !== false && (data.certifications||[]).length ? `
                 <section data-section="education-cert" style="break-inside:avoid;">
-                    <h4 style="font-size:10pt;text-transform:uppercase;letter-spacing:2px;color:#888;margin:0 0 5px;font-weight:400;">Certifications</h4>
+                    <h4 style="font-size:10pt;text-transform:uppercase;letter-spacing:2px;color:#888;margin:0 0 var(--resume-heading-gap);font-weight:400;">Certifications</h4>
                     ${(data.certifications||[]).map((c,i) => `
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;font-size:9pt;">
                             <span>${c}</span>
@@ -637,14 +637,14 @@ const ResumeTemplates = {
                         ${contactBlock(data, 'tech')}
                         <div style="border-top:2px dashed #0ea5e9;margin-top:6px;"></div>
                     </header>
-                    <p data-role="summary" style="margin:0 0 8px;font-size:9pt;font-family:sans-serif;color:#475569;background:#f8fafc;padding:6px 10px;border-left:3px solid #0ea5e9;">${data.summary}</p>
+                    <p data-role="summary" style="margin:0 0 var(--resume-summary-gap);font-size:9pt;font-family:sans-serif;color:#475569;background:#f8fafc;padding:6px 10px;border-left:3px solid #0ea5e9;">${data.summary}</p>
                 </div>
 
                 ${S.experience !== false ? `
-                <section data-role="experience" style="margin-bottom:8px;">
-                    <h4 style="font-size:10pt;color:#0ea5e9;margin:0 0 5px;font-family:sans-serif;"><span style="color:#888;">&gt;</span> Experience</h4>
+                <section data-role="experience" style="margin-bottom:var(--resume-section-gap);">
+                    <h4 style="font-size:10pt;color:#0ea5e9;margin:0 0 var(--resume-heading-gap);font-family:sans-serif;"><span style="color:#888;">&gt;</span> Experience</h4>
                     ${(data.experience||[]).map((exp,i) => `
-                        <div style="margin-bottom:8px;break-inside:avoid;">
+                        <div style="margin-bottom:var(--resume-entry-gap);break-inside:avoid;">
                             <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:10pt;">
                                 <strong style="font-family:sans-serif;">${exp.role}</strong>
                                 <span style="display:flex;align-items:center;">
@@ -652,7 +652,7 @@ const ResumeTemplates = {
                                         </span>
                             </div>
                             <ul style="margin:0;padding-left:14px;font-size:8.5pt;font-family:sans-serif;color:#334155;">
-                                ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;">${pt}</li>`).join('')}
+                                ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:var(--resume-bullet-gap);">${pt}</li>`).join('')}
                             </ul>
                         </div>`).join('')}
                 </section>` : ''}
@@ -662,8 +662,8 @@ const ResumeTemplates = {
                 <div data-section="skills">${skillSections(data,'tech',S)}</div>
 
                 ${S.education !== false ? `
-                <section data-section="education-cert" style="margin-bottom:7px;break-inside:avoid;">
-                    <h4 style="font-size:10pt;color:#0ea5e9;margin:0 0 5px;font-family:sans-serif;"><span style="color:#888;">&gt;</span> Education</h4>
+                <section data-section="education-cert" style="margin-bottom:var(--resume-section-gap);break-inside:avoid;">
+                    <h4 style="font-size:10pt;color:#0ea5e9;margin:0 0 var(--resume-heading-gap);font-family:sans-serif;"><span style="color:#888;">&gt;</span> Education</h4>
                     ${(data.education||[]).map((ed,i) => `
                         <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:9pt;margin-bottom:1px;font-family:sans-serif;">
                             <strong>${ed.degree}</strong>
@@ -675,7 +675,7 @@ const ResumeTemplates = {
 
                 ${S.certifications !== false && (data.certifications||[]).length ? `
                 <section data-section="education-cert" style="break-inside:avoid;">
-                    <h4 style="font-size:10pt;color:#0ea5e9;margin:0 0 5px;font-family:sans-serif;"><span style="color:#888;">&gt;</span> Certifications</h4>
+                    <h4 style="font-size:10pt;color:#0ea5e9;margin:0 0 var(--resume-heading-gap);font-family:sans-serif;"><span style="color:#888;">&gt;</span> Certifications</h4>
                     ${(data.certifications||[]).map((c,i) => `
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;font-size:8.5pt;font-family:sans-serif;">
                             <span>${c}</span>
@@ -720,17 +720,17 @@ const ResumeTemplates = {
 
                     <!-- Summary below header -->
                     <div style="padding:16px 40px 0;">
-                        <p data-role="summary" style="margin:0 0 14px;font-size:9.5pt;color:${slate};line-height:1.55;text-align:justify;">${data.summary}</p>
+                        <p data-role="summary" style="margin:0 0 var(--resume-summary-gap);font-size:9.5pt;color:${slate};line-height:1.55;text-align:justify;">${data.summary}</p>
                     </div>
                 </div>
 
                 <div style="padding:0 40px 30px;">
 
                     ${S.experience !== false ? `
-                    <section data-role="experience" style="margin-bottom:12px;">
-                        <h4 style="font-size:9pt;text-transform:uppercase;letter-spacing:2px;color:${navy};margin:0 0 8px;font-weight:700;padding-bottom:4px;border-bottom:2px solid ${navy};">Career Progression</h4>
+                    <section data-role="experience" style="margin-bottom:var(--resume-section-gap);">
+                        <h4 style="font-size:9pt;text-transform:uppercase;letter-spacing:2px;color:${navy};margin:0 0 var(--resume-heading-gap);font-weight:700;padding-bottom:4px;border-bottom:2px solid ${navy};">Career Progression</h4>
                         ${(data.experience||[]).map((exp,i) => `
-                            <div style="margin-bottom:9px;break-inside:avoid;padding-left:16px;border-left:2px solid #e2e8f0;position:relative;">
+                            <div style="margin-bottom:var(--resume-entry-gap);break-inside:avoid;padding-left:16px;border-left:2px solid #e2e8f0;position:relative;">
                                 <div style="position:absolute;left:-5px;top:4px;width:8px;height:8px;border-radius:50%;background:${accent};"></div>
                                 <div style="display:flex;justify-content:space-between;align-items:baseline;">
                                     <strong style="font-size:10.5pt;color:${navy};">${exp.role}</strong>
@@ -738,7 +738,7 @@ const ResumeTemplates = {
                                 </div>
                                 <div style="font-size:9pt;color:${accent};font-weight:600;margin-bottom:2px;">${exp.company}</div>
                                 <ul style="margin:0;padding-left:14px;font-size:9pt;color:${slate};">
-                                    ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:3px;line-height:1.4;">${pt}</li>`).join('')}
+                                    ${(exp.points||[]).slice(0,2).map(pt=>`<li style="margin-bottom:var(--resume-bullet-gap);line-height:1.4;">${pt}</li>`).join('')}
                                 </ul>
                             </div>`).join('')}
                     </section>` : ''}
@@ -746,7 +746,7 @@ const ResumeTemplates = {
                     ${S.projects !== false ? projectsBlock(data.projects,'exec') : ''}
 
                     <!-- Skills in a compact shaded box -->
-                    <div data-section="skills" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:10px 14px;margin-bottom:12px;">
+                    <div data-section="skills" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:10px 14px;margin-bottom:var(--resume-section-gap);">
                         ${skillSections(data,'exec',S)}
                     </div>
 
@@ -754,7 +754,7 @@ const ResumeTemplates = {
                     <div style="display:flex;gap:24px;">
                         ${S.education !== false ? `
                         <section data-section="education-cert" style="flex:1;break-inside:avoid;">
-                            <h4 style="font-size:9pt;text-transform:uppercase;letter-spacing:2px;color:${navy};margin:0 0 5px;font-weight:700;padding-bottom:3px;border-bottom:2px solid ${navy};">Education</h4>
+                            <h4 style="font-size:9pt;text-transform:uppercase;letter-spacing:2px;color:${navy};margin:0 0 var(--resume-heading-gap);font-weight:700;padding-bottom:3px;border-bottom:2px solid ${navy};">Education</h4>
                             ${(data.education||[]).map((ed,i) => `
                                 <div style="margin-bottom:4px;font-size:9.5pt;">
                                     <strong>${ed.degree}</strong>
@@ -764,7 +764,7 @@ const ResumeTemplates = {
 
                         ${S.certifications !== false && (data.certifications||[]).length ? `
                         <section data-section="education-cert" style="flex:1;break-inside:avoid;">
-                            <h4 style="font-size:9pt;text-transform:uppercase;letter-spacing:2px;color:${navy};margin:0 0 5px;font-weight:700;padding-bottom:3px;border-bottom:2px solid ${navy};">Certifications</h4>
+                            <h4 style="font-size:9pt;text-transform:uppercase;letter-spacing:2px;color:${navy};margin:0 0 var(--resume-heading-gap);font-weight:700;padding-bottom:3px;border-bottom:2px solid ${navy};">Certifications</h4>
                             ${(data.certifications||[]).map((c,i) => `
                                 <div style="font-size:9pt;margin-bottom:3px;color:${slate};padding-left:10px;border-left:2px solid ${accent};">
                                     ${c}
