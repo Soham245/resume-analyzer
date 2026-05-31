@@ -775,11 +775,7 @@ select.field-input {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    scrollbar-width: none;          /* Firefox */
-    -ms-overflow-style: none;       /* IE/Edge */
-}
-.results-card--insights__body::-webkit-scrollbar {
-    display: none;                  /* Chrome/Safari */
+    /* scrollbar now shown with the global themed style (was hidden) */
 }
 
 .results-card__notice {
@@ -1693,26 +1689,40 @@ select.field-input {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   19. SCROLLBAR
+   19. SCROLLBAR — global themed scrollbars (replaces the default OS bars
+       everywhere). Elements that intentionally HIDE their bar (pill strips,
+       gallery/insights bodies via `scrollbar-width:none` / display:none) keep
+       hiding it because those rules are more specific than these `*` rules.
    ───────────────────────────────────────────────────────────────────────── */
-.custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+* {
+    scrollbar-width: thin;                                   /* Firefox */
+    scrollbar-color: rgba(139, 111, 71, 0.45) transparent;   /* thumb / track */
 }
-
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(221, 213, 204, 0.6);
+*::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+    background: rgba(139, 111, 71, 0.4);
     border-radius: 999px;
+    /* transparent border + padding-box clip = a slim, inset pill with breathing
+       room around it, instead of a chunky edge-to-edge bar. */
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 111, 71, 0.62);
+    background-clip: padding-box;
+}
+*::-webkit-scrollbar-corner {
+    background: transparent;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(139, 111, 71, 0.45);
-    border-radius: 999px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(139, 111, 71, 0.65);
-}
+/* `.custom-scrollbar` is kept as a no-op alias — the global rules above now
+   cover every element, so existing markup using the class still works. */
 
 /* ─────────────────────────────────────────────────────────────────────────
    20. ANIMATIONS / STATE
@@ -3178,9 +3188,8 @@ body.stage-analyzed .app-header {
     flex: 1;
     overflow-y: auto;
     padding: 16px 20px;
-    scrollbar-width: none;
+    /* scrollbar now shown with the global themed style (was hidden) */
 }
-.template-drawer__body::-webkit-scrollbar { display: none; }
 
 /* Template cards. auto-fill + minmax makes the column count follow the panel's
    actual width: ~2 cols in the desktop sidebar, 2 in the full-screen mobile
