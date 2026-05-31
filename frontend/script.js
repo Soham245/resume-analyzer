@@ -1568,12 +1568,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const scale = mobilePreviewZoomed ? Math.max(fitScale, MOBILE_ZOOM_SCALE) : fitScale;
         wrapper.style.transformOrigin = 'top left';
         wrapper.style.transform       = `scale(${scale.toFixed(4)})`;
+        // Reserve the FULL A4 page box (794×1123 scaled) so the preview renders
+        // as a proper A4 sheet — correct page proportions with its real margins —
+        // not a card trimmed to wherever the content happens to end.
         resumeDocument.style.width  = Math.round(PAGE_W * scale) + 'px';
-        // Height = actual rendered content (capped at one page) rather than the
-        // full A4 height, so the preview doesn't show a big empty bottom margin.
-        const scaler = wrapper.querySelector('.resume-scale-target');
-        const contentH = scaler ? Math.min(scaler.offsetHeight, wrapperH) : wrapperH;
-        resumeDocument.style.height = Math.round(contentH * scale) + 'px';
+        resumeDocument.style.height = Math.round(wrapperH * scale) + 'px';
         resumeDocument.style.margin = '0 auto';
     }
 
