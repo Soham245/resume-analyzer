@@ -223,6 +223,9 @@ document.addEventListener('DOMContentLoaded', () => {
         appStage = stage;
         document.body.classList.toggle('stage-analyzed', stage === 'analyzed');
         document.body.classList.toggle('stage-processing', stage === 'processing');
+        // The desktop template rail only applies while the builder is on screen;
+        // leaving the analyzed view drops it so the upload page isn't shifted.
+        if (stage !== 'analyzed') document.body.classList.remove('builder-active');
         // idle visibility — animate-out via is-leaving for a smooth slide.
         if (stage === 'idle') {
             idleStage.classList.remove('is-leaving', 'is-hidden');
@@ -706,9 +709,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openDrawer(sectionKey) {
-        // Only one drawer open at a time (matters most on mobile, where each
-        // drawer is full-screen and they would otherwise overlap).
-        closeTemplateDrawer();
+        // Only one OVERLAY drawer open at a time (matters most on tablet/mobile,
+        // where each is full-screen). On desktop the template rail is pinned and
+        // coexists with the editor drawer, so don't collapse it here.
+        if (!isTemplateRailMode()) closeTemplateDrawer();
         const label = SECTION_LABELS[sectionKey] || 'Edit section';
         editorDrawerTitle.textContent = label;
         // If a panel is registered for this section, let it own the body.
@@ -1855,8 +1859,10 @@ document.addEventListener('DOMContentLoaded', () => {
             renderResume();
             requestAnimationFrame(() => autoFitPage()); // re-measure now section is visible
             builderSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            // Populate the template gallery (persistent sidebar on desktop). On
-            // tablet/mobile it stays a closed drawer until the user opens it.
+            // Builder is on screen → enable the desktop template rail, then
+            // populate the gallery (pinned rail on desktop; closed drawer below).
+            document.body.classList.add('builder-active');
+            document.body.classList.remove('tpl-rail-closed'); // rail open by default
             syncTemplatePanel();
 
         } catch (error) {
@@ -2045,31 +2051,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── Drawer open / close ──────────────────────────────────────────────
-    // Desktop (≥1200px) shows the template gallery as a persistent in-flow
-    // sidebar; below that it's a slide-out overlay drawer. Must match the CSS
-    // breakpoint in style.css (@media min-width:1200px).
-    const TEMPLATE_SIDEBAR_BP = 1200;
-    function isTemplateSidebarMode() { return window.innerWidth >= TEMPLATE_SIDEBAR_BP; }
+    // Desktop (≥1200px): the template gallery is a persistent, always-open
+    // slider drawer pinned to the left edge (the "rail"), toggled open/closed
+    // by adding/removing `tpl-rail-closed` on <body>. Below that it's a normal
+    // slide-out overlay drawer. Must match the CSS breakpoint (min-width:1200px).
+    const TEMPLATE_RAIL_BP = 1200;
+    function isTemplateRailMode() { return window.innerWidth >= TEMPLATE_RAIL_BP; }
 
     // Keep the template panel populated and correctly exposed in whichever mode
     // currently applies. Called when the builder appears and on viewport changes.
     function syncTemplatePanel() {
-        if (isTemplateSidebarMode()) {
-            // Persistent sidebar: always rendered + visible, never an overlay.
+        if (isTemplateRailMode()) {
+            // Pinned rail: rendered + exposed; open by default (collapse state is
+            // preserved via the body class, which only the user toggles).
             templateDrawer.classList.remove('is-open');
             templateDrawer.setAttribute('aria-hidden', 'false');
             templateBackdrop.classList.remove('is-visible');
             renderTemplateDrawer();
-        } else if (!templateDrawer.classList.contains('is-open')) {
-            // Overlay drawer, currently closed.
-            templateDrawer.setAttribute('aria-hidden', 'true');
-            templateBackdrop.classList.remove('is-visible');
+        } else {
+            // Overlay drawer. Leaving rail mode: drop the rail-collapsed flag and,
+            // unless the user has it explicitly open, keep it closed/hidden.
+            document.body.classList.remove('tpl-rail-closed');
+            if (!templateDrawer.classList.contains('is-open')) {
+                templateDrawer.setAttribute('aria-hidden', 'true');
+                templateBackdrop.classList.remove('is-visible');
+            }
         }
     }
 
     function openTemplateDrawer() {
-        // On desktop the sidebar is always visible — just ensure it's populated.
-        if (isTemplateSidebarMode()) { renderTemplateDrawer(); return; }
+        if (isTemplateRailMode()) {
+            // Expand the pinned rail.
+            document.body.classList.remove('tpl-rail-closed');
+            templateDrawer.setAttribute('aria-hidden', 'false');
+            renderTemplateDrawer();
+            return;
+        }
         // Overlay drawer (tablet/mobile): only one drawer open at a time.
         closeDrawer();
         templateDrawer.classList.add('is-open');
@@ -2081,13 +2098,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function closeTemplateDrawer() {
-        // The persistent desktop sidebar is never dismissed.
-        if (isTemplateSidebarMode()) { closePopover(); return; }
+        if (isTemplateRailMode()) {
+            // Collapse the pinned rail (× button / explicit dismiss).
+            document.body.classList.add('tpl-rail-closed');
+            closePopover();
+            return;
+        }
         templateDrawer.classList.remove('is-open');
         templateDrawer.setAttribute('aria-hidden', 'true');
         templateBackdrop.classList.remove('is-visible');
         templateBackdrop.setAttribute('aria-hidden', 'true');
         closePopover();
+    }
+
+    // The header "Change Template" button toggles the rail on desktop, and
+    // opens/closes the overlay drawer on tablet/mobile.
+    function toggleTemplatePanel() {
+        if (isTemplateRailMode()) {
+            if (document.body.classList.contains('tpl-rail-closed')) openTemplateDrawer();
+            else closeTemplateDrawer();
+        } else {
+            if (templateDrawer.classList.contains('is-open')) closeTemplateDrawer();
+            else openTemplateDrawer();
+        }
     }
 
     // ── Render filter section (header row + chip row) ────────────────────
@@ -2217,7 +2250,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     c.classList.remove('template-card--active');
                 });
                 card.classList.add('template-card--active');
-                if (!isTemplateSidebarMode()) closeTemplateDrawer();
+                if (!isTemplateRailMode()) closeTemplateDrawer();
             });
             grid.appendChild(card);
         });
@@ -2232,7 +2265,7 @@ document.addEventListener('DOMContentLoaded', () => {
         templateDrawerBody.appendChild(renderTemplateCards(filtered));
     }
 
-    if (changeTemplateBtn) changeTemplateBtn.addEventListener('click', openTemplateDrawer);
+    if (changeTemplateBtn) changeTemplateBtn.addEventListener('click', toggleTemplatePanel);
     if (templateCloseBtn)  templateCloseBtn.addEventListener('click', closeTemplateDrawer);
     if (templateBackdrop)  templateBackdrop.addEventListener('click', closeTemplateDrawer);
 
@@ -2418,8 +2451,10 @@ document.addEventListener('DOMContentLoaded', () => {
             renderResume();
             requestAnimationFrame(() => autoFitPage());
             setStage('analyzed');
-            // Populate the template gallery (persistent sidebar on desktop). On
-            // tablet/mobile it stays a closed drawer until the user opens it.
+            // Builder is on screen → enable the desktop template rail, then
+            // populate the gallery (pinned rail on desktop; closed drawer below).
+            document.body.classList.add('builder-active');
+            document.body.classList.remove('tpl-rail-closed'); // rail open by default
             syncTemplatePanel();
 
         } catch (error) {

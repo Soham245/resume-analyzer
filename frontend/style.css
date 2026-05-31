@@ -2870,6 +2870,21 @@ body.stage-analyzed .app-header {
     color: var(--color-primary);
 }
 
+/* Header actions are a matched pair: identical size/shape, differing only by
+   emphasis (Download = primary brown, Change Template = secondary outline). */
+.workspace-toolbar__actions .change-template-btn,
+.workspace-toolbar__actions #download-pdf-btn {
+    min-height: 40px;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: var(--radius-sm);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    gap: 6px;
+    box-shadow: none;
+    white-space: nowrap;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    27b. TEMPLATE DRAWER (slide-out from left)
    ───────────────────────────────────────────────────────────────────────── */
@@ -3153,37 +3168,42 @@ body.stage-analyzed .app-header {
     }
 }
 
-/* ── Desktop (≥1200px): template gallery docks as a persistent in-flow sidebar
-      next to the preview instead of a slide-out overlay drawer. ── */
+/* ── Desktop (≥1200px): the template gallery is a persistent, always-open
+      slider drawer pinned to the LEFT edge of the viewport. Page content is
+      shifted right to make room; the header "Change Template" button (and the
+      drawer's × button) toggle it open/closed. ── */
 @media (min-width: 1200px) {
-    .builder-layout {
-        gap: 18px;
-        align-items: flex-start;
+    /* Scoped to .builder-active so the rail + content shift only apply while the
+       builder/resume is on screen (never on the upload page). */
+    body.builder-active .template-drawer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 300px;
+        transform: translateX(0);
+        border-right: 1px solid var(--color-border);
+        border-radius: 0;
+        box-shadow: 4px 0 24px rgba(69, 48, 28, 0.08);
+        z-index: 40;
     }
-    .template-drawer {
-        position: sticky;
-        top: 64px;
-        left: auto;
-        transform: none !important;   /* never slid off-screen */
-        width: 340px;
-        flex: 0 0 340px;
-        height: auto;
-        max-height: calc(100vh - 88px);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-md);
-        box-shadow: var(--color-shadow);
-        z-index: 1;
+    /* Shift the whole app to the right of the rail (animated for the toggle). */
+    body.builder-active.app-body {
+        padding-left: calc(300px + var(--space-3));
+        transition: padding-left 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
-    /* No close button or backdrop in sidebar mode. */
-    #template-drawer .editor-drawer__close {
-        display: none;
+    /* Collapsed state — drawer slides off-screen, content reclaims the space. */
+    body.builder-active.tpl-rail-closed .template-drawer {
+        transform: translateX(-100%);
     }
-    /* The header "Change Template" button is redundant when the sidebar is
-       always visible — the gallery itself is the switcher on desktop. */
-    .workspace-toolbar .change-template-btn {
-        display: none;
+    body.builder-active.tpl-rail-closed.app-body {
+        padding-left: var(--space-3);
     }
-    .builder-layout__preview {
+    /* No dimming backdrop for the pinned rail. */
+    body.builder-active #template-backdrop { display: none; }
+    /* Preview takes the full builder width (the rail is fixed, out of flow). */
+    body.builder-active .builder-layout { gap: 0; }
+    body.builder-active .builder-layout__preview {
         flex: 1 1 auto;
         min-width: 0;
     }
