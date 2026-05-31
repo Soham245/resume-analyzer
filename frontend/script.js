@@ -1638,6 +1638,9 @@ document.addEventListener('DOMContentLoaded', () => {
         _resizeFitRAF = requestAnimationFrame(() => {
             if (currentStructuredData && resumeDocument.querySelector('.resume-wrapper')) {
                 autoFitPage();
+                // Re-sync the template panel in case we crossed the sidebar/drawer
+                // breakpoint (e.g. desktop ⇄ tablet, or device rotation).
+                syncTemplatePanel();
             }
         });
     });
@@ -1852,8 +1855,9 @@ document.addEventListener('DOMContentLoaded', () => {
             renderResume();
             requestAnimationFrame(() => autoFitPage()); // re-measure now section is visible
             builderSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            // Surface the template gallery immediately so users can explore looks.
-            openTemplateDrawer();
+            // Populate the template gallery (persistent sidebar on desktop). On
+            // tablet/mobile it stays a closed drawer until the user opens it.
+            syncTemplatePanel();
 
         } catch (error) {
             if (error.name === 'AbortError') return;
@@ -2041,8 +2045,32 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── Drawer open / close ──────────────────────────────────────────────
+    // Desktop (≥1200px) shows the template gallery as a persistent in-flow
+    // sidebar; below that it's a slide-out overlay drawer. Must match the CSS
+    // breakpoint in style.css (@media min-width:1200px).
+    const TEMPLATE_SIDEBAR_BP = 1200;
+    function isTemplateSidebarMode() { return window.innerWidth >= TEMPLATE_SIDEBAR_BP; }
+
+    // Keep the template panel populated and correctly exposed in whichever mode
+    // currently applies. Called when the builder appears and on viewport changes.
+    function syncTemplatePanel() {
+        if (isTemplateSidebarMode()) {
+            // Persistent sidebar: always rendered + visible, never an overlay.
+            templateDrawer.classList.remove('is-open');
+            templateDrawer.setAttribute('aria-hidden', 'false');
+            templateBackdrop.classList.remove('is-visible');
+            renderTemplateDrawer();
+        } else if (!templateDrawer.classList.contains('is-open')) {
+            // Overlay drawer, currently closed.
+            templateDrawer.setAttribute('aria-hidden', 'true');
+            templateBackdrop.classList.remove('is-visible');
+        }
+    }
+
     function openTemplateDrawer() {
-        // Only one drawer open at a time — close the editor drawer if it's open.
+        // On desktop the sidebar is always visible — just ensure it's populated.
+        if (isTemplateSidebarMode()) { renderTemplateDrawer(); return; }
+        // Overlay drawer (tablet/mobile): only one drawer open at a time.
         closeDrawer();
         templateDrawer.classList.add('is-open');
         templateDrawer.setAttribute('aria-hidden', 'false');
@@ -2053,6 +2081,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function closeTemplateDrawer() {
+        // The persistent desktop sidebar is never dismissed.
+        if (isTemplateSidebarMode()) { closePopover(); return; }
         templateDrawer.classList.remove('is-open');
         templateDrawer.setAttribute('aria-hidden', 'true');
         templateBackdrop.classList.remove('is-visible');
@@ -2178,15 +2208,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>`;
 
             card.addEventListener('click', () => {
-                // Apply the template + refresh the live preview, but keep the
-                // drawer open so users can click through templates like a
-                // gallery. The drawer only closes via the X / backdrop.
+                // Apply the template + refresh the live preview + move the active
+                // highlight. On desktop the sidebar persists (browse freely); on
+                // tablet/mobile the overlay drawer closes after a selection.
                 templateSelect.value = tpl.id;
                 templateSelect.dispatchEvent(new Event('change'));
                 templateDrawerBody.querySelectorAll('.template-card').forEach(c => {
                     c.classList.remove('template-card--active');
                 });
                 card.classList.add('template-card--active');
+                if (!isTemplateSidebarMode()) closeTemplateDrawer();
             });
             grid.appendChild(card);
         });
@@ -2387,8 +2418,9 @@ document.addEventListener('DOMContentLoaded', () => {
             renderResume();
             requestAnimationFrame(() => autoFitPage());
             setStage('analyzed');
-            // Surface the template gallery immediately so users can explore looks.
-            openTemplateDrawer();
+            // Populate the template gallery (persistent sidebar on desktop). On
+            // tablet/mobile it stays a closed drawer until the user opens it.
+            syncTemplatePanel();
 
         } catch (error) {
             if (error.name === 'AbortError') return;

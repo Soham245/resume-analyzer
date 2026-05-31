@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <title>AI Resume Analyzer</title>
-    <link rel="stylesheet" href="style.css?v=20260531i">
+    <link rel="stylesheet" href="style.css?v=20260531k">
 </head>
 
 <body class="app-body">
@@ -321,6 +321,23 @@
                     </svg>
                 </button>
                 <span class="workspace-toolbar__heading">Resume Workspace</span>
+                <div class="workspace-toolbar__actions">
+                    <button id="change-template-btn" class="change-template-btn" type="button">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                            <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                        </svg>
+                        <span>Change Template</span>
+                    </button>
+                    <button id="download-pdf-btn" class="download-pdf-btn">
+                        <svg class="download-pdf-btn__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        <span class="download-pdf-btn__label">Download</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Score Card (collapsible, compact) -->
@@ -487,20 +504,20 @@
                     <option value="premium_exec">Editorial</option>
                 </select>
 
-                <!-- Compact header -->
+                <!-- Editing toolbar: page controls | content controls -->
                 <div class="builder-header">
                     <div class="builder-header__title-group">
                         <h2 class="builder-header__title">Resume Editor</h2>
                     </div>
-                    <div class="builder-header__actions">
-                        <!-- Resume length mode toggle -->
+                    <div class="builder-header__controls">
+                        <!-- Page controls group -->
                         <div id="length-mode-pills" class="length-mode-strip">
                             <button class="length-pill length-pill--active" data-length="1page">1 Page</button>
                             <button class="length-pill" data-length="2page">2 Pages</button>
                             <button class="length-pill" data-length="auto">Auto</button>
                         </div>
                         <span class="builder-header__divider"></span>
-                        <!-- Section Toggle Manager (inline) -->
+                        <!-- Content (section visibility) controls group -->
                         <div id="section-pills" class="section-toggle-strip__pills">
                             <button class="sec-pill" data-section="experience">Experience</button>
                             <button class="sec-pill" data-section="projects">Projects</button>
@@ -510,31 +527,32 @@
                             <button class="sec-pill" data-section="soft">Soft Skills</button>
                             <button class="sec-pill" data-section="languages">Languages</button>
                         </div>
-                        <div class="builder-header__right">
-                            <button id="change-template-btn" class="change-template-btn" type="button">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                                    <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-                                </svg>
-                                <span>Templates</span>
-                            </button>
-                            <button id="download-pdf-btn" class="download-pdf-btn">
-                                <svg class="download-pdf-btn__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                    <polyline points="7 10 12 15 17 10"/>
-                                    <line x1="12" y1="15" x2="12" y2="3"/>
-                                </svg>
-                                <span class="download-pdf-btn__label">Download</span>
-                            </button>
-                        </div>
                     </div>
                 </div>
 
                 <!-- Overflow indicator (Phase 6: 1-page safeguard) -->
                 <div id="overflow-indicator" class="overflow-indicator hidden"></div>
 
-                <!-- Resume preview (full width) -->
+                <!-- Builder layout: template sidebar (desktop) / drawer (tablet+mobile) + preview -->
                 <div class="builder-layout">
+
+                    <!-- Template gallery: persistent sidebar on desktop, overlay drawer below -->
+                    <div id="template-backdrop" class="drawer-backdrop" aria-hidden="true"></div>
+                    <aside id="template-drawer" class="template-drawer" aria-hidden="true" role="dialog" aria-label="Choose template">
+                        <header class="template-drawer__header">
+                            <h2 class="template-drawer__title">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                                    <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                                </svg>
+                                Choose Template
+                            </h2>
+                            <button type="button" id="template-drawer-close" class="editor-drawer__close" aria-label="Close template drawer">×</button>
+                        </header>
+                        <div class="tpl-filter-section" id="tpl-filter-section"></div>
+                        <div class="template-drawer__body" id="template-drawer-body"></div>
+                    </aside>
+
                     <div id="builder-preview" class="builder-layout__preview">
                         <div class="resume-frame">
                             <div id="resume-document"></div>
@@ -557,31 +575,10 @@
                 <p style="color:var(--color-text-muted);font-size:0.85rem;margin:0;">Hover any section in the resume and click the pencil icon to edit it here. Consolidated editors arrive in the next phase.</p>
             </div>
         </aside>
-
-        <!-- ─────────────────────────────────────────────────────────────
-             TEMPLATE DRAWER (slide-out from left)
-             ───────────────────────────────────────────────────────────── -->
-        <div id="template-backdrop" class="drawer-backdrop" aria-hidden="true"></div>
-        <aside id="template-drawer" class="template-drawer" aria-hidden="true" role="dialog" aria-label="Choose template">
-            <header class="template-drawer__header">
-                <h2 class="template-drawer__title">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                        <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-                    </svg>
-                    Choose Template
-                </h2>
-                <button type="button" id="template-drawer-close" class="editor-drawer__close" aria-label="Close template drawer">×</button>
-            </header>
-            <!-- Filter section -->
-            <div class="tpl-filter-section" id="tpl-filter-section"></div>
-            <!-- Template grid -->
-            <div class="template-drawer__body" id="template-drawer-body"></div>
-        </aside>
     </main>
 
     <script src="templates.js?v=20260527e"></script>
-    <script src="script.js?v=20260531g"></script>
+    <script src="script.js?v=20260531h"></script>
 </body>
 
 </html>
