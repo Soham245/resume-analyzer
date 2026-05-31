@@ -1033,6 +1033,17 @@ select.field-input {
 }
 .scorecard__body-wrap > .scorecard__body {
     overflow: hidden;
+    /* Let the grid row collapse fully to 0 when collapsed. Without this the
+       body's own padding (28px) sets a min-content floor, so the 0fr track
+       stays ~28px tall and the top of the donut peeks out below the bar. */
+    min-height: 0;
+    transition: padding 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* Zero the body padding when collapsed — the 28px of vertical padding is the
+   last thing keeping the 0fr grid track from collapsing all the way to 0. */
+.scorecard--collapsed .scorecard__body {
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
 .scorecard--collapsed .scorecard__chevron {
@@ -3234,6 +3245,15 @@ body.stage-analyzed .app-header {
 .drawer-backdrop.is-visible {
     opacity: 1;
     pointer-events: auto;
+}
+
+/* The template drawer is a persistent, non-modal gallery: no dimming layer,
+   and the rest of the page stays fully interactive while it's open. (Its
+   backdrop element is kept for layout/JS parity but made inert.) The editor
+   drawer keeps its modal backdrop since it's a focused editing task. */
+#template-backdrop {
+    background: transparent;
+    pointer-events: none;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────

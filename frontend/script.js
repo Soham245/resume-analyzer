@@ -1538,8 +1538,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const PAGE_W = 794;
         const cs = getComputedStyle(frame);
         const avail = frame.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-        const scale = Math.min(1, avail / PAGE_W);
-        const wrapperH = wrapper.offsetHeight || 1123;   // untransformed page height
+        const wrapperH = wrapper.offsetHeight;   // untransformed page height
+        // If the frame isn't laid out yet (avail ≤ 0) or the page has no height,
+        // or it already fits (avail ≥ page width), don't scale — clear instead.
+        // Applying a degenerate scale here is what could collapse the preview.
+        if (!avail || avail <= 0 || !wrapperH || avail >= PAGE_W) {
+            wrapper.style.transform       = '';
+            wrapper.style.transformOrigin = '';
+            resumeDocument.style.width  = '';
+            resumeDocument.style.height = '';
+            resumeDocument.style.margin = '';
+            return;
+        }
+        const scale = avail / PAGE_W;
         wrapper.style.transformOrigin = 'top left';
         wrapper.style.transform       = `scale(${scale.toFixed(4)})`;
         // Reserve exactly the scaled box so there's no empty gap or overflow.
@@ -1559,6 +1570,14 @@ document.addEventListener('DOMContentLoaded', () => {
         scaler.style.transform       = '';
         scaler.style.transformOrigin = '';
         scaler.style.height          = '';
+        // Also clear any prior mobile fit-to-width scaling so we measure the
+        // true (unscaled) layout. Without this, a leftover scale can collapse
+        // the preview and wedge this function on the `if (!pageH) return` below,
+        // leaving the resume stuck at height:0 (e.g. after a mobile→desktop flip).
+        wrapper.style.transform   = '';
+        resumeDocument.style.width  = '';
+        resumeDocument.style.height = '';
+        resumeDocument.style.margin = '';
 
         const pageH   = wrapper.offsetHeight;  // always 1123px (wrapper is hard-locked)
         if (!pageH) return;
