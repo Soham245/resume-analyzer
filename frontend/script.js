@@ -1521,6 +1521,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return h;
     }
 
+    // Mobile preview viewing mode (Option C). false = fit-to-width overview,
+    // true = larger readable/pannable view. Toggled by the on-preview zoom button.
+    let mobilePreviewZoomed = false;
+    const MOBILE_ZOOM_SCALE = 0.85;
+
     // Mobile (≤768px): scale the fixed 794px resume page down to fit the device
     // width. Desktop is left completely untouched. This scales the OUTER
     // .resume-wrapper, whereas autoFitPage scales the INNER .resume-scale-target
@@ -1554,12 +1559,21 @@ document.addEventListener('DOMContentLoaded', () => {
             resumeDocument.style.margin = '';
             return;
         }
-        const scale = avail / PAGE_W;
+        // Two mobile viewing modes (Option C):
+        //  • fit  (default): scale the whole page to the viewport width — the
+        //    entire resume is visible at a glance, no horizontal scrolling.
+        //  • zoom (toggle):  render at a larger, readable scale and let the frame
+        //    pan in both directions.
+        const fitScale = avail / PAGE_W;
+        const scale = mobilePreviewZoomed ? Math.max(fitScale, MOBILE_ZOOM_SCALE) : fitScale;
         wrapper.style.transformOrigin = 'top left';
         wrapper.style.transform       = `scale(${scale.toFixed(4)})`;
-        // Reserve exactly the scaled box so there's no empty gap or overflow.
         resumeDocument.style.width  = Math.round(PAGE_W * scale) + 'px';
-        resumeDocument.style.height = Math.round(wrapperH * scale) + 'px';
+        // Height = actual rendered content (capped at one page) rather than the
+        // full A4 height, so the preview doesn't show a big empty bottom margin.
+        const scaler = wrapper.querySelector('.resume-scale-target');
+        const contentH = scaler ? Math.min(scaler.offsetHeight, wrapperH) : wrapperH;
+        resumeDocument.style.height = Math.round(contentH * scale) + 'px';
         resumeDocument.style.margin = '0 auto';
     }
 
@@ -1648,6 +1662,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // ── Mobile preview zoom toggle (fit-to-width overview ⇄ readable/pannable) ──
+    const previewZoomBtn = document.getElementById('preview-zoom-btn');
+    if (previewZoomBtn) {
+        previewZoomBtn.addEventListener('click', () => {
+            mobilePreviewZoomed = !mobilePreviewZoomed;
+            previewZoomBtn.classList.toggle('is-zoomed', mobilePreviewZoomed);
+            previewZoomBtn.setAttribute('aria-pressed', String(mobilePreviewZoomed));
+            const previewEl = document.getElementById('builder-preview');
+            if (previewEl) previewEl.classList.toggle('is-zoomed', mobilePreviewZoomed);
+            fitPreviewToWidth();
+            const frame = resumeDocument.closest('.resume-frame');
+            if (frame) { frame.scrollTop = 0; frame.scrollLeft = 0; }
+        });
+    }
 
     // ── Mode toggle (Upload ↔ Manual Entry) ──────────────────────────────────
     const modeUploadBtn = document.getElementById('mode-upload');
@@ -2535,25 +2564,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── 8. PDF GENERATION ────────────────────────────────────────────────────
     downloadPdfBtn.addEventListener('click', async () => {
-        if (controllers.pdf) {
-            controllers.pdf.abort();
-            controllers.pdf = null;
-        }
+        // Prevent duplicate exports — ignore clicks while one is in flight.
+        if (downloadPdfBtn.disabled) return;
         controllers.pdf = new AbortController();
         const signal = controllers.pdf.signal;
         const requestId = ++latestRequestIds.pdf;
-        
+
+        // ── Enter loading state (tied to the export lifecycle) ───────────────
         const pdfLabel = downloadPdfBtn.querySelector('.download-pdf-btn__label');
-        if (pdfLabel) pdfLabel.textContent = 'Generating PDF…';
+        const pdfLabelText = pdfLabel ? pdfLabel.textContent : '';
+        downloadPdfBtn.disabled = true;
+        downloadPdfBtn.classList.add('is-loading');
+        downloadPdfBtn.setAttribute('aria-busy', 'true');
+        if (pdfLabel) pdfLabel.textContent = 'Downloading…';
 
-        const resumeWrapper = resumeDocument.querySelector('.resume-wrapper');
-        const clone = resumeWrapper.cloneNode(true);
+        // ── Render the resume FRESH from data at native A4 ───────────────────
+        // CRITICAL: never export the live preview DOM. The preview carries
+        // device-specific transforms — fitPreviewToWidth() scales the wrapper to
+        // fit a phone, autoFitPage() scales the inner target for overflow — and
+        // any of those leaking into the export rescales the PDF (this was the
+        // mobile "tiny PDF" bug). A fresh render from the same data + template is
+        // identical content with none of the preview chrome or transforms, so the
+        // output is byte-for-byte device-independent.
+        const exportTpl  = templateSelect.value || 'ats_classic';
+        const exportData = buildVisibleData();
+        const exportHost = document.createElement('div');
+        exportHost.innerHTML = ResumeTemplates[exportTpl](exportData, activeSections);
+        const clone = exportHost.querySelector('.resume-wrapper');
+        if (!clone) { alert('Could not prepare the resume for export.'); return; }
 
-        // ── Strip interactive elements ────────────────────────────────────────
-        clone.querySelectorAll('.block-ctrl').forEach(el => el.remove());
-        clone.querySelectorAll('.section-edit-btn').forEach(el => el.remove());
-
-        // ── Remove transform scaling — Playwright renders at native 794×1123px ─
+        // Belt-and-suspenders: ensure no transform survives onto the export node.
+        clone.style.transform       = '';
+        clone.style.transformOrigin = '';
         const scaler = clone.querySelector('.resume-scale-target');
         if (scaler) {
             scaler.style.transform       = '';
@@ -2628,18 +2670,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ html: finalHtml }),
                 signal
             });
+            if (!res.ok) throw new Error('PDF service returned ' + res.status);
             const blob = await res.blob();
             const url  = window.URL.createObjectURL(blob);
             const a    = document.createElement('a');
             a.href = url; a.download = 'Optimized_ATS_Resume.pdf';
             document.body.appendChild(a); a.click(); a.remove();
+            window.URL.revokeObjectURL(url);
         } catch (error) {
             if (error.name === 'AbortError') return;
-            alert("Failed to generate PDF.");
+            alert('Failed to generate PDF. Please try again.');
         } finally {
+            // Exit loading state only when the export truly completes or fails —
+            // restore exactly the prior state so a retry is possible.
             if (requestId === latestRequestIds.pdf) {
+                downloadPdfBtn.disabled = false;
+                downloadPdfBtn.classList.remove('is-loading');
+                downloadPdfBtn.removeAttribute('aria-busy');
                 const lbl = downloadPdfBtn.querySelector('.download-pdf-btn__label');
-                if (lbl) lbl.textContent = 'Download';
+                if (lbl) lbl.textContent = pdfLabelText || 'Download';
             }
         }
     });

@@ -2884,6 +2884,35 @@ body.stage-analyzed .app-header {
     box-shadow: none;
     white-space: nowrap;
 }
+/* Reserve enough width for the longest label state ("Downloading…") so the
+   loading swap never shifts the header. (Mobile is a fixed 40px square below.) */
+.workspace-toolbar__actions #download-pdf-btn {
+    min-width: 150px;
+}
+
+/* ── Download button loading state (tied to the export lifecycle in JS) ── */
+.download-pdf-btn__spinner {
+    display: none;
+    flex-shrink: 0;
+}
+.download-pdf-btn.is-loading .download-pdf-btn__icon {
+    display: none;
+}
+.download-pdf-btn.is-loading .download-pdf-btn__spinner {
+    display: inline-block;
+    animation: spin 0.7s linear infinite;
+}
+.download-pdf-btn:disabled {
+    cursor: progress;
+}
+.download-pdf-btn.is-loading {
+    opacity: 0.92;
+}
+
+/* Mobile-only preview zoom toggle — hidden on desktop (shown in the ≤768 block). */
+.preview-zoom-btn {
+    display: none;
+}
 
 /* ─────────────────────────────────────────────────────────────────────────
    27b. TEMPLATE DRAWER (slide-out from left)
@@ -3459,21 +3488,82 @@ body.stage-analyzed .app-header {
         gap: 6px;
     }
 
+    /* ── Compact the collapsible bars (ATS Score / Original Resume) so they
+          don't look oversized on phones. ── */
+    #scoreCard {
+        /* drop the redundant outer padding — the toggle bar has its own. */
+        padding: 0;
+    }
+    .scorecard__toggle,
+    .results-collapse-toggle {
+        min-height: 0;
+        padding: 10px 14px;
+    }
+    .scorecard__mini-donut {
+        width: 22px;
+        height: 22px;
+    }
+    .scorecard__toggle-title,
+    .scorecard__collapsed-scores {
+        font-size: 0.8125rem;
+    }
+
     /* ── Builder surface + preview ── */
     .builder-surface {
         max-width: 100%;
+        padding: 8px;
     }
     .builder-layout {
         min-height: 0;
     }
-    /* The 794px page is scaled to fit by fitPreviewToWidth(); clip the reserved
-       overflow box so the scaled-down page can't push the page sideways. */
+    /* Preview pane: fit-to-width by default (whole resume visible, no scroll);
+       in zoom mode it becomes a capped, pannable viewport (scrolls both axes). */
     .resume-frame {
-        padding: 10px;
-        overflow: hidden;
+        padding: 6px;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+        justify-content: flex-start;
+        align-items: flex-start;
+        max-height: 74vh;
+    }
+    .builder-layout__preview {
+        margin: 0 -4px;   /* claw back a little width from the surface padding */
+        position: relative;
     }
     #resume-document {
         overflow: hidden;
+        /* Don't let the frame's flex layout shrink the doc back to frame width —
+           in zoom mode it must keep its (larger) width so the frame can pan. */
+        flex-shrink: 0;
+    }
+
+    /* On-preview zoom toggle (overview ⇄ readable). */
+    .preview-zoom-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        right: 12px;
+        bottom: 12px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--color-primary);
+        color: #fff;
+        border: none;
+        box-shadow: 0 4px 14px rgba(69, 48, 28, 0.3);
+        cursor: pointer;
+        z-index: 6;
+    }
+    .preview-zoom-btn__out { display: none; }
+    .preview-zoom-btn.is-zoomed .preview-zoom-btn__in { display: none; }
+    .preview-zoom-btn.is-zoomed .preview-zoom-btn__out { display: inline; }
+    /* CRITICAL: #resume-document is a fixed-height flex column on mobile, so the
+       794×1123 wrapper (a flex child) would otherwise be SHRUNK to that height
+       and its content clipped. Pin it so it keeps full size and only the CSS
+       transform scales it down. */
+    #resume-document .resume-wrapper {
+        flex-shrink: 0;
     }
 
     /* ── Drawers become full-screen sheets (width handled in §31 @768 block).
@@ -3507,16 +3597,24 @@ body.stage-analyzed .app-header {
     }
 }
 
-/* ── Narrowest phones: collapse the persistent header actions to icon-only so
-      the heading + Change Template + Download all fit on one row. ── */
+/* ── Narrowest phones: collapse the persistent header actions to icon-only
+      identical squares so they're a matched pair. ── */
 @media (max-width: 480px) {
     .workspace-toolbar__actions .change-template-btn > span,
     .workspace-toolbar__actions .download-pdf-btn .download-pdf-btn__label {
         display: none;
     }
+    /* Use #id for the download button so this beats the earlier
+       `.workspace-toolbar__actions #download-pdf-btn` sizing rule. */
     .workspace-toolbar__actions .change-template-btn,
-    .workspace-toolbar__actions .download-pdf-btn {
-        padding: 8px;
+    .workspace-toolbar__actions #download-pdf-btn {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;   /* override the desktop 142px so it stays a square */
+        min-height: 40px;
+        padding: 0;
+        justify-content: center;
+        flex: 0 0 auto;
     }
     .workspace-toolbar__actions .change-template-btn svg,
     .workspace-toolbar__actions .download-pdf-btn .download-pdf-btn__icon {
