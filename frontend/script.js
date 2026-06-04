@@ -2601,11 +2601,48 @@ document.addEventListener('DOMContentLoaded', () => {
             scaler.style.transformOrigin = '';
         }
 
-        // ── Lock A4 dimensions on the wrapper ────────────────────────────────
+        // ── Page-fit strategy ────────────────────────────────────────────────
+        // Sidebar (t4) templates are single-page by design. Standard templates
+        // flow across multiple A4 pages in 2-page / Auto mode; in 1-page mode they
+        // scale to fit one page (matching the preview) so content is never clipped.
+        const PAGE_H = 1123;
+        const isSidebar  = !!clone.querySelector('.t4-layout');
+        const pageBudget = getEffectivePageCount();   // 1 | 2 | detected (auto)
+        const singlePage = isSidebar || pageBudget <= 1;
+
+        // Measure the resume's natural content height at full A4 width.
+        let contentH = PAGE_H;
+        {
+            const probe = document.createElement('div');
+            probe.style.cssText = 'position:absolute;left:-9999px;top:0;width:794px;visibility:hidden;pointer-events:none;';
+            const probeClone = clone.cloneNode(true);
+            probeClone.style.height = 'auto';
+            probeClone.style.overflow = 'visible';
+            probeClone.style.boxShadow = 'none';
+            probe.appendChild(probeClone);
+            document.body.appendChild(probe);
+            contentH = Math.max(probeClone.scrollHeight, probeClone.offsetHeight) || PAGE_H;
+            probe.remove();
+        }
+
         clone.style.margin    = '0';
         clone.style.boxShadow = 'none';
         clone.style.width     = '794px';
-        clone.style.height    = '1123px';
+
+        if (singlePage) {
+            // Scale to fit one A4 page; no clipping.
+            const z = contentH > PAGE_H ? Math.max(0.5, PAGE_H / contentH) : 1;
+            if (scaler && z < 1) {
+                scaler.style.transform       = `scale(${z})`;
+                scaler.style.transformOrigin = 'top left';
+            }
+            clone.style.height   = PAGE_H + 'px';
+            clone.style.overflow = 'hidden';
+        } else {
+            // Multi-page: let content flow; Chromium paginates by A4 page.
+            clone.style.height   = 'auto';
+            clone.style.overflow = 'visible';
+        }
 
         // ── Template 4: force critical layout styles inline on the clone ─────
         // CSS classes will be injected below, but inlining these as well makes
@@ -2658,6 +2695,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <style>
                 * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
                 html, body { margin: 0; padding: 0; background: white; width: 794px; }
+                /* Multi-page pagination hints — Chromium's page.pdf() respects these
+                   so sections/entries don't split awkwardly across page breaks. */
+                @page { size: A4; margin: 0; }
+                h4, .r-section-title { break-after: avoid; }
+                section, [data-role], [data-section] { break-inside: avoid; }
                 ${resumeCss}
             </style>
             </head><body>${clone.outerHTML}</body></html>`;
