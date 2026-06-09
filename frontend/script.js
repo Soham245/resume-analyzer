@@ -1812,6 +1812,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         errorMessage.classList.add('hidden');
         resultsSection.classList.add('hidden');
+        resultsSection.classList.remove('results-collapsible--collapsed'); // reset from prior optimize cycle
         builderSection.classList.add('hidden');
 
         submitBtn.disabled = true;
