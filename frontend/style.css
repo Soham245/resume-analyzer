@@ -2182,25 +2182,29 @@ body.builder-active .results-back-nav { display: none; }
 
 /* Desktop (≥1024px): sticky morph behavior.
    Normal → the header is part of the card, scrolls naturally.
-   Stuck  → the header pins to the top with elevation + compact styling. */
+   Stuck  → the header pins to the top as workspace chrome (like Notion/Figma). */
 @media (min-width: 1024px) {
     .workspace-header {
         position: sticky;
         top: 0;
         z-index: 30;
-        /* Match secondary container radius (scorecard, results toggle) —
-           --radius-xl (24px) creates a "bubble" look on top-only corners. */
+        /* Card context: rounded top corners matching the builder-surface card. */
         border-radius: var(--radius-md) var(--radius-md) 0 0;
-        transition: box-shadow 0.25s ease, background-color 0.25s ease;
+        /* Morph properties — border-radius animates to 0 when stuck. */
+        transition: box-shadow 0.25s ease,
+                    background-color 0.25s ease,
+                    border-radius 0.25s ease;
     }
 
-    /* ── Stuck (morphed) state ── */
+    /* ── Stuck (morphed) state ──
+       Role changes: card header → workspace toolbar chrome.
+       Flush against viewport top — no rounded corners, solid border frame. */
     .workspace-header--stuck {
-        background: rgba(255, 255, 255, 0.97);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        box-shadow: 0 3px 16px rgba(69, 48, 28, 0.1);
-        border-bottom: 1px solid var(--color-border);
+        border-radius: 0;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 2px 12px rgba(69, 48, 28, 0.08);
+        border: 1px solid var(--color-border);
+        border-top: none; /* flush with viewport top edge */
     }
 
     /* Compact the toolbar row */
@@ -2216,10 +2220,12 @@ body.builder-active .results-back-nav { display: none; }
         display: none;
     }
 
-    /* Compact the controls row */
+    /* Compact the controls row — remove its own border-bottom since the
+       wrapper's border provides the bottom edge in stuck mode. */
     .workspace-header--stuck .builder-header {
         padding: 4px 14px 6px;
         gap: 4px;
+        border-bottom: none;
     }
     /* Title group only contained the trust signal — hide the wrapper in stuck mode */
     .workspace-header--stuck .builder-header__title-group {
