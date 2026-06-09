@@ -193,9 +193,8 @@ h1, h2, h3, h4, h5, h6 {
     min-width: 0;
     box-sizing: border-box;
     padding: 0;
-    /* Content shift transitions in sync with the template rail open/close. */
-    transition: padding-left 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
-    overflow: hidden;
+    /* Allow sticky positioning inside (overflow:hidden breaks sticky). */
+    overflow: visible;
 }
 
 .results-card {
@@ -2149,6 +2148,88 @@ body.builder-active .results-back-nav { display: none; }
     font-size: 0.875rem;
     font-weight: 700;
     color: var(--color-text);
+}
+
+/* Inline trust badge — visible only in sticky mode (desktop) */
+.workspace-toolbar__trust--sticky-only {
+    display: none;
+    margin: 0;
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    align-items: center;
+    gap: 3px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.workspace-toolbar__trust--sticky-only svg {
+    color: var(--color-success, #22c55e);
+    flex-shrink: 0;
+}
+
+/* ─── Workspace header: morphing container ───────────────────────────────── */
+.workspace-header-sentinel {
+    height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    visibility: hidden;
+}
+
+.workspace-header {
+    background: var(--color-surface);
+    /* Default: static, part of the page flow. */
+}
+
+/* Desktop (≥1024px): sticky morph behavior.
+   Normal → the header is part of the card, scrolls naturally.
+   Stuck  → the header pins to the top with elevation + compact styling. */
+@media (min-width: 1024px) {
+    .workspace-header {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        transition: box-shadow 0.25s ease, background-color 0.25s ease;
+    }
+
+    /* ── Stuck (morphed) state ── */
+    .workspace-header--stuck {
+        background: rgba(255, 255, 255, 0.97);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 3px 16px rgba(69, 48, 28, 0.1);
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    /* Compact the toolbar row */
+    .workspace-header--stuck .workspace-toolbar {
+        padding: 6px 14px;
+    }
+
+    /* Show inline trust signal in sticky mode, hide the expanded one */
+    .workspace-header--stuck .workspace-toolbar__trust--sticky-only {
+        display: inline-flex;
+    }
+    .workspace-header--stuck .builder-header__trust-signal {
+        display: none;
+    }
+
+    /* Compact the controls row */
+    .workspace-header--stuck .builder-header {
+        padding: 4px 14px 6px;
+        gap: 4px;
+    }
+    /* Title group only contained the trust signal — hide the wrapper in stuck mode */
+    .workspace-header--stuck .builder-header__title-group {
+        display: none;
+    }
+
+    /* Slightly smaller pills in stuck mode */
+    .workspace-header--stuck .length-pill,
+    .workspace-header--stuck .sec-pill {
+        padding: 4px 10px;
+        font-size: 0.75rem;
+    }
 }
 
 /* ─── Processing stage (full-screen overlay) ─────────────────────────────── */

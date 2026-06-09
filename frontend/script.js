@@ -434,6 +434,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultsBackBtn = document.getElementById('results-back-btn');
     if (resultsBackBtn) resultsBackBtn.addEventListener('click', handleBackToUpload);
 
+    // ── Desktop sticky header morph ─────────────────────────────────────────
+    // Uses IntersectionObserver on a sentinel element to detect when the
+    // workspace header reaches the top of the viewport. Adds --stuck class
+    // for visual elevation + compact controls. Desktop only (≥1024px).
+    const headerSentinel = document.getElementById('workspace-header-sentinel');
+    const workspaceHeader = document.getElementById('workspace-header');
+    if (headerSentinel && workspaceHeader) {
+        const stickyQuery = window.matchMedia('(min-width: 1024px)');
+        const stickyObserver = new IntersectionObserver(([entry]) => {
+            if (!stickyQuery.matches) {
+                workspaceHeader.classList.remove('workspace-header--stuck');
+                return;
+            }
+            workspaceHeader.classList.toggle('workspace-header--stuck', !entry.isIntersecting);
+        }, { threshold: 0 });
+        stickyObserver.observe(headerSentinel);
+
+        // Re-evaluate on resize (e.g. going from desktop to tablet)
+        stickyQuery.addEventListener('change', () => {
+            if (!stickyQuery.matches) {
+                workspaceHeader.classList.remove('workspace-header--stuck');
+            }
+        });
+    }
+
     // Debounced rescore — fires whenever the user edits or adds resume entries.
     let rescoreTimer = null;
     let rescoreController = null;
