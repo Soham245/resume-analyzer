@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <title>AI Resume Analyzer</title>
-    <link rel="stylesheet" href="style.css?v=20260609c">
+    <link rel="stylesheet" href="style.css?v=20260609d">
     <!-- PDF.js for cross-device PDF rendering (mobile browsers lack inline iframe PDF support) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
@@ -342,34 +342,15 @@
              ───────────────────────────────────────────────────────────────── -->
         <section id="main-results-wrapper" class="results-shell app-stage app-stage--analyzed is-hidden">
 
-            <div class="workspace-toolbar">
-                <button id="back-to-upload-btn" class="workspace-toolbar__back" type="button" aria-label="Back to upload">
+            <!-- Lightweight back-nav for JD results view (before builder opens) -->
+            <nav class="results-back-nav" id="results-back-nav">
+                <button id="results-back-btn" class="results-back-nav__btn" type="button" aria-label="Back to upload">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M15 18l-6-6 6-6"/>
                     </svg>
+                    <span>New Analysis</span>
                 </button>
-                <span class="workspace-toolbar__heading">Resume Workspace</span>
-                <div class="workspace-toolbar__actions">
-                    <button id="change-template-btn" class="change-template-btn" type="button">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                            <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-                        </svg>
-                        <span>Change Template</span>
-                    </button>
-                    <button id="download-pdf-btn" class="download-pdf-btn">
-                        <svg class="download-pdf-btn__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="7 10 12 15 17 10"/>
-                            <line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
-                        <svg class="download-pdf-btn__spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
-                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                        </svg>
-                        <span class="download-pdf-btn__label">Download</span>
-                    </button>
-                </div>
-            </div>
+            </nav>
 
             <!-- Score Card (collapsible, compact) -->
             <section id="scoreCard" class="hidden smooth-ui scorecard scorecard--collapsed">
@@ -538,10 +519,39 @@
                     <option value="premium_exec">Editorial</option>
                 </select>
 
-                <!-- Editing toolbar: page controls | content controls -->
+                <!-- Workspace header: integrated into builder surface (not floating) -->
+                <div class="workspace-toolbar">
+                    <button id="back-to-upload-btn" class="workspace-toolbar__back" type="button" aria-label="Back to upload">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M15 18l-6-6 6-6"/>
+                        </svg>
+                    </button>
+                    <span class="workspace-toolbar__heading">Resume Workspace</span>
+                    <div class="workspace-toolbar__actions">
+                        <button id="change-template-btn" class="change-template-btn" type="button">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                                <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                            </svg>
+                            <span>Change Template</span>
+                        </button>
+                        <button id="download-pdf-btn" class="download-pdf-btn">
+                            <svg class="download-pdf-btn__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            <svg class="download-pdf-btn__spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+                                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                            </svg>
+                            <span class="download-pdf-btn__label">Download</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Editing controls: page mode + section visibility pills -->
                 <div class="builder-header">
                     <div class="builder-header__title-group">
-                        <h2 class="builder-header__title">Resume Editor</h2>
                         <p class="builder-header__trust-signal">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                             AI improves your wording — it never invents experience, skills, or qualifications.
@@ -624,8 +634,8 @@
         </aside>
     </main>
 
-    <script src="templates.js?v=20260609c"></script>
-    <script src="script.js?v=20260609c"></script>
+    <script src="templates.js?v=20260609d"></script>
+    <script src="script.js?v=20260609d"></script>
 </body>
 
 </html>

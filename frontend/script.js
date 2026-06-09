@@ -411,25 +411,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Back button — returns user to the idle stage with their state preserved.
-    const backToUploadBtn = document.getElementById('back-to-upload-btn');
-    if (backToUploadBtn) {
-        backToUploadBtn.addEventListener('click', () => {
-            // Restore JD text if the textarea was cleared (it shouldn't have been,
-            // but defensive — covers the case where user switched modes).
-            const jdInput = document.getElementById('jd-text');
-            if (jdInput && !jdInput.value && savedJdText) {
-                jdInput.value = savedJdText;
-            }
-            const mJdInput = document.getElementById('m-jd-text');
-            if (mJdInput && !mJdInput.value && savedJdText) {
-                mJdInput.value = savedJdText;
-            }
-            setStage('idle');
-            window.requestAnimationFrame(() => {
-                idleStage.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            });
+    function handleBackToUpload() {
+        // Restore JD text if the textarea was cleared (it shouldn't have been,
+        // but defensive — covers the case where user switched modes).
+        const jdInput = document.getElementById('jd-text');
+        if (jdInput && !jdInput.value && savedJdText) {
+            jdInput.value = savedJdText;
+        }
+        const mJdInput = document.getElementById('m-jd-text');
+        if (mJdInput && !mJdInput.value && savedJdText) {
+            mJdInput.value = savedJdText;
+        }
+        setStage('idle');
+        window.requestAnimationFrame(() => {
+            idleStage.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
     }
+
+    // Wire both back buttons (builder toolbar + results-level nav)
+    const backToUploadBtn = document.getElementById('back-to-upload-btn');
+    if (backToUploadBtn) backToUploadBtn.addEventListener('click', handleBackToUpload);
+    const resultsBackBtn = document.getElementById('results-back-btn');
+    if (resultsBackBtn) resultsBackBtn.addEventListener('click', handleBackToUpload);
 
     // Debounced rescore — fires whenever the user edits or adds resume entries.
     let rescoreTimer = null;
