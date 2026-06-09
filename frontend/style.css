@@ -2188,8 +2188,9 @@ body.builder-active .results-back-nav { display: none; }
         position: sticky;
         top: 0;
         z-index: 30;
-        /* Card context: rounded top corners matching the builder-surface card. */
-        border-radius: var(--radius-md) var(--radius-md) 0 0;
+        /* Must match parent builder-surface radius so corners align flush
+           (builder-surface has padding:0 → child sits at the card edge). */
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
         /* Morph properties — border-radius animates to 0 when stuck. */
         transition: box-shadow 0.25s ease,
                     background-color 0.25s ease,
