@@ -461,6 +461,96 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+   7b. PROGRESSIVE JD GATE + REVEAL
+   ───────────────────────────────────────────────────────────────────────── */
+/* Full-width dropzone when JD panel is hidden */
+.upload-dropzone--full {
+    min-height: 140px;
+}
+
+/* Gate prompt */
+.jd-gate {
+    text-align: center;
+    padding: var(--space-2) 0;
+}
+.jd-gate__question {
+    margin: 0 0 12px;
+    font-size: 0.95rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+.jd-gate__actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+.jd-gate__btn {
+    padding: 8px 22px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid var(--color-border);
+    background: var(--color-surface-strong);
+    color: var(--color-text);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.jd-gate__btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+.jd-gate__btn--yes {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+}
+.jd-gate__btn--yes:hover {
+    background: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+    color: #fff;
+}
+.jd-gate.hidden { display: none; }
+
+/* Reopen link after "Not Right Now" */
+.jd-gate__reopen {
+    text-align: center;
+    padding: 4px 0 0;
+    margin: 0;
+}
+.jd-gate__reopen.hidden { display: none; }
+.jd-gate__reopen-link {
+    font-size: 0.82rem;
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.15s;
+}
+.jd-gate__reopen-link:hover {
+    color: var(--color-primary-hover, var(--color-primary));
+    text-decoration: underline;
+}
+
+/* Reveal container: CSS grid row transition for smooth expand */
+.jd-reveal {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.35s ease;
+}
+.jd-reveal--open {
+    grid-template-rows: 1fr;
+}
+.jd-reveal__inner {
+    overflow: hidden;
+}
+
+/* Standalone JD panel (not in the 2-col grid anymore) */
+.job-description-panel--standalone {
+    min-height: 120px;
+    margin-top: 4px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
    8. FORM CONTROLS
    ───────────────────────────────────────────────────────────────────────── */
 .field-label {
@@ -1529,9 +1619,10 @@ select.field-input {
 
 .builder-header__title-group {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 10px;
     min-width: 0;
+    flex-wrap: wrap;
 }
 
 .builder-header__title {
@@ -1540,6 +1631,21 @@ select.field-input {
     font-weight: 700;
     line-height: 1.2;
     color: var(--color-text);
+}
+
+.builder-header__trust-signal {
+    margin: 0;
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+.builder-header__trust-signal svg {
+    color: var(--color-success, #22c55e);
+    flex-shrink: 0;
 }
 
 /* Editing controls: page-controls group | divider | content-controls group */

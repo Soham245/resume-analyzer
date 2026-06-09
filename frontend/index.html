@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <title>AI Resume Analyzer</title>
-    <link rel="stylesheet" href="style.css?v=20260601c">
+    <link rel="stylesheet" href="style.css?v=20260609b">
 </head>
 
 <body class="app-body">
@@ -41,37 +41,50 @@
                 <!-- Upload mode -->
                 <div id="upload-mode">
                     <form id="analyzer-form" class="analysis-form">
-                        <div class="analysis-grid">
 
-                            <div data-panel-label="Resume Upload" class="upload-dropzone">
-                                <input type="file" id="resume-file" accept=".pdf" required
-                                    class="upload-dropzone__file-input">
+                        <!-- Resume upload (always visible) -->
+                        <div data-panel-label="Resume Upload" class="upload-dropzone upload-dropzone--full">
+                            <input type="file" id="resume-file" accept=".pdf" required
+                                class="upload-dropzone__file-input">
 
-                                <div id="upload-text" class="upload-dropzone__prompt">
-                                    <div class="upload-dropzone__prompt-row">
-                                        <svg class="upload-dropzone__prompt-icon" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd"
-                                                d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                                                clip-rule="evenodd"></path>
-                                        </svg>
-                                        <span>Drag &amp; drop your resume</span>
-                                    </div>
-                                    <p class="upload-dropzone__hint">or click to upload</p>
-                                </div>
-
-                                <div id="file-name" class="hidden upload-dropzone__filename">
-                                    <svg class="upload-dropzone__filename-icon" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            <div id="upload-text" class="upload-dropzone__prompt">
+                                <div class="upload-dropzone__prompt-row">
+                                    <svg class="upload-dropzone__prompt-icon" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                                            clip-rule="evenodd"></path>
                                     </svg>
-                                    <p id="file-name-text" class="upload-dropzone__filename-text"></p>
+                                    <span>Drag &amp; drop your resume</span>
                                 </div>
+                                <p class="upload-dropzone__hint">or click to upload</p>
                             </div>
 
-                            <div data-panel-label="Job Description" class="job-description-panel">
-                                <textarea id="jd-text" required placeholder="Paste job description here..."
-                                    class="custom-scrollbar"></textarea>
+                            <div id="file-name" class="hidden upload-dropzone__filename">
+                                <svg class="upload-dropzone__filename-icon" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <p id="file-name-text" class="upload-dropzone__filename-text"></p>
+                            </div>
+                        </div>
+
+                        <!-- Progressive JD prompt -->
+                        <div id="jd-gate" class="jd-gate">
+                            <p class="jd-gate__question">Got a job description you'd like to match against?</p>
+                            <div class="jd-gate__actions">
+                                <button type="button" id="jd-gate-yes" class="jd-gate__btn jd-gate__btn--yes">Yes</button>
+                                <button type="button" id="jd-gate-no" class="jd-gate__btn jd-gate__btn--no">Not Right Now</button>
+                            </div>
+                        </div>
+
+                        <!-- JD panel (hidden until user opts in) -->
+                        <div id="jd-reveal" class="jd-reveal">
+                            <div class="jd-reveal__inner">
+                                <div data-panel-label="Job Description" class="job-description-panel job-description-panel--standalone">
+                                    <textarea id="jd-text" placeholder="Paste job description here..."
+                                        class="custom-scrollbar"></textarea>
+                                </div>
                             </div>
                         </div>
 
@@ -171,15 +184,28 @@
                         </div>
                     </div>
 
-                    <!-- JD Input -->
-                    <div class="manual-mode__field">
-                        <label class="field-label" for="m-jd-text">
-                            Paste Job Description
-                            <span class="field-label__optional">(optional — enables skill matching &amp; JD-optimized resume)</span>
-                        </label>
-                        <textarea id="m-jd-text" rows="4"
-                            placeholder="Paste the job description here to get skill gap analysis, improvement suggestions, and a JD-optimized resume..."
-                            class="field-input field-input--block custom-scrollbar"></textarea>
+                    <!-- Progressive JD prompt (manual) -->
+                    <div id="m-jd-gate" class="jd-gate">
+                        <p class="jd-gate__question">Got a job description you'd like to match against?</p>
+                        <div class="jd-gate__actions">
+                            <button type="button" id="m-jd-gate-yes" class="jd-gate__btn jd-gate__btn--yes">Yes</button>
+                            <button type="button" id="m-jd-gate-no" class="jd-gate__btn jd-gate__btn--no">Not Right Now</button>
+                        </div>
+                    </div>
+
+                    <!-- JD panel (hidden until user opts in) -->
+                    <div id="m-jd-reveal" class="jd-reveal">
+                        <div class="jd-reveal__inner">
+                            <div class="manual-mode__field">
+                                <label class="field-label" for="m-jd-text">
+                                    Paste Job Description
+                                    <span class="field-label__optional">(optional — enables skill matching &amp; JD-optimized resume)</span>
+                                </label>
+                                <textarea id="m-jd-text" rows="4"
+                                    placeholder="Paste the job description here to get skill gap analysis, improvement suggestions, and a JD-optimized resume..."
+                                    class="field-input field-input--block custom-scrollbar"></textarea>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Generate button -->
@@ -511,6 +537,10 @@
                 <div class="builder-header">
                     <div class="builder-header__title-group">
                         <h2 class="builder-header__title">Resume Editor</h2>
+                        <p class="builder-header__trust-signal">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            AI improves your wording — it never invents experience, skills, or qualifications.
+                        </p>
                     </div>
                     <div class="builder-header__controls">
                         <!-- Page controls group -->
@@ -589,8 +619,8 @@
         </aside>
     </main>
 
-    <script src="templates.js?v=20260527e"></script>
-    <script src="script.js?v=20260601c"></script>
+    <script src="templates.js?v=20260609b"></script>
+    <script src="script.js?v=20260609b"></script>
 </body>
 
 </html>

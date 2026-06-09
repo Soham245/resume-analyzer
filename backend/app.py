@@ -118,16 +118,16 @@ def analyze_resume():
     resume_text = ""
     jd_text = ""
     logger.info(f"[{request_id}] --- [START /analyze] ---")
-    if 'resume' not in request.files or 'jd' not in request.form:
-        logger.error(f"[{request_id}] Missing resume or job description in request.")
-        return jsonify({"error": "Missing resume or job description"}), 400
+    if 'resume' not in request.files:
+        logger.error(f"[{request_id}] Missing resume in request.")
+        return jsonify({"error": "Missing resume file"}), 400
 
     pdf_file = request.files['resume']
     if pdf_file.filename == '':
         logger.error("No selected file.")
         return jsonify({"error": "No selected file"}), 400
 
-    jd_text = _trim_ai_text(request.form['jd'])
+    jd_text = _trim_ai_text(request.form.get('jd', ''))
 
     if not api_key:
         logger.error("Gemini API Key is missing from .env")
@@ -148,13 +148,31 @@ def analyze_resume():
             return jsonify({"error": "Resume text is too short or unreadable. Please check the PDF."}), 422
 
         resume_text = _trim_ai_text(resume_text)
+
+        # ── No JD provided: extract resume skills only, skip comparison ──
+        if not jd_text or not jd_text.strip():
+            logger.info(f"[{request_id}] No JD provided — extracting resume skills only")
+            with ai_semaphore:
+                resume_skills_raw = extract_and_categorize_skills(resume_text, api_key)
+            resume_skills = _canonicalize_skill_struct(resume_skills_raw)
+            return jsonify({
+                "resume_skills": resume_skills,
+                "jd_skills": {"technical": [], "soft": [], "languages": []},
+                "jd_skills_flat": [],
+                "matched_skills": [],
+                "missing_skills": [],
+                "suggestions": [],
+                "raw_text": resume_text,
+                "no_jd": True,
+            }), 200
+
         jd_text = _trim_ai_text(jd_text)
 
         logger.info(f"[{request_id}] Sending {len(resume_text)} chars of resume and {len(jd_text)} chars of JD for combined AI analysis...")
-        
+
         with ai_semaphore:
             analysis_result = analyze_resume_and_jd(resume_text, jd_text, api_key)
-        
+
         if analysis_result.get("error"):
             logger.error(f"[{request_id}] AI call failed: {analysis_result.get('message')}")
             return jsonify({"error": analysis_result.get("message")}), 504

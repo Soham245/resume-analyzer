@@ -195,6 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let savedRawText  = "";
     let savedJdText   = "";
     let savedJdSkillsFlat = [];
+    let hasJobDescription = false;   // explicit flag: true only when user chose "Yes" AND typed JD text
     let originalScoreSnapshot = null;   // baseline for "Original Score" — set once after first /optimize
     let currentSkills = { technical: [], soft: [], languages: [] };
     let currentStructuredData = null;
@@ -289,6 +290,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const pct = Math.min(100, Math.round((stepIndex / total) * 100));
             processingBarFill.style.width = pct + '%';
         }
+    }
+
+    // Swap processing step labels depending on whether JD is present
+    function adaptProcessingSteps(withJd) {
+        const labels = withJd
+            ? ['Reading resume', 'Extracting skills', 'Comparing against job description',
+               'Calculating ATS compatibility', 'Generating optimization suggestions']
+            : ['Reading resume', 'Extracting skills', 'Analyzing resume structure',
+               'Preparing resume builder', 'Finalizing'];
+        processingSteps.forEach((el, i) => {
+            const span = el.querySelector('.processing-step__label');
+            if (span && labels[i]) span.textContent = labels[i];
+        });
+    }
+
+    // Update the workspace toolbar heading based on JD presence
+    function updateWorkspaceHeading() {
+        const heading = document.querySelector('.workspace-toolbar__heading');
+        if (!heading) return;
+        heading.textContent = hasJobDescription ? 'ATS Match Workspace' : 'Resume Workspace';
     }
 
     function markProcessingComplete() {
@@ -1695,6 +1716,46 @@ document.addEventListener('DOMContentLoaded', () => {
     modeUploadBtn.addEventListener('click', () => setMode('upload'));
     modeManualBtn.addEventListener('click', () => setMode('manual'));
 
+    // ── Progressive JD gate (Upload + Manual) ───────────────────────────────
+    function wireJdGate(gateId, yesId, noId, revealId) {
+        const gate = document.getElementById(gateId);
+        const yes  = document.getElementById(yesId);
+        const no   = document.getElementById(noId);
+        const reveal = document.getElementById(revealId);
+        if (!gate || !yes || !no || !reveal) return;
+
+        // Create the "Add Job Description" reopen link (hidden initially)
+        const reopenLink = document.createElement('p');
+        reopenLink.className = 'jd-gate__reopen hidden';
+        reopenLink.innerHTML = '<a href="#" class="jd-gate__reopen-link">+ Add a Job Description</a>';
+        gate.parentNode.insertBefore(reopenLink, gate.nextSibling);
+
+        yes.addEventListener('click', () => {
+            gate.classList.add('hidden');
+            reopenLink.classList.add('hidden');
+            reveal.classList.add('jd-reveal--open');
+            hasJobDescription = true;
+            // Focus the textarea after the transition for quick typing
+            const ta = reveal.querySelector('textarea');
+            if (ta) setTimeout(() => ta.focus(), 360);
+        });
+        no.addEventListener('click', () => {
+            gate.classList.add('hidden');
+            reopenLink.classList.remove('hidden');
+            hasJobDescription = false;
+        });
+        reopenLink.querySelector('a').addEventListener('click', (e) => {
+            e.preventDefault();
+            reopenLink.classList.add('hidden');
+            reveal.classList.add('jd-reveal--open');
+            hasJobDescription = true;
+            const ta = reveal.querySelector('textarea');
+            if (ta) setTimeout(() => ta.focus(), 360);
+        });
+    }
+    wireJdGate('jd-gate',   'jd-gate-yes',   'jd-gate-no',   'jd-reveal');
+    wireJdGate('m-jd-gate', 'm-jd-gate-yes', 'm-jd-gate-no', 'm-jd-reveal');
+
     // ── File upload ──────────────────────────────────────────────────────────
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length > 0) {
@@ -1758,44 +1819,105 @@ document.addEventListener('DOMContentLoaded', () => {
         spinner.classList.remove('hidden');
 
         const resumeFile = document.getElementById('resume-file').files[0];
-        savedJdText = document.getElementById('jd-text').value;
+        savedJdText = (document.getElementById('jd-text').value || '').trim();
+        // Final hasJobDescription check: even if user clicked "Yes", empty textarea means no JD
+        hasJobDescription = !!(savedJdText);
 
         pdfViewer.src = URL.createObjectURL(resumeFile) + "#toolbar=0&navpanes=0&view=Fit";
 
-        const formData = new FormData();
-        formData.append('resume', resumeFile);
-        formData.append('jd', savedJdText);
+        // Adapt processing steps based on whether JD is present
+        adaptProcessingSteps(hasJobDescription);
 
         try {
-            const data = await runProcessingStage(
-                fetchWithTimeout(apiUrl('/analyze'), { method: 'POST', body: formData, signal })
-                    .then(async (response) => {
-                        if (!response.ok) {
-                            let msg = 'Analysis Failed';
-                            try { msg = (await response.json()).error || msg; } catch (_) {}
-                            throw new Error(msg);
-                        }
-                        return response.json();
-                    })
-            );
-            if (requestId !== latestRequestIds.analyze) return;
+            let data;
 
-            savedRawText  = data.raw_text;
-            // Backend's intelligence pipeline returns canonical display forms;
-            // store them verbatim.
-            savedJdSkillsFlat = data.jd_skills_flat || [];
-            currentSkills = {
-                technical: data.resume_skills?.technical || [],
-                soft:      data.resume_skills?.soft      || [],
-                languages: data.resume_skills?.languages || [],
-            };
+            if (savedJdText) {
+                // ── With JD: full analyze pipeline ──
+                const formData = new FormData();
+                formData.append('resume', resumeFile);
+                formData.append('jd', savedJdText);
 
-            renderUserSkills();
-            renderJdSkills(data.jd_skills || {});
-            renderSuggestions(data.suggestions || []);
+                data = await runProcessingStage(
+                    fetchWithTimeout(apiUrl('/analyze'), { method: 'POST', body: formData, signal })
+                        .then(async (response) => {
+                            if (!response.ok) {
+                                let msg = 'Analysis Failed';
+                                try { msg = (await response.json()).error || msg; } catch (_) {}
+                                throw new Error(msg);
+                            }
+                            return response.json();
+                        })
+                );
+                if (requestId !== latestRequestIds.analyze) return;
 
-            resultsSection.classList.remove('hidden');
-            setStage('analyzed');
+                savedRawText  = data.raw_text;
+                savedJdSkillsFlat = data.jd_skills_flat || [];
+                currentSkills = {
+                    technical: data.resume_skills?.technical || [],
+                    soft:      data.resume_skills?.soft      || [],
+                    languages: data.resume_skills?.languages || [],
+                };
+
+                renderUserSkills();
+                renderJdSkills(data.jd_skills || {});
+                renderSuggestions(data.suggestions || []);
+
+                resultsSection.classList.remove('hidden');
+                updateWorkspaceHeading();
+                setStage('analyzed');
+            } else {
+                // ── No JD: extract + structure resume, skip comparison ──
+                const formData = new FormData();
+                formData.append('resume', resumeFile);
+                formData.append('jd', '');
+
+                data = await runProcessingStage(
+                    fetchWithTimeout(apiUrl('/analyze'), { method: 'POST', body: formData, signal })
+                        .then(async (response) => {
+                            if (!response.ok) {
+                                let msg = 'Analysis Failed';
+                                try { msg = (await response.json()).error || msg; } catch (_) {}
+                                throw new Error(msg);
+                            }
+                            return response.json();
+                        })
+                );
+                if (requestId !== latestRequestIds.analyze) return;
+
+                savedRawText = data.raw_text;
+                savedJdSkillsFlat = [];
+                currentSkills = {
+                    technical: data.resume_skills?.technical || [],
+                    soft:      data.resume_skills?.soft      || [],
+                    languages: data.resume_skills?.languages || [],
+                };
+
+                // Structure the resume via /rewrite and go straight to builder
+                const rewriteRes = await fetchWithTimeout(apiUrl('/rewrite'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ raw_text: savedRawText }),
+                    signal,
+                });
+                const structured = await rewriteRes.json();
+                if (!rewriteRes.ok) throw new Error(structured.error || 'Rewrite failed');
+
+                structured.skill_groups = filterAndGroupSkills(structured.technical_skills || []);
+                setCurrentData(structured);
+                renderResume();
+
+                // No JD → hide scorecard & results panel, show builder directly
+                const scoreCard = document.getElementById('scoreCard');
+                if (scoreCard) scoreCard.classList.add('hidden');
+                resultsSection.classList.add('hidden');
+                builderSection.classList.remove('hidden');
+                requestAnimationFrame(() => autoFitPage());
+                document.body.classList.add('builder-active');
+                document.body.classList.remove('tpl-rail-closed');
+                syncTemplatePanel();
+                updateWorkspaceHeading();
+                setStage('analyzed');
+            }
 
         } catch (error) {
             if (error.name === 'AbortError') return;
@@ -2319,6 +2441,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const name    = document.getElementById('m-name').value.trim();
         const title   = document.getElementById('m-title').value.trim();
         const jdText  = document.getElementById('m-jd-text').value.trim();
+        hasJobDescription = !!(jdText);
 
         if (!name || !title) {
             errorMessage.textContent = 'Full Name and Target Role are required.';
@@ -2370,6 +2493,8 @@ document.addEventListener('DOMContentLoaded', () => {
         genBtnText.textContent = 'Generating...';
         genSpinner.classList.remove('hidden');
         generateManualBtn.disabled = true;
+
+        adaptProcessingSteps(hasJobDescription);
 
         const manualPipeline = (async () => {
             if (jdText) {
@@ -2475,9 +2600,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
 
+            // No JD in manual mode → hide scorecard
+            if (!hasJobDescription) {
+                const scoreCard = document.getElementById('scoreCard');
+                if (scoreCard) scoreCard.classList.add('hidden');
+            }
+
             builderSection.classList.remove('hidden');
             renderResume();
             requestAnimationFrame(() => autoFitPage());
+            updateWorkspaceHeading();
             setStage('analyzed');
             // Builder is on screen → enable the desktop template rail, then
             // populate the gallery (pinned rail on desktop; closed drawer below).
