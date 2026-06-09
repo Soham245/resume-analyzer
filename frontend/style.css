@@ -2188,7 +2188,9 @@ body.builder-active .results-back-nav { display: none; }
         position: sticky;
         top: 0;
         z-index: 30;
-        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        /* Match secondary container radius (scorecard, results toggle) —
+           --radius-xl (24px) creates a "bubble" look on top-only corners. */
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
         transition: box-shadow 0.25s ease, background-color 0.25s ease;
     }
 
