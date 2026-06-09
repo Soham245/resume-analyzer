@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <title>AI Resume Analyzer</title>
-    <link rel="stylesheet" href="style.css?v=20260609b">
+    <link rel="stylesheet" href="style.css?v=20260609c">
+    <!-- PDF.js for cross-device PDF rendering (mobile browsers lack inline iframe PDF support) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 
 <body class="app-body">
@@ -458,7 +460,10 @@
                         <div class="results-card__header">
                             <h2><span class="icon-badge icon-badge--blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span> Your Resume</h2>
                         </div>
-                        <iframe id="pdf-viewer" src=""></iframe>
+                        <div id="pdf-viewer" class="pdf-canvas-wrap">
+                            <canvas id="pdf-canvas"></canvas>
+                            <p class="pdf-canvas-wrap__placeholder">Upload a resume to see it here.</p>
+                        </div>
                     </div>
 
                     <div class="results-card--insights">
@@ -586,12 +591,12 @@
                         <div class="template-drawer__body" id="template-drawer-body"></div>
                     </aside>
 
-                    <div id="builder-preview" class="builder-layout__preview">
+                    <div id="builder-preview" class="builder-layout__preview is-zoomed">
                         <div class="resume-frame">
                             <div id="resume-document"></div>
                         </div>
                         <!-- Mobile-only: toggle fit-to-width overview ⇄ readable zoom -->
-                        <button id="preview-zoom-btn" class="preview-zoom-btn" type="button" aria-label="Zoom resume preview" aria-pressed="false">
+                        <button id="preview-zoom-btn" class="preview-zoom-btn is-zoomed" type="button" aria-label="Zoom resume preview" aria-pressed="true">
                             <svg class="preview-zoom-btn__in" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
                             </svg>
@@ -619,8 +624,8 @@
         </aside>
     </main>
 
-    <script src="templates.js?v=20260609b"></script>
-    <script src="script.js?v=20260609b"></script>
+    <script src="templates.js?v=20260609c"></script>
+    <script src="script.js?v=20260609c"></script>
 </body>
 
 </html>

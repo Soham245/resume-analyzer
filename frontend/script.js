@@ -137,6 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMessage   = document.getElementById('error-message');
     const resultsSection = document.getElementById('results-section');
     const pdfViewer      = document.getElementById('pdf-viewer');
+    const pdfCanvas      = document.getElementById('pdf-canvas');
+    const pdfPlaceholder = pdfViewer?.querySelector('.pdf-canvas-wrap__placeholder');
 
     // Skill containers — Your Skills
     const skillContainers = {
@@ -190,6 +192,47 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadText        = document.getElementById('upload-text');
     const fileNameContainer = document.getElementById('file-name');
     const fileNameText      = document.getElementById('file-name-text');
+
+    // ── PDF.js setup: cross-device PDF rendering ──────────────────────────
+    // Mobile browsers cannot render PDFs in iframes. pdf.js renders to canvas.
+    if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    /**
+     * Render the first page of a PDF file into the #pdf-canvas element.
+     * Uses pdf.js for universal cross-device support.
+     * @param {File} file — the PDF File object from the file input
+     */
+    async function renderPdfPreview(file) {
+        if (!pdfCanvas || typeof pdfjsLib === 'undefined') return;
+        if (pdfPlaceholder) pdfPlaceholder.classList.add('hidden');
+        try {
+            const arrayBuf = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
+            const page = await pdf.getPage(1);
+
+            // Render at 1.5x scale for crisp display on high-DPI screens.
+            // The CSS max-width:100% scales the canvas back to container width.
+            const RENDER_SCALE = 1.5;
+            const viewport = page.getViewport({ scale: RENDER_SCALE });
+            pdfCanvas.width  = viewport.width;
+            pdfCanvas.height = viewport.height;
+
+            const ctx = pdfCanvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+
+            // Store page count for auto mode
+            detectedPageCount = pdf.numPages;
+        } catch (e) {
+            console.warn('[pdf-preview] Failed to render:', e);
+            if (pdfPlaceholder) {
+                pdfPlaceholder.textContent = 'Could not preview this PDF.';
+                pdfPlaceholder.classList.remove('hidden');
+            }
+        }
+    }
 
     // GLOBAL STATE
     let savedRawText  = "";
@@ -1544,7 +1587,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Mobile preview viewing mode (Option C). false = fit-to-width overview,
     // true = larger readable/pannable view. Toggled by the on-preview zoom button.
-    let mobilePreviewZoomed = false;
+    let mobilePreviewZoomed = true; // Default to readable zoom on mobile (fit-page is microscopic)
     const MOBILE_ZOOM_SCALE = 0.85;
 
     // Mobile (≤768px): scale the fixed 794px resume page down to fit the device
@@ -1824,7 +1867,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Final hasJobDescription check: even if user clicked "Yes", empty textarea means no JD
         hasJobDescription = !!(savedJdText);
 
-        pdfViewer.src = URL.createObjectURL(resumeFile) + "#toolbar=0&navpanes=0&view=Fit";
+        // Render the uploaded PDF in the canvas viewer (cross-device, no iframe)
+        renderPdfPreview(resumeFile);
 
         // Adapt processing steps based on whether JD is present
         adaptProcessingSteps(hasJobDescription);

@@ -1016,13 +1016,34 @@ select.field-input {
     color: var(--color-text);
 }
 
+/* PDF viewer: canvas-based (pdf.js) — replaces browser-native iframe for
+   cross-device compatibility. Mobile browsers cannot render PDFs in iframes. */
 #pdf-viewer {
     width: 100%;
     flex-grow: 1;
     background: #efe9e1;
     border: 0;
     border-top: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    min-height: 300px;
 }
+#pdf-canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+.pdf-canvas-wrap__placeholder {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 40px 20px;
+    margin: 0;
+}
+.pdf-canvas-wrap__placeholder.hidden { display: none; }
 
 /* ─────────────────────────────────────────────────────────────────────────
    14. SCORECARD
@@ -1916,7 +1937,7 @@ select.field-input {
     }
 
     #pdf-viewer {
-        min-height: 560px;
+        min-height: 400px;
     }
 
     .skill-panel__group {
