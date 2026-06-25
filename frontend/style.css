@@ -580,6 +580,11 @@ h1, h2, h3, h4, h5, h6 {
     line-height: 1.5;
     resize: none;
     overflow-y: auto;
+    /* Auto-grow: the field expands with its content (see autoGrowTextarea in
+       script.js) so entries are never cut off. It only starts scrolling past
+       max-height, at which point the hidden-until-scroll bar kicks in. */
+    min-height: 82px;
+    max-height: 240px;
     /* Reserve the scrollbar gutter so the box geometry never changes when
        content overflows — no layout shift while typing. */
     scrollbar-gutter: stable;
@@ -614,6 +619,11 @@ h1, h2, h3, h4, h5, h6 {
 .field-input--block.is-scrolling::-webkit-scrollbar-thumb {
     background: rgba(139, 111, 71, 0.4);
     background-clip: padding-box;
+}
+
+/* The manual JD field holds a full job description — start it taller. */
+#m-jd-text {
+    min-height: 110px;
 }
 
 .field-input--sm {

@@ -471,6 +471,35 @@ document.addEventListener('DOMContentLoaded', () => {
         scrollRevealTimers.set(el, setTimeout(() => el.classList.remove('is-scrolling'), 900));
     }, true); // capture: textarea scroll events don't bubble
 
+    // Auto-grow multi-line fields so entries are never cut off. The field
+    // expands to fit its content (bounded by the CSS min/max-height); only past
+    // max-height does it scroll, where the hidden-until-scroll bar takes over.
+    function autoGrowTextarea(el) {
+        const cs = getComputedStyle(el);
+        const border = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+        const max = parseFloat(cs.maxHeight) || Infinity;
+        el.style.height = 'auto';                       // collapse to measure content
+        el.style.height = Math.min(el.scrollHeight + border, max) + 'px';
+    }
+    function regrowVisibleTextareas() {
+        document.querySelectorAll('.field-input--block').forEach((el) => {
+            // offsetParent is null when the field (or its container) is hidden.
+            if (el.value && el.offsetParent !== null) autoGrowTextarea(el);
+        });
+    }
+    document.querySelectorAll('.field-input--block').forEach((el) => {
+        el.addEventListener('input', () => autoGrowTextarea(el));
+    });
+    // Re-measure when Manual Entry becomes visible (fields can't be measured
+    // while their container is display:none) and when the viewport changes
+    // (line wrapping shifts content height).
+    document.getElementById('mode-manual')?.addEventListener('click', regrowVisibleTextareas);
+    let regrowTimer = null;
+    window.addEventListener('resize', () => {
+        clearTimeout(regrowTimer);
+        regrowTimer = setTimeout(regrowVisibleTextareas, 100);
+    });
+
     // Debounced rescore — fires whenever the user edits or adds resume entries.
     let rescoreTimer = null;
     let rescoreController = null;
