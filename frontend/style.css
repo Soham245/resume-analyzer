@@ -100,38 +100,24 @@ h1, h2, h3, h4, h5, h6 {
     border: 1px solid rgba(221, 213, 204, 0.9);
     border-radius: var(--radius-xl);
     box-shadow: var(--color-shadow);
-    padding: var(--space-5);
+    padding: var(--space-4);
     backdrop-filter: blur(14px);
 }
 
-.app-header__eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-radius: 999px;
-    background: var(--color-surface-muted);
-    color: var(--color-primary);
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
 .app-header__title {
-    margin: var(--space-2) 0 var(--space-1);
-    font-size: clamp(2.5rem, 4vw, 4rem);
+    margin: 0 0 var(--space-1);
+    font-size: clamp(2rem, 3.5vw, 3.25rem);
     line-height: 1.05;
     font-weight: 800;
     letter-spacing: -0.04em;
 }
 
 .app-header__subtitle {
-    max-width: 760px;
+    max-width: 620px;
     margin: 0;
     color: var(--color-text-muted);
     font-size: 1rem;
-    line-height: 1.7;
+    line-height: 1.6;
 }
 
 .app-shell {
@@ -1981,6 +1967,33 @@ select.field-input {
     .builder-surface,
     #scoreCard {
         padding: var(--space-2);
+    }
+
+    /* Compact hero so the upload flow + CTA reach above the fold. */
+    .app-header {
+        margin-bottom: var(--space-1);
+    }
+
+    .app-header__title {
+        font-size: 2rem;
+    }
+
+    .app-header__subtitle {
+        font-size: 0.9rem;
+    }
+
+    /* Tighten vertical rhythm inside the upload flow. */
+    .analysis-form {
+        gap: var(--space-2);
+    }
+
+    .jd-gate {
+        padding: var(--space-1) 0;
+    }
+
+    .app-stage,
+    .results-shell {
+        gap: var(--space-1);
     }
 
     .manual-mode__row--2,
