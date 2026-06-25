@@ -483,17 +483,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function regrowVisibleTextareas() {
         document.querySelectorAll('.field-input--block').forEach((el) => {
-            // offsetParent is null when the field (or its container) is hidden.
-            if (el.value && el.offsetParent !== null) autoGrowTextarea(el);
+            // offsetParent is null when the field (or its container) is hidden;
+            // a hidden field can't be measured (scrollHeight would be 0).
+            if (el.offsetParent !== null) autoGrowTextarea(el);
         });
     }
     document.querySelectorAll('.field-input--block').forEach((el) => {
         el.addEventListener('input', () => autoGrowTextarea(el));
     });
-    // Re-measure when Manual Entry becomes visible (fields can't be measured
-    // while their container is display:none) and when the viewport changes
-    // (line wrapping shifts content height).
-    document.getElementById('mode-manual')?.addEventListener('click', regrowVisibleTextareas);
+    // Normalize every field the moment Manual Entry becomes visible — deferred
+    // to the next frame so the panel is actually displayed (and laid out)
+    // before we measure; running synchronously on the click measures the
+    // still-hidden panel and silently no-ops. Also re-measure on viewport
+    // changes, since line wrapping shifts content height.
+    document.getElementById('mode-manual')?.addEventListener('click', () => {
+        requestAnimationFrame(regrowVisibleTextareas);
+    });
+    // Size any already-visible fields on load (e.g. browser-restored values).
+    requestAnimationFrame(regrowVisibleTextareas);
     let regrowTimer = null;
     window.addEventListener('resize', () => {
         clearTimeout(regrowTimer);
