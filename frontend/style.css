@@ -568,15 +568,52 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--color-text);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    padding: 14px 16px;
-    font-size: 0.9375rem;
+    padding: 11px 14px;
+    font-size: 0.875rem;
+    line-height: 1.5;
     outline: none;
     box-shadow: none;
 }
 
 .field-input--block {
-    padding: 14px 16px;
+    padding: 11px 14px;
+    line-height: 1.5;
     resize: none;
+    overflow-y: auto;
+    /* Reserve the scrollbar gutter so the box geometry never changes when
+       content overflows — no layout shift while typing. */
+    scrollbar-gutter: stable;
+    /* Firefox: thin scrollbar, hidden (transparent) until hover / scroll. */
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.25s ease;
+}
+.field-input--block:hover,
+.field-input--block.is-scrolling {
+    scrollbar-color: rgba(139, 111, 71, 0.45) transparent;
+}
+
+/* WebKit: keep the track space reserved but the thumb invisible by default,
+   so it (a) never adds visual noise, (b) never clips the rounded corner, and
+   (c) fades in only on hover or while actively scrolling. The transparent
+   border + padding-box clip insets the pill so it stays within the radius. */
+.field-input--block::-webkit-scrollbar {
+    width: 10px;
+}
+.field-input--block::-webkit-scrollbar-track {
+    background: transparent;
+}
+.field-input--block::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background 0.25s ease;
+}
+.field-input--block:hover::-webkit-scrollbar-thumb,
+.field-input--block.is-scrolling::-webkit-scrollbar-thumb {
+    background: rgba(139, 111, 71, 0.4);
+    background-clip: padding-box;
 }
 
 .field-input--sm {

@@ -459,6 +459,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Reveal textarea scrollbars only while actively scrolling. Hover handles
+    // this on desktop via CSS; touch devices have no hover, so toggle a class
+    // and clear it shortly after scrolling stops.
+    const scrollRevealTimers = new WeakMap();
+    document.addEventListener('scroll', (e) => {
+        const el = e.target;
+        if (!(el instanceof Element) || !el.classList.contains('field-input--block')) return;
+        el.classList.add('is-scrolling');
+        clearTimeout(scrollRevealTimers.get(el));
+        scrollRevealTimers.set(el, setTimeout(() => el.classList.remove('is-scrolling'), 900));
+    }, true); // capture: textarea scroll events don't bubble
+
     // Debounced rescore — fires whenever the user edits or adds resume entries.
     let rescoreTimer = null;
     let rescoreController = null;
