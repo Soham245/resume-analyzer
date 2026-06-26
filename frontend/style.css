@@ -1734,7 +1734,11 @@ select.field-input {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     padding: 16px;
-    overflow-x: auto;
+    /* Desktop: no nested scroll — the page is the single scroll container.
+       (overflow-x:auto would force overflow-y to compute to `auto` too, making
+       this a stray both-axis scroller competing with the page.) The mobile
+       breakpoint re-enables overflow:auto for the pannable zoom viewport. */
+    overflow: visible;
 }
 
 #resume-document {
@@ -2258,8 +2262,14 @@ body.builder-active .results-back-nav { display: none; }
     }
 
     /* ── Stuck (morphed) state ──
-       Role changes: card header → workspace toolbar chrome.
-       Flush against viewport top — no rounded corners, solid border frame. */
+       SAME element, SAME dimensions — only the chrome changes, so toggling the
+       class causes ZERO layout reflow. (Earlier iterations compacted the
+       padding/pills here, shrinking the header ~41px; because the header is
+       in-flow position:sticky, that shrink reflowed everything below it at the
+       scroll threshold and produced the jump/bounce/jitter.) Now the role
+       shifts purely visually: corners square off, the surface elevates, and a
+       subtle shadow + border frame appear. Border changes are height-neutral
+       under box-sizing:border-box, so they don't reflow either. */
     .workspace-header--stuck {
         border-radius: 0;
         background: rgba(255, 255, 255, 0.98);
@@ -2268,36 +2278,10 @@ body.builder-active .results-back-nav { display: none; }
         border-top: none; /* flush with viewport top edge */
     }
 
-    /* Compact the toolbar row */
-    .workspace-header--stuck .workspace-toolbar {
-        padding: 6px 14px;
-    }
-
-    /* Show inline trust signal in sticky mode, hide the expanded one */
-    .workspace-header--stuck .workspace-toolbar__trust--sticky-only {
-        display: inline-flex;
-    }
-    .workspace-header--stuck .builder-header__trust-signal {
-        display: none;
-    }
-
-    /* Compact the controls row — remove its own border-bottom since the
-       wrapper's border provides the bottom edge in stuck mode. */
+    /* Avoid a doubled bottom edge (wrapper border + the row's own
+       border-bottom). Height-neutral under border-box → no reflow. */
     .workspace-header--stuck .builder-header {
-        padding: 4px 14px 6px;
-        gap: 4px;
         border-bottom: none;
-    }
-    /* Title group only contained the trust signal — hide the wrapper in stuck mode */
-    .workspace-header--stuck .builder-header__title-group {
-        display: none;
-    }
-
-    /* Slightly smaller pills in stuck mode */
-    .workspace-header--stuck .length-pill,
-    .workspace-header--stuck .sec-pill {
-        padding: 4px 10px;
-        font-size: 0.75rem;
     }
 }
 
