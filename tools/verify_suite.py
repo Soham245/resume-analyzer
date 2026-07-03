@@ -32,6 +32,14 @@ Validated per template (x2 page modes):
     (presence-only for the two-column sidebar template, where PDF
     text-extraction column order is not guaranteed)
 
+Data-preservation guard (S0-2 regression):
+  - The REAL backend fallback path (AI forced to fail via invalid key)
+    must preserve every populated input section — experience, projects,
+    education, certifications, skills. Any populated section coming
+    back empty fails the suite.
+  - Rendered-UI check: a sentinel from every section of the stub
+    profile (incl. summary) must appear in the rendered document.
+
 App-level checks:
   - Manual-entry -> generate -> builder opens with content
   - Render integrity (A4 wrapper, scale target, non-empty text)
@@ -119,6 +127,48 @@ OVERFLOW_PROFILE = dict(_BASE, summary=(
 
 TEXT_PROBES = ["Priya Sharma", "Flipkart", "IIT Delhi", "CKA (2023)"]
 
+# ── Data-preservation guard (S0-2 regression) ───────────────────────────────
+# Raw manual-entry inputs with a distinct sentinel value per section. Fed to
+# the REAL backend generate_resume_from_inputs() with AI forced to fail
+# (invalid key), which exercises the fallback path where S0-2 silently
+# discarded experience/projects/education/certifications. Any populated
+# source section coming back empty is a regression and fails the suite.
+# (The manual form has no summary input, so summary is asserted on the
+# UI-render check below instead — there is nothing to preserve here.)
+PRESERVATION_INPUTS = {
+    "name": "Guard Tester", "title": "Preservation Engineer",
+    "email": "guard@example.com", "phone": "+1 555 0100",
+    "linkedin": "linkedin.com/in/guard", "github": "github.com/guard",
+    "experience_text": ("Platform Engineer, SentinelCorp, 2020-Present\n"
+                        "Kept the sentinel dataset intact across 4 releases"),
+    "projects_text": "GuardRail | Python, Flask | Regression tripwire project",
+    "education_text": "M.Sc Data Systems, Sentinel University, 2015-2017",
+    "certifications_text": "Certified Sentinel Keeper (2021)",
+    "technical_skills": ["Python", "Flask"],
+    "soft_skills": ["Vigilance"],
+    "languages": ["English"],
+}
+PRESERVATION_EXPECT = {
+    "experience": "SentinelCorp",
+    "projects": "GuardRail",
+    "education": "Sentinel University",
+    "certifications": "Certified Sentinel Keeper (2021)",
+    "technical_skills": "Python",
+    "soft_skills": "Vigilance",
+    "languages": "English",
+}
+
+# Rendered-UI preservation: one sentinel per section from STANDARD_PROFILE
+# must appear in the rendered resume text after a (stubbed) generation.
+UI_SECTION_SENTINELS = {
+    "summary": "high-scale commerce systems",
+    "experience": "Flipkart",
+    "projects": "PayTrack",
+    "education": "IIT Delhi",
+    "certifications": "CKA (2023)",
+    "skills": "PostgreSQL",
+}
+
 # ── Check bookkeeping ───────────────────────────────────────────────────────
 CHECKS = []
 
@@ -204,6 +254,16 @@ def run_browser_phase(url, skip_pdf):
             page.wait_for_selector("#resume-document .resume-wrapper", timeout=15000)
         ok = page.eval_on_selector("#resume-document", "el => el.innerText.includes('Flipkart')")
         record("app: manual entry -> generate -> builder renders", ok, t.ms)
+
+        # ── Rendered-UI preservation: every section reaches the document ────
+        with _Timer() as t:
+            rendered = page.eval_on_selector(
+                "#resume-document", "el => el.innerText.toLowerCase()")
+            missing = [f"{sec} (sentinel '{sent}')"
+                       for sec, sent in UI_SECTION_SENTINELS.items()
+                       if sent.lower() not in rendered]
+        record("preservation: all sections render in UI", not missing, t.ms,
+               "; ".join(missing))
 
         # ── Render integrity ────────────────────────────────────────────────
         with _Timer() as t:
@@ -364,6 +424,33 @@ def run_browser_phase(url, skip_pdf):
     return captured, headings
 
 
+# ── Generation phase (backend, no browser) ─────────────────────────────────
+def run_generation_phase():
+    """S0-2 regression guard: the fallback path must preserve every populated
+    input section. AI is forced to fail with an invalid key, so this runs the
+    real generate_resume_from_inputs() end to end without network luck."""
+    import json as _json
+
+    from backend.rewriter import generate_resume_from_inputs
+
+    with _Timer() as t:
+        result = generate_resume_from_inputs(PRESERVATION_INPUTS,
+                                             "invalid-key-forces-fallback")
+    ok = result.get("_generation_ok") is False
+    record("preservation: fallback path engaged (_generation_ok=false)",
+           ok, t.ms, f"_generation_ok={result.get('_generation_ok')}")
+
+    lost = []
+    for section, sentinel in PRESERVATION_EXPECT.items():
+        value = result.get(section) or []
+        if not value:
+            lost.append(f"{section} is EMPTY")
+        elif sentinel.lower() not in _json.dumps(value).lower():
+            lost.append(f"{section} lost sentinel '{sentinel}'")
+    record("preservation: all populated sections survive fallback",
+           not lost, 0, "; ".join(lost))
+
+
 # ── PDF phase ───────────────────────────────────────────────────────────────
 def run_pdf_phase(captured, headings):
     from backend.pdf_generator import generate_pdf_from_html
@@ -436,6 +523,9 @@ def main():
     print("Resume Analyzer verification suite")
     print(f"frontend: {FRONTEND_DIR}")
     suite_start = time.monotonic()
+
+    print("-- generation phase (fallback preservation) " + "-" * 14)
+    run_generation_phase()
 
     server, url = start_frontend_server()
     try:
