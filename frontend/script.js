@@ -1,3 +1,15 @@
+// ── Global error capture ────────────────────────────────────────────────
+// Lightweight client-side error visibility (no external analytics). The
+// stable "[app-error]" prefix makes production JS faults greppable in the
+// browser console / any log forwarder instead of silently vanishing.
+window.addEventListener('error', (e) => {
+    console.error('[app-error]', e.message, `${e.filename || '?'}:${e.lineno || 0}:${e.colno || 0}`);
+});
+window.addEventListener('unhandledrejection', (e) => {
+    const reason = e.reason instanceof Error ? `${e.reason.message}\n${e.reason.stack}` : String(e.reason);
+    console.error('[app-error] unhandled rejection:', reason);
+});
+
 // ── Display fallback (slim) ─────────────────────────────────────────────
 // Backend is the source of truth for canonical names. This formatter only
 // runs against (a) raw user input from "add skill", and (b) any string the
@@ -2964,7 +2976,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(apiUrl('/generate-pdf'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ html: finalHtml }),
+                // template/page_mode are observability context for backend logs
+                body: JSON.stringify({ html: finalHtml, template: exportTpl,
+                                       page_mode: singlePage ? 1 : pageBudget }),
                 signal
             });
             if (!res.ok) throw new Error('PDF service returned ' + res.status);

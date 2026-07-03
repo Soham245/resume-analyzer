@@ -314,39 +314,67 @@ def _call_model_once(model, prompt, api_key, label):
         _clear_timeout(old_handler)
 
 
-def _generate_json(prompt, api_key, label):
+def _generate_json(prompt, api_key, label, meta=None):
     # Attempt plan: primary, primary again after a short pause, then the
     # fallback model. Only transient upstream errors advance the chain;
     # permanent errors (auth, bad request) fail immediately as before.
+    #
+    # `meta` (optional dict) is filled with call telemetry so endpoints can
+    # expose what happened without callers digging through logs:
+    #   ok, model_used, attempts, fallback_model_used, duration_ms
+    if meta is None:
+        meta = {}
+    meta.update({"ok": False, "model_used": None, "attempts": 0,
+                 "fallback_model_used": False, "duration_ms": 0})
+    call_started = time.monotonic()
+
+    def _finish(ok, model=None):
+        meta["ok"] = ok
+        meta["model_used"] = model
+        meta["fallback_model_used"] = ok and model == FALLBACK_MODEL_NAME
+        meta["duration_ms"] = int((time.monotonic() - call_started) * 1000)
+
     attempts = (
         (MODEL_NAME, 0.0),
         (MODEL_NAME, AI_RETRY_DELAY_SECONDS),
         (FALLBACK_MODEL_NAME, AI_RETRY_DELAY_SECONDS),
     )
     raw_text = None
+    used_model = None
     for attempt_no, (model, delay) in enumerate(attempts, start=1):
         if delay:
             time.sleep(delay)
+        meta["attempts"] = attempt_no
+        attempt_started = time.monotonic()
         try:
             raw_text = _call_model_once(model, prompt, api_key, label)
-            if attempt_no > 1:
-                logger.info("[%s] STAGE-1 recovered on attempt %d via model=%s",
-                            label, attempt_no, model)
+            used_model = model
+            logger.info("[ai-call] label=%s model=%s attempt=%d latency_ms=%d outcome=ok",
+                        label, model, attempt_no,
+                        int((time.monotonic() - attempt_started) * 1000))
             break
         except AITimeoutException:
             # One timeout already cost AI_TIMEOUT_SECONDS — don't stack more waits.
-            logger.warning("[%s] STAGE-ERR AI request timed out after %s seconds",
-                           label, AI_TIMEOUT_SECONDS)
+            logger.warning("[ai-call] label=%s model=%s attempt=%d latency_ms=%d outcome=timeout",
+                           label, model, attempt_no,
+                           int((time.monotonic() - attempt_started) * 1000))
+            _finish(False)
             return None
         except Exception as exc:
             transient = _is_transient_error(exc)
-            logger.warning("[%s] STAGE-ERR attempt %d/%d model=%s failed (%s): %s",
-                           label, attempt_no, len(attempts), model,
+            logger.warning("[ai-call] label=%s model=%s attempt=%d latency_ms=%d outcome=%s error=%s",
+                           label, model, attempt_no,
+                           int((time.monotonic() - attempt_started) * 1000),
                            "transient" if transient else "permanent", exc)
             if not transient or attempt_no == len(attempts):
+                _finish(False)
                 return None
     if raw_text is None:
+        _finish(False)
         return None
+    # Provisional: network succeeded but JSON not yet validated. Flipped to
+    # ok=True only when parsing produces a usable result.
+    _finish(False, used_model)
 
     try:
         logger.info("[%s] STAGE-2 Gemini raw response length=%d chars, first 300: %.300s",
@@ -385,6 +413,7 @@ def _generate_json(prompt, api_key, label):
         else:
             logger.warning("[%s] STAGE-5 parsed is not a dict: type=%s", label, type(parsed).__name__)
 
+        _finish(isinstance(parsed, dict), used_model)
         return parsed
     except Exception as exc:
         # Parsing/logging faults only — API errors are handled per-attempt above.
@@ -645,11 +674,15 @@ User Input:
 {json.dumps(user_payload)}
 """
 
-    result = _generate_json(prompt, api_key, "generate_from_inputs")
+    meta = {}
+    result = _generate_json(prompt, api_key, "generate_from_inputs", meta=meta)
     if result is None:
         logger.warning("[generate_from_inputs] Gemini returned no usable JSON — using fallback resume")
     finalized = _finalize_resume(result, fallback)
     finalized["_generation_ok"] = result is not None and isinstance(result, dict)
+    # Structured telemetry: lets the UI and API consumers see what happened
+    # (model, retries, fallback, duration) without reading server logs.
+    finalized["_generation_meta"] = meta
     return finalized
 
 

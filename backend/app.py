@@ -5,7 +5,10 @@ import io
 import logging
 import threading
 import signal
+import time
 import uuid
+
+import PyPDF2
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -447,12 +450,24 @@ def rewrite_resume():
 def generate_pdf():
     data = request.json
     html_content = data.get('html')
+    # Optional context sent by the frontend purely for observability.
+    template = data.get('template') or 'unknown'
+    page_mode = data.get('page_mode') or 'unknown'
 
     if not html_content:
         return jsonify({"error": "Missing HTML content"}), 400
 
+    started = time.monotonic()
     try:
         pdf_bytes = generate_pdf_from_html(html_content)
+        try:
+            page_count = len(PyPDF2.PdfReader(io.BytesIO(pdf_bytes)).pages)
+        except Exception:
+            page_count = -1  # never fail an export over a metrics read
+        logger.info("[pdf-export] template=%s page_mode=%s pages=%d bytes=%d "
+                    "html_bytes=%d duration_ms=%d outcome=ok",
+                    template, page_mode, page_count, len(pdf_bytes),
+                    len(html_content), int((time.monotonic() - started) * 1000))
         return send_file(
             io.BytesIO(pdf_bytes),
             mimetype='application/pdf',
@@ -460,7 +475,8 @@ def generate_pdf():
             download_name='Optimized_Resume.pdf'
         )
     except Exception as e:
-        print(f"PDF Error: {e}")
+        logger.error("[pdf-export] template=%s page_mode=%s duration_ms=%d outcome=error error=%s",
+                     template, page_mode, int((time.monotonic() - started) * 1000), e)
         return jsonify({"error": "Failed to generate PDF"}), 500
 
 
