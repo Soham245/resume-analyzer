@@ -601,13 +601,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         console.log('[setCurrentData] skill_groups:', JSON.stringify(currentStructuredData.skill_groups));
 
-        // Surface AI generation failure to user as a dismissible banner
+        // Surface AI generation failure as a single dismissible banner. Always
+        // clear prior banners first: a retry that succeeds must not leave a
+        // stale warning, and repeated failures must not stack duplicates.
+        document.querySelectorAll('.generation-warning-banner').forEach(b => b.remove());
         if (data._generation_ok === false) {
             console.error('[setCurrentData] Backend flagged _generation_ok=false — AI generation failed, using fallback');
             const banner = document.createElement('div');
             banner.className = 'generation-warning-banner';
             banner.innerHTML = `
-                <span>Some resume sections may be incomplete — the AI model timed out. You can edit sections manually or try generating again.</span>
+                <span>The AI service is temporarily unavailable, so your entries are shown as written without AI polish. You can edit sections manually or try generating again.</span>
                 <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;color:inherit;padding:0 4px;">&times;</button>
             `;
             const builder = document.getElementById('builder-section');

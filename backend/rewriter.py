@@ -1,8 +1,10 @@
 import json
 import logging
+import os
 import re
 import signal
 import threading
+import time
 
 from google import genai
 from google.genai import types
@@ -12,6 +14,14 @@ from . import scorer
 logger = logging.getLogger(__name__)
 
 MODEL_NAME = "gemini-2.5-flash-lite"
+# When the lite tier is congested (503 UNAVAILABLE), the standard tier is
+# usually still serving — fall back to it rather than losing the request.
+FALLBACK_MODEL_NAME = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-2.5-flash")
+AI_RETRY_DELAY_SECONDS = 1.5
+# Upstream errors worth retrying: capacity (503/UNAVAILABLE/overloaded),
+# rate limits (429/RESOURCE_EXHAUSTED), and transient server faults (500).
+_TRANSIENT_ERROR_MARKERS = ("503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED",
+                            "500", "INTERNAL", "overloaded", "high demand")
 AI_TIMEOUT_SECONDS = 50          # Generous: Render cold-start + Gemini latency can exceed 25 s
 MAX_TEXT_CHARS = 3000
 
@@ -181,6 +191,70 @@ def _fallback_resume(skills=None, base=None):
     return fallback
 
 
+# ── Raw-text fallback parsers ────────────────────────────────────────────────
+# When the AI is unavailable, the manual-entry flow must still preserve every
+# entry the user typed. These are conservative line parsers: text is carried
+# verbatim into the schema shapes the templates expect — nothing is invented.
+
+_YEARISH = re.compile(r"(19|20)\d{2}|present|current|ongoing", re.IGNORECASE)
+
+
+def _fallback_lines(text, max_items=20, item_max_chars=300):
+    lines = [ln.strip() for ln in (text or "").splitlines()]
+    return [ln[:item_max_chars] for ln in lines if ln][:max_items]
+
+
+def _parse_experience_text(text):
+    """'Role, Company, Duration' lines start entries; other lines become points."""
+    entries = []
+    for line in _fallback_lines(text):
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) >= 2 and _YEARISH.search(parts[-1]):
+            entries.append({
+                "role": parts[0],
+                "company": ", ".join(parts[1:-1]) or "",
+                "duration": parts[-1],
+                "points": [],
+            })
+        elif entries:
+            entries[-1]["points"].append(line)
+        else:
+            entries.append({"role": line, "company": "", "duration": "", "points": []})
+    return entries[:10]
+
+
+def _parse_projects_text(text):
+    """'Title | tech, stack | description' per line (the UI's suggested format)."""
+    projects = []
+    for line in _fallback_lines(text):
+        parts = [p.strip() for p in line.split("|")]
+        project = {"title": parts[0], "tech_stack": [], "points": []}
+        if len(parts) >= 2:
+            project["tech_stack"] = [t.strip() for t in parts[1].split(",") if t.strip()][:10]
+        if len(parts) >= 3:
+            project["points"] = [p for p in parts[2:] if p]
+        projects.append(project)
+    return projects[:8]
+
+
+def _parse_education_text(text):
+    """'Degree, Institution, Year' per line; unparseable lines keep full text as degree."""
+    entries = []
+    for line in _fallback_lines(text):
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) >= 2:
+            year = parts[-1] if _YEARISH.search(parts[-1]) else ""
+            middle = parts[1:-1] if year else parts[1:]
+            entries.append({
+                "degree": parts[0],
+                "institution": ", ".join(middle) or "",
+                "year": year,
+            })
+        else:
+            entries.append({"degree": line, "institution": "", "year": ""})
+    return entries[:6]
+
+
 def _project_limit(resume_data):
     experience_count = len((resume_data or {}).get("experience", []) or [])
     if experience_count == 0:
@@ -219,17 +293,62 @@ def _clear_timeout(old_handler):
         signal.signal(signal.SIGALRM, old_handler)
 
 
-def _generate_json(prompt, api_key, label):
+def _is_transient_error(exc):
+    msg = str(exc)
+    return any(marker in msg for marker in _TRANSIENT_ERROR_MARKERS)
+
+
+def _call_model_once(model, prompt, api_key, label):
+    """Single Gemini call under the alarm timeout. Returns raw text; raises on API error."""
     old_handler = _start_timeout()
     try:
-        logger.info("[%s] STAGE-1 Calling Gemini model=%s", label, MODEL_NAME)
+        logger.info("[%s] STAGE-1 Calling Gemini model=%s", label, model)
         client = genai.Client(api_key=api_key)
         response = client.models.generate_content(
-            model=MODEL_NAME,
+            model=model,
             contents=prompt,
             config=types.GenerateContentConfig(temperature=0.0),
         )
-        raw_text = getattr(response, "text", "") or ""
+        return getattr(response, "text", "") or ""
+    finally:
+        _clear_timeout(old_handler)
+
+
+def _generate_json(prompt, api_key, label):
+    # Attempt plan: primary, primary again after a short pause, then the
+    # fallback model. Only transient upstream errors advance the chain;
+    # permanent errors (auth, bad request) fail immediately as before.
+    attempts = (
+        (MODEL_NAME, 0.0),
+        (MODEL_NAME, AI_RETRY_DELAY_SECONDS),
+        (FALLBACK_MODEL_NAME, AI_RETRY_DELAY_SECONDS),
+    )
+    raw_text = None
+    for attempt_no, (model, delay) in enumerate(attempts, start=1):
+        if delay:
+            time.sleep(delay)
+        try:
+            raw_text = _call_model_once(model, prompt, api_key, label)
+            if attempt_no > 1:
+                logger.info("[%s] STAGE-1 recovered on attempt %d via model=%s",
+                            label, attempt_no, model)
+            break
+        except AITimeoutException:
+            # One timeout already cost AI_TIMEOUT_SECONDS — don't stack more waits.
+            logger.warning("[%s] STAGE-ERR AI request timed out after %s seconds",
+                           label, AI_TIMEOUT_SECONDS)
+            return None
+        except Exception as exc:
+            transient = _is_transient_error(exc)
+            logger.warning("[%s] STAGE-ERR attempt %d/%d model=%s failed (%s): %s",
+                           label, attempt_no, len(attempts), model,
+                           "transient" if transient else "permanent", exc)
+            if not transient or attempt_no == len(attempts):
+                return None
+    if raw_text is None:
+        return None
+
+    try:
         logger.info("[%s] STAGE-2 Gemini raw response length=%d chars, first 300: %.300s",
                     label, len(raw_text), raw_text)
 
@@ -267,14 +386,10 @@ def _generate_json(prompt, api_key, label):
             logger.warning("[%s] STAGE-5 parsed is not a dict: type=%s", label, type(parsed).__name__)
 
         return parsed
-    except AITimeoutException:
-        logger.warning("[%s] STAGE-ERR AI request timed out after %s seconds", label, AI_TIMEOUT_SECONDS)
-        return None
     except Exception as exc:
-        logger.warning("[%s] STAGE-ERR AI request failed: %s", label, exc)
+        # Parsing/logging faults only — API errors are handled per-attempt above.
+        logger.warning("[%s] STAGE-ERR response processing failed: %s", label, exc)
         return None
-    finally:
-        _clear_timeout(old_handler)
 
 
 def _pick(result, fallback, key):
@@ -468,6 +583,12 @@ def generate_resume_from_inputs(inputs, api_key):
         "linkedin": linkedin,
         "github": github,
     })
+    # Preserve the user's raw entries even when the AI is unavailable —
+    # previously these fell back to empty lists and the typed content vanished.
+    fallback["experience"] = _parse_experience_text(inputs.get("experience_text"))
+    fallback["projects"] = _parse_projects_text(inputs.get("projects_text"))
+    fallback["education"] = _parse_education_text(inputs.get("education_text"))
+    fallback["certifications"] = _fallback_lines(inputs.get("certifications_text"), max_items=15, item_max_chars=150)
 
     user_payload = {
         "name": name,
