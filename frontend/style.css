@@ -12,13 +12,18 @@
     --color-border-strong: #cfc2b4;
     --color-text: #2d2520;
     --color-text-muted: #6b5d52;
-    --color-text-faint: #9a8d82;
+    /* WCAG AA: 4.5:1+ on every surface it's used on as informative text
+       (was #9a8d82 — 2.7:1 to 3.2:1, failed everywhere). */
+    --color-text-faint: #786c60;
     --color-primary: #8b6f47;
+    /* Primary hue for SMALL interactive text (links) — the brand primary
+       only reaches 4.4:1 on --color-surface; this variant clears 5.3:1. */
+    --color-primary-text: #7d6340;
     --color-primary-hover: #785d38;
     --color-primary-active: #684d2b;
     --color-success: #5a8560;
-    --color-warning: #c5935a;
-    --color-danger: #c55a4a;
+    --color-warning: #966b35;   /* was #c5935a (2.6:1 as text) — now 4.5:1+ */
+    --color-danger: #b04a3a;    /* was #c55a4a (4.0:1 as text) — now 4.9:1+ */
     --color-danger-soft: #f5e8e5;
     --color-shadow: 0 4px 16px rgba(69, 48, 28, 0.04);
     --radius-sm: 8px;
@@ -508,7 +513,7 @@ h1, h2, h3, h4, h5, h6 {
 .jd-gate__reopen.hidden { display: none; }
 .jd-gate__reopen-link {
     font-size: 0.82rem;
-    color: var(--color-primary);
+    color: var(--color-primary-text);
     text-decoration: none;
     font-weight: 500;
     cursor: pointer;
@@ -552,7 +557,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .field-label__required {
-    color: var(--color-primary);
+    color: var(--color-primary-text);
 }
 
 .field-label__optional {
@@ -646,6 +651,35 @@ select:focus {
     border-color: var(--color-primary);
     box-shadow: 0 0 0 4px rgba(139, 111, 71, 0.12);
     background: #fffdfb;
+}
+
+/* ── Focus system ─────────────────────────────────────────────────────────
+   One consistent keyboard-only ring for every interactive control: 2px
+   primary outline, 2px offset, following the element's border-radius.
+   Mouse/touch interactions don't trigger :focus-visible, so pointer users
+   never see rings — keyboard users always do. */
+:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Text fields already show a border + ring focus style for BOTH input
+   methods (above) — suppress the outline so they don't get two rings. */
+.field-input:focus-visible,
+.editor-field-input:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    outline: none;
+}
+
+/* Controls whose own chrome is suppressed indicate focus on their visual
+   container instead: the JD textarea (borderless inside its panel) and the
+   invisible file input covering the upload dropzone. */
+.job-description-panel:focus-within,
+.upload-dropzone:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 4px rgba(139, 111, 71, 0.12);
 }
 
 select.field-input {
@@ -2393,7 +2427,7 @@ body.builder-active .results-back-nav { display: none; }
     letter-spacing: 0.16em;
     font-weight: 700;
     text-transform: uppercase;
-    color: var(--color-primary);
+    color: var(--color-primary-text);
 }
 
 .processing-stage__title {
@@ -2988,7 +3022,7 @@ body.builder-active .results-back-nav { display: none; }
     border-radius: var(--radius-sm);
     border: 1.5px dashed var(--color-border-strong);
     background: transparent;
-    color: var(--color-primary);
+    color: var(--color-primary-text);
     font-size: 0.84rem;
     font-weight: 600;
     cursor: pointer;
@@ -3447,7 +3481,7 @@ body.builder-active .results-back-nav { display: none; }
     background: var(--color-surface-strong);
 }
 .tpl-filter-popover__option--active {
-    color: var(--color-primary);
+    color: var(--color-primary-text);
     font-weight: 600;
 }
 .tpl-filter-popover__option--disabled {

@@ -327,6 +327,40 @@ def run_browser_phase(url, skip_pdf):
         record("app: single scroll container (no unexpected nested scrollers)",
                not unexpected, t.ms, f"unexpected={unexpected}")
 
+        # ── Keyboard focus-visible system ───────────────────────────────────
+        # Real Tab presses (trusted keyboard events — only Playwright can send
+        # these) must land a consistent 2px primary ring on interactive
+        # controls. Guards the Stage 1 accessibility work.
+        with _Timer() as t:
+            page.evaluate("() => document.activeElement && document.activeElement.blur()")
+            ring_results = []
+            for _ in range(12):
+                page.keyboard.press("Tab")
+                info = page.evaluate("""() => {
+                    const el = document.activeElement;
+                    if (!el || el === document.body) return null;
+                    const cs = getComputedStyle(el);
+                    const isTextField = /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
+                    return { tag: el.tagName, id: el.id || el.className.split(' ')[0],
+                             focusVisible: el.matches(':focus-visible'),
+                             outline: cs.outlineStyle + ' ' + cs.outlineWidth,
+                             boxShadow: cs.boxShadow !== 'none',
+                             isTextField };
+                }""")
+                if info:
+                    ring_results.append(info)
+            # Every focused control must show SOME keyboard affordance:
+            # non-text controls the outline ring; text fields their border+ring.
+            bad = [r for r in ring_results
+                   if r["focusVisible"]
+                   and not (("solid" in r["outline"] and "2px" in r["outline"])
+                            or (r["isTextField"] and r["boxShadow"]))]
+            covered = sum(1 for r in ring_results if r["focusVisible"])
+        record("a11y: keyboard focus ring on tabbed controls",
+               len(ring_results) > 0 and covered > 0 and not bad, t.ms,
+               f"tabbed={len(ring_results)} focus-visible={covered} "
+               f"missing-ring={[(b['tag'], b['id']) for b in bad]}")
+
         # ── Mobile preview ──────────────────────────────────────────────────
         page.set_viewport_size({"width": 390, "height": 844})
         page.wait_for_timeout(400)
