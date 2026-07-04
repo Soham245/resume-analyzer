@@ -10,6 +10,49 @@ window.addEventListener('unhandledrejection', (e) => {
     console.error('[app-error] unhandled rejection:', reason);
 });
 
+// ── Toast notifications ─────────────────────────────────────────────────
+// Inline, dismissible feedback — replaces alert() so failures explain
+// themselves without hijacking the page.
+function showToast(message, type = 'error', timeoutMs = 7000) {
+    const root = document.getElementById('toast-root');
+    if (!root) return;
+    const toast = document.createElement('div');
+    toast.className = `app-toast app-toast--${type}`;
+    const text = document.createElement('span');
+    text.textContent = message;
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'app-toast__close';
+    close.setAttribute('aria-label', 'Dismiss');
+    close.textContent = '×';
+    close.addEventListener('click', () => toast.remove());
+    toast.append(text, close);
+    root.appendChild(toast);
+    if (timeoutMs) setTimeout(() => toast.remove(), timeoutMs);
+}
+
+// ── Friendly error copy ──────────────────────────────────────────────────
+// Maps technical failures to plain language. Short, human backend messages
+// pass through; status codes and network jargon never reach the user.
+function friendlyErrorMessage(error, fallback = 'Something unexpected went wrong. Please try again.') {
+    if (error && error.name === 'TimeoutError') {
+        return 'This is taking longer than expected and timed out. Check your connection and try again.';
+    }
+    const msg = String((error && error.message) || error || '');
+    if (/failed to fetch|networkerror|load failed|ERR_/i.test(msg)) {
+        return "We couldn't reach the server. Check your internet connection and try again.";
+    }
+    if (/error\s*5\d\d|server error|internal server/i.test(msg)) {
+        return 'Something went wrong on our side. Please try again in a moment.';
+    }
+    // Pass through short human-readable messages (e.g. validation feedback);
+    // anything long or technical-looking gets the generic fallback.
+    if (msg && msg.length <= 120 && !/error \d|exception|traceback|undefined|null/i.test(msg)) {
+        return msg;
+    }
+    return fallback;
+}
+
 // ── Display fallback (slim) ─────────────────────────────────────────────
 // Backend is the source of truth for canonical names. This formatter only
 // runs against (a) raw user input from "add skill", and (b) any string the
@@ -132,13 +175,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiUrl = (path) => `${API_BASE_URL}${path}`;
 
     function fetchWithTimeout(url, options = {}, timeout = 25000) {
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), timeout);
-        
-        return fetch(url, {
-            ...options,
-            signal: options.signal || controller.signal
-        }).finally(() => clearTimeout(id));
+        // Combine the caller's abort signal with a timeout signal so BOTH work.
+        // (Previously a caller-provided signal silently disabled the timeout,
+        // and timeout aborts were indistinguishable from user-initiated ones —
+        // timeouts died without any message to the user.)
+        // AbortSignal.timeout rejects with a DOMException named 'TimeoutError',
+        // which callers can distinguish from 'AbortError'.
+        const signals = [];
+        if (options.signal) signals.push(options.signal);
+        if (typeof AbortSignal.timeout === 'function') signals.push(AbortSignal.timeout(timeout));
+        const signal = (signals.length > 1 && typeof AbortSignal.any === 'function')
+            ? AbortSignal.any(signals)
+            : signals[0];
+        return fetch(url, { ...options, signal });
     }
 
     // UI Elements
@@ -2042,9 +2091,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 setCurrentData(structured);
                 renderResume();
 
-                // No JD → hide scorecard & results panel, show builder directly
+                // No JD → hide scorecard & results panel, show builder directly.
+                // The toolbar score chip hides too: no JD means no score exists.
                 const scoreCard = document.getElementById('scoreCard');
                 if (scoreCard) scoreCard.classList.add('hidden');
+                document.getElementById('toolbar-score-chip')?.classList.add('hidden');
                 resultsSection.classList.add('hidden');
                 builderSection.classList.remove('hidden');
                 requestAnimationFrame(() => autoFitPage());
@@ -2057,7 +2108,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             if (error.name === 'AbortError') return;
-            errorMessage.textContent = `Backend Error: ${error.message}`;
+            errorMessage.textContent = friendlyErrorMessage(error,
+                "We couldn't analyze your resume. Please check the file and try again.");
+            console.error('[analyze]', error);
             errorMessage.classList.remove('hidden');
             setStage('idle');
         } finally {
@@ -2154,7 +2207,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             if (error.name === 'AbortError') return;
             // Surface the real error to the user — not just a generic alert
-            errorMessage.textContent = `Optimize failed: ${error.message}`;
+            errorMessage.textContent = friendlyErrorMessage(error,
+                "The optimization didn't complete. Your analysis is still here — try optimizing again.");
+            console.error('[optimize]', error);
             errorMessage.classList.remove('hidden');
             console.error('[optimize]', error);
         } finally {
@@ -2503,6 +2558,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const grid = document.createElement('div');
         grid.className = 'template-drawer__grid';
 
+        // Zero-results empty state: explain why the grid is blank and offer
+        // the one action that fixes it.
+        if (!templates.length) {
+            const empty = document.createElement('div');
+            empty.className = 'template-drawer__empty';
+            const msg = document.createElement('p');
+            msg.textContent = 'No templates match these filters.';
+            msg.style.margin = '0';
+            const clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.className = 'template-drawer__empty-clear';
+            clearBtn.textContent = 'Clear all filters';
+            clearBtn.addEventListener('click', clearAllFilters);
+            empty.append(msg, clearBtn);
+            grid.appendChild(empty);
+            return grid;
+        }
+
         templates.forEach(tpl => {
             const card = document.createElement('button');
             card.type = 'button';
@@ -2736,10 +2809,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
 
-            // No JD in manual mode → hide scorecard
+            // No JD in manual mode → hide scorecard (and the toolbar score
+            // chip — no JD means no score exists)
             if (!hasJobDescription) {
                 const scoreCard = document.getElementById('scoreCard');
                 if (scoreCard) scoreCard.classList.add('hidden');
+                document.getElementById('toolbar-score-chip')?.classList.add('hidden');
             }
 
             builderSection.classList.remove('hidden');
@@ -2755,7 +2830,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             if (error.name === 'AbortError') return;
-            errorMessage.textContent = `Generation failed: ${error.message}`;
+            errorMessage.textContent = friendlyErrorMessage(error,
+                "We couldn't generate your resume. Your inputs are saved — try again in a moment.");
             errorMessage.classList.remove('hidden');
             console.error('[generate-from-inputs]', error);
             setStage('idle');
@@ -2837,13 +2913,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const signal = controllers.pdf.signal;
         const requestId = ++latestRequestIds.pdf;
 
-        // ── Enter loading state (tied to the export lifecycle) ───────────────
+        // ── Export state sequence ─────────────────────────────────────────────
+        // idle → preparing → exporting → success | failure (retry)
         const pdfLabel = downloadPdfBtn.querySelector('.download-pdf-btn__label');
-        const pdfLabelText = pdfLabel ? pdfLabel.textContent : '';
-        downloadPdfBtn.disabled = true;
-        downloadPdfBtn.classList.add('is-loading');
-        downloadPdfBtn.setAttribute('aria-busy', 'true');
-        if (pdfLabel) pdfLabel.textContent = 'Downloading…';
+        const setExportState = (state, label) => {
+            downloadPdfBtn.classList.remove('is-loading', 'is-success', 'is-error');
+            downloadPdfBtn.disabled = (state === 'preparing' || state === 'exporting');
+            downloadPdfBtn.setAttribute('aria-busy', String(downloadPdfBtn.disabled));
+            if (state === 'preparing' || state === 'exporting') downloadPdfBtn.classList.add('is-loading');
+            if (state === 'success') downloadPdfBtn.classList.add('is-success');
+            if (state === 'failure') downloadPdfBtn.classList.add('is-error');
+            if (pdfLabel && label) pdfLabel.textContent = label;
+        };
+        setExportState('preparing', 'Preparing…');
 
         // ── Render the resume FRESH from data at native A4 ───────────────────
         // CRITICAL: never export the live preview DOM. The preview carries
@@ -2858,7 +2940,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const exportHost = document.createElement('div');
         exportHost.innerHTML = ResumeTemplates[exportTpl](exportData, activeSections);
         const clone = exportHost.querySelector('.resume-wrapper');
-        if (!clone) { alert('Could not prepare the resume for export.'); return; }
+        if (!clone) {
+            setExportState('failure', 'Try again');
+            downloadPdfBtn.disabled = false;
+            showToast("We couldn't prepare your resume for export. Try switching templates, or refresh the page and try again.");
+            return;
+        }
 
         // Belt-and-suspenders: ensure no transform survives onto the export node.
         clone.style.transform       = '';
@@ -2973,6 +3060,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </head><body>${clone.outerHTML}</body></html>`;
 
         try {
+            setExportState('exporting', 'Exporting…');
             const res = await fetch(apiUrl('/generate-pdf'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2988,18 +3076,23 @@ document.addEventListener('DOMContentLoaded', () => {
             a.href = url; a.download = 'Optimized_ATS_Resume.pdf';
             document.body.appendChild(a); a.click(); a.remove();
             window.URL.revokeObjectURL(url);
+            // Success: confirm on the button, then settle back to idle.
+            if (requestId === latestRequestIds.pdf) {
+                setExportState('success', 'Saved ✓');
+                downloadPdfBtn.disabled = false;
+                setTimeout(() => {
+                    if (requestId === latestRequestIds.pdf) setExportState('idle', 'Download');
+                }, 2400);
+            }
         } catch (error) {
             if (error.name === 'AbortError') return;
-            alert('Failed to generate PDF. Please try again.');
-        } finally {
-            // Exit loading state only when the export truly completes or fails —
-            // restore exactly the prior state so a retry is possible.
             if (requestId === latestRequestIds.pdf) {
+                // Failure: keep a retry affordance on the button and explain
+                // what happened in plain language.
+                setExportState('failure', 'Try again');
                 downloadPdfBtn.disabled = false;
-                downloadPdfBtn.classList.remove('is-loading');
-                downloadPdfBtn.removeAttribute('aria-busy');
-                const lbl = downloadPdfBtn.querySelector('.download-pdf-btn__label');
-                if (lbl) lbl.textContent = pdfLabelText || 'Download';
+                showToast(friendlyErrorMessage(error,
+                    "The PDF couldn't be generated. Your resume is safe — click \"Try again\" to retry."));
             }
         }
     });
@@ -3166,6 +3259,18 @@ function updateScoreCard(payload) {
     animateInto('scoreValue', safeOptScore);
     animateInto('optimizedScoreValue', safeOptScore);
     animateInto('confidenceValue', safeConfidence);
+
+    // Live score chip in the Studio toolbar — every score update (optimize,
+    // rescore-on-edit, manual flow) funnels through here, so the chip is
+    // always in sync with the scorecard.
+    const scoreChip = document.getElementById('toolbar-score-chip');
+    if (scoreChip) {
+        scoreChip.classList.remove('hidden', 'toolbar-score-chip--good',
+                                   'toolbar-score-chip--mid', 'toolbar-score-chip--low');
+        const band = safeOptScore >= 75 ? 'good' : safeOptScore >= 50 ? 'mid' : 'low';
+        scoreChip.classList.add(`toolbar-score-chip--${band}`);
+        animateInto('toolbar-score-value', safeOptScore);
+    }
 
     const scoreLabel = document.getElementById('scoreLabel');
     if (scoreLabel) scoreLabel.textContent = payload.optimized_label || "Analyzed";

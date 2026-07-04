@@ -682,6 +682,149 @@ select:focus-visible {
     box-shadow: 0 0 0 4px rgba(139, 111, 71, 0.12);
 }
 
+/* ── Phase indicator (Upload → Report → Studio) ──────────────────────────
+   Pure CSS state machine driven by body classes:
+   default → Upload · body.stage-analyzed → Report · body.builder-active → Studio */
+.phase-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-faint);
+    margin-bottom: 2px;
+}
+.phase-indicator__sep { color: var(--color-border-strong); font-weight: 400; }
+.phase-indicator__step { transition: color 0.25s ease; }
+
+/* Active phase highlighting */
+body:not(.stage-analyzed) .phase-indicator__step[data-phase="upload"],
+body.stage-analyzed:not(.builder-active) .phase-indicator__step[data-phase="report"],
+body.builder-active .phase-indicator__step[data-phase="studio"] {
+    color: var(--color-primary-text);
+}
+/* Completed phases get a slightly stronger tone than upcoming ones */
+body.stage-analyzed .phase-indicator__step[data-phase="upload"],
+body.builder-active .phase-indicator__step[data-phase="report"] {
+    color: var(--color-text-muted);
+}
+
+/* ── Toolbar score chip (live ATS score in the Studio) ───────────────────── */
+.toolbar-score-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-surface-strong);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.toolbar-score-chip.hidden { display: none; }
+.toolbar-score-chip strong {
+    font-size: 0.82rem;
+    color: var(--color-text);
+    font-variant-numeric: tabular-nums;
+}
+.toolbar-score-chip__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-border-strong);
+    transition: background 0.3s ease;
+}
+.toolbar-score-chip--good .toolbar-score-chip__dot { background: var(--color-success); }
+.toolbar-score-chip--mid  .toolbar-score-chip__dot { background: var(--color-warning); }
+.toolbar-score-chip--low  .toolbar-score-chip__dot { background: var(--color-danger); }
+
+/* ── Toasts (inline feedback replacing alert()) ──────────────────────────── */
+.toast-root {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: min(360px, calc(100vw - 40px));
+}
+.app-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-strong);
+    box-shadow: 0 8px 28px rgba(69, 48, 28, 0.16);
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--color-text);
+    animation: toastIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.app-toast--error   { border-left: 3px solid var(--color-danger); }
+.app-toast--success { border-left: 3px solid var(--color-success); }
+.app-toast__close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-faint);
+    font-size: 15px;
+    line-height: 1;
+    padding: 0 2px;
+    flex-shrink: 0;
+}
+.app-toast__close:hover { color: var(--color-text); }
+@keyframes toastIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Export button state sequence ────────────────────────────────────────── */
+/* ID selectors: the base button style is `#download-pdf-btn` (specificity
+   1-0-0), so the state classes need the ID to win. */
+#download-pdf-btn.is-success {
+    background: var(--color-success);
+    border-color: var(--color-success);
+}
+#download-pdf-btn.is-error {
+    background: var(--color-danger);
+    border-color: var(--color-danger);
+}
+
+/* ── Template drawer: zero-results empty state ───────────────────────────── */
+.template-drawer__empty {
+    grid-column: 1 / -1;   /* span the full template grid width */
+    text-align: center;
+    padding: 28px 16px;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+.template-drawer__empty-clear {
+    margin-top: 10px;
+    padding: 7px 16px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-strong);
+    color: var(--color-text);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.template-drawer__empty-clear:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary-text);
+}
+
 select.field-input {
     appearance: none;
     padding-right: 36px;

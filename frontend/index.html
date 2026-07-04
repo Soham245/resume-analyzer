@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <title>AI Resume Analyzer</title>
-    <link rel="stylesheet" href="style.css?v=20260609k">
+    <link rel="stylesheet" href="style.css?v=20260609l">
     <!-- PDF.js for cross-device PDF rendering (mobile browsers lack inline iframe PDF support) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
@@ -25,6 +25,15 @@
     </header>
 
     <main class="app-shell">
+
+        <!-- Phase indicator: CSS-driven via body.stage-analyzed / body.builder-active -->
+        <nav class="phase-indicator" aria-label="Workflow progress">
+            <span class="phase-indicator__step" data-phase="upload">Upload</span>
+            <span class="phase-indicator__sep" aria-hidden="true">→</span>
+            <span class="phase-indicator__step" data-phase="report">Report</span>
+            <span class="phase-indicator__sep" aria-hidden="true">→</span>
+            <span class="phase-indicator__step" data-phase="studio">Studio</span>
+        </nav>
 
         <!-- ─────────────────────────────────────────────────────────────────
              INPUT SECTION (Stage 1 — Idle)
@@ -530,6 +539,11 @@
                             </svg>
                         </button>
                         <span class="workspace-toolbar__heading">Resume Workspace</span>
+                        <span id="toolbar-score-chip" class="toolbar-score-chip hidden"
+                              title="Live ATS match score — updates as you edit">
+                            <span class="toolbar-score-chip__dot" aria-hidden="true"></span>
+                            ATS <strong id="toolbar-score-value">0</strong>
+                        </span>
                         <p class="workspace-toolbar__trust workspace-toolbar__trust--sticky-only">
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                             AI never invents experience or qualifications.
@@ -642,8 +656,11 @@
         </aside>
     </main>
 
+    <!-- Toast notifications (error/success feedback without alert()) -->
+    <div id="toast-root" class="toast-root" aria-live="polite"></div>
+
     <script src="templates.js?v=20260609e"></script>
-    <script src="script.js?v=20260609k"></script>
+    <script src="script.js?v=20260609l"></script>
 </body>
 
 </html>
