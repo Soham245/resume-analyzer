@@ -36,6 +36,18 @@
     --space-4: 32px;
     --space-5: 40px;
     --space-6: 48px;
+    /* ── Studio canvas (the "desk" the resume sheet sits on) ── */
+    --color-canvas: #e3dacd;
+    --shadow-page: 0 1px 2px rgba(69, 48, 28, 0.10),
+                   0 6px 18px rgba(69, 48, 28, 0.12),
+                   0 16px 44px rgba(69, 48, 28, 0.08);
+    /* ── Motion language: one curve, three durations ──
+       Only opacity / transform / box-shadow may animate with these.
+       (Width/height/layout animations reintroduce the Stage 0 jitter class.) */
+    --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --dur-fast: 120ms;   /* hovers, presses, toggles      */
+    --dur-base: 200ms;   /* panels, cards, reveals        */
+    --dur-slow: 320ms;   /* drawers, stage transitions    */
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -71,7 +83,17 @@ textarea {
 }
 
 button:not(:disabled) {
-    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+    transition: background-color var(--dur-base) var(--ease-standard),
+                border-color var(--dur-base) var(--ease-standard),
+                color var(--dur-base) var(--ease-standard),
+                box-shadow var(--dur-base) var(--ease-standard),
+                transform var(--dur-fast) var(--ease-standard);
+}
+
+/* Press pattern: every enabled button compresses slightly on press.
+   Transform-only — no layout impact. */
+button:not(:disabled):active {
+    transform: scale(0.98);
 }
 
 button:active:not(:disabled) {
@@ -767,7 +789,7 @@ body.builder-active .phase-indicator__step[data-phase="report"] {
     font-size: 0.85rem;
     line-height: 1.45;
     color: var(--color-text);
-    animation: toastIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+    animation: toastIn var(--dur-base) var(--ease-standard);
 }
 .app-toast--error   { border-left: 3px solid var(--color-danger); }
 .app-toast--success { border-left: 3px solid var(--color-success); }
@@ -1772,7 +1794,9 @@ select.field-input {
     background: transparent;
     color: var(--color-text-muted);
     cursor: pointer;
-    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+    transition: background var(--dur-fast) var(--ease-standard),
+                color var(--dur-fast) var(--ease-standard),
+                box-shadow var(--dur-fast) var(--ease-standard);
     white-space: nowrap;
 }
 .length-pill:hover:not(.length-pill--active) {
@@ -1823,7 +1847,9 @@ select.field-input {
     background: rgba(139, 111, 71, 0.1);
     color: var(--color-primary);
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    transition: background-color var(--dur-fast) var(--ease-standard),
+                color var(--dur-fast) var(--ease-standard),
+                border-color var(--dur-fast) var(--ease-standard);
 }
 
 .sec-pill:hover {
@@ -1907,15 +1933,26 @@ select.field-input {
 .resume-frame {
     display: flex;
     justify-content: center;
-    background: #ebe4dc;
-    border: 1px solid var(--color-border);
+    /* Desk treatment: a distinctly darker canvas + generous margin makes the
+       white sheet read as a real page on a workspace, not content in a box.
+       Inset shadow adds gentle depth at the desk edges. */
+    background: var(--color-canvas);
+    border: 1px solid var(--color-border-strong);
     border-radius: var(--radius-lg);
-    padding: 16px;
+    padding: 32px;
+    box-shadow: inset 0 1px 6px rgba(69, 48, 28, 0.06);
     /* Desktop: no nested scroll — the page is the single scroll container.
        (overflow-x:auto would force overflow-y to compute to `auto` too, making
        this a stray both-axis scroller competing with the page.) The mobile
        breakpoint re-enables overflow:auto for the pannable zoom viewport. */
     overflow: visible;
+}
+
+/* The sheet: a paper shadow on the rendered A4 wrapper. Box-shadow doesn't
+   affect layout (scaling/pagination untouched) and lives outside the export
+   path — the PDF payload serializes the wrapper's HTML, not this stylesheet. */
+#resume-document .resume-wrapper {
+    box-shadow: var(--shadow-page);
 }
 
 #resume-document {
@@ -2089,7 +2126,8 @@ select.field-input {
 }
 
 .hover-lift {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform var(--dur-base) var(--ease-standard),
+                box-shadow var(--dur-base) var(--ease-standard);
 }
 
 .hover-lift:hover {
@@ -2098,7 +2136,10 @@ select.field-input {
 }
 
 .smooth-ui {
-    transition: all 0.2s ease;
+    /* Restricted from `all` — layout properties must never animate. */
+    transition: opacity var(--dur-base) var(--ease-standard),
+                transform var(--dur-base) var(--ease-standard),
+                box-shadow var(--dur-base) var(--ease-standard);
 }
 
 .loading-state {
@@ -2433,9 +2474,9 @@ body.builder-active .results-back-nav { display: none; }
            (builder-surface has padding:0 → child sits at the card edge). */
         border-radius: var(--radius-xl) var(--radius-xl) 0 0;
         /* Morph properties — border-radius animates to 0 when stuck. */
-        transition: box-shadow 0.25s ease,
-                    background-color 0.25s ease,
-                    border-radius 0.25s ease;
+        transition: box-shadow var(--dur-base) var(--ease-standard),
+                    background-color var(--dur-base) var(--ease-standard),
+                    border-radius var(--dur-base) var(--ease-standard);
     }
 
     /* ── Stuck (morphed) state ──
@@ -2815,7 +2856,7 @@ body.builder-active .results-back-nav { display: none; }
     display: flex;
     flex-direction: column;
     transform: translateX(100%);
-    transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: transform var(--dur-slow) var(--ease-standard);
     overflow: hidden;
 }
 
@@ -3063,21 +3104,21 @@ body.builder-active .results-back-nav { display: none; }
     /* No transition while actively following cursor */
 }
 .editor-entry-card.is-settling {
-    transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-                box-shadow 0.32s ease,
-                border-color 0.32s ease,
-                opacity 0.32s ease;
+    transition: transform var(--dur-slow) var(--ease-standard),
+                box-shadow var(--dur-slow) var(--ease-standard),
+                border-color var(--dur-slow) var(--ease-standard),
+                opacity var(--dur-slow) var(--ease-standard);
     box-shadow: 0 2px 10px rgba(69, 48, 28, 0.06);
     border-color: var(--color-border);
 }
 .is-drag-active .editor-entry-card:not(.is-dragging) {
-    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-                opacity 0.2s ease;
+    transition: transform var(--dur-slow) var(--ease-standard),
+                opacity var(--dur-base) var(--ease-standard);
     opacity: 0.55;
 }
 .is-drag-active .editor-entry-card:not(.is-dragging).is-settling {
-    transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-                opacity 0.32s ease;
+    transition: transform var(--dur-slow) var(--ease-standard),
+                opacity var(--dur-slow) var(--ease-standard);
     opacity: 1;
 }
 
@@ -3407,7 +3448,7 @@ body.builder-active .results-back-nav { display: none; }
     display: flex;
     flex-direction: column;
     transform: translateX(-100%);
-    transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: transform var(--dur-slow) var(--ease-standard);
     overflow: hidden;
 }
 .template-drawer.is-open {
@@ -3720,9 +3761,16 @@ body.builder-active .results-back-nav { display: none; }
     background: var(--color-surface-strong);
     cursor: pointer;
     overflow: hidden;
-    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    transition: border-color var(--dur-base) var(--ease-standard),
+                box-shadow var(--dur-base) var(--ease-standard),
+                transform var(--dur-base) var(--ease-standard);
     display: flex;
     flex-direction: column;
+}
+/* Press: settle back down (raise pattern inverts). :not(:disabled) lifts
+   specificity above the global button press rule. */
+.template-card:not(:disabled):active {
+    transform: translateY(0) scale(0.99);
 }
 .template-card:hover {
     border-color: var(--color-border-strong);
